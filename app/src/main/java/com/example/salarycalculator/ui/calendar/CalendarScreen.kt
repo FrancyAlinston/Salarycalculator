@@ -1,20 +1,24 @@
 package com.example.salarycalculator.ui.calendar
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.salarycalculator.data.ShiftEvent
-import com.example.salarycalculator.data.ShiftType
+import com.example.salarycalculator.data.ShiftTemplate
 import com.example.salarycalculator.domain.SalaryRepository
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -27,7 +31,8 @@ fun CalendarScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val datePickerState = rememberDatePickerState()
     val scope = rememberCoroutineScope()
 
-    var showAddDialog by remember { mutableStateOf(false) }
+    val templates by salaryRepository.getAllTemplates().collectAsState(initial = emptyList())
+    var selectedTemplate by remember { mutableStateOf<ShiftTemplate?>(null) }
     
     val selectedDateStr = remember(datePickerState.selectedDateMillis) {
         datePickerState.selectedDateMillis?.let {
@@ -37,11 +42,48 @@ fun CalendarScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
 
     val shiftsOnSelectedDate by salaryRepository.getShiftsByDate(selectedDateStr).collectAsState(initial = emptyList())
 
+    // The Paint Mechanic: When a date is selected, if a template is active, instantly apply it.
+    LaunchedEffect(datePickerState.selectedDateMillis) {
+        val millis = datePickerState.selectedDateMillis
+        val template = selectedTemplate
+        if (millis != null && template != null) {
+            val dateStr = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate().toString()
+            salaryRepository.addShift(ShiftEvent(
+                date = dateStr,
+                templateId = template.id,
+                hours = template.defaultHours,
+                hourlyRate = template.defaultRate
+            ))
+            // We do NOT clear selectedTemplate here so they can keep "painting" other days!
+        }
+    }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Shift")
+        bottomBar = {
+            Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                Text("Select a Template to Paint:", style = MaterialTheme.typography.labelLarge)
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item {
+                        FilterChip(
+                            selected = selectedTemplate == null,
+                            onClick = { selectedTemplate = null },
+                            label = { Text("None (View Only)") }
+                        )
+                    }
+                    items(templates) { template ->
+                        FilterChip(
+                            selected = selectedTemplate?.id == template.id,
+                            onClick = { selectedTemplate = template },
+                            label = { Text(template.name) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(template.color).copy(alpha = 0.2f),
+                                selectedLabelColor = Color(template.color)
+                            )
+                        )
+                    }
+                }
             }
         }
     ) { padding ->
@@ -66,20 +108,30 @@ fun CalendarScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
             )
 
             LazyColumn(
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().weight(1f)
             ) {
                 items(shiftsOnSelectedDate) { shift ->
+                    val template = templates.find { it.id == shift.templateId }
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Row(
                             modifier = Modifier.padding(16.dp).fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
-                                Text(shift.type.name.replace("_", " "), style = MaterialTheme.typography.titleMedium)
-                                Text("${shift.hours} hours", style = MaterialTheme.typography.bodyMedium)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(template?.color?.let { Color(it) } ?: Color.Gray)
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(template?.name ?: "Unknown Template", style = MaterialTheme.typography.titleMedium)
+                                    Text("${shift.hours} hours", style = MaterialTheme.typography.bodyMedium)
+                                }
                             }
                             IconButton(onClick = { scope.launch { salaryRepository.deleteShift(shift) } }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
@@ -89,106 +141,10 @@ fun CalendarScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 }
                 if (shiftsOnSelectedDate.isEmpty()) {
                     item {
-                        Text("No events for this date.")
+                        Text("No events for this date.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         }
     }
-
-    if (showAddDialog) {
-        AddShiftDialog(
-            dateStr = selectedDateStr,
-            onDismiss = { showAddDialog = false },
-            onSave = { type, hours, rate ->
-                scope.launch {
-                    salaryRepository.addShift(ShiftEvent(
-                        date = selectedDateStr,
-                        type = type,
-                        hours = hours,
-                        hourlyRate = rate
-                    ))
-                    showAddDialog = false
-                }
-            }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AddShiftDialog(
-    dateStr: String,
-    onDismiss: () -> Unit,
-    onSave: (ShiftType, Double, Double?) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var selectedType by remember { mutableStateOf(ShiftType.WORKING_DAY) }
-    var hoursInput by remember { mutableStateOf("") }
-    var customRateInput by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add Event for $dateStr") },
-        text = {
-            Column {
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
-                ) {
-                    OutlinedTextField(
-                        value = selectedType.name.replace("_", " "),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Event Type") },
-                        modifier = Modifier.menuAnchor()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
-                    ) {
-                        ShiftType.entries.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type.name.replace("_", " ")) },
-                                onClick = {
-                                    selectedType = type
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                OutlinedTextField(
-                    value = hoursInput,
-                    onValueChange = { hoursInput = it },
-                    label = { Text("Duration (Hours / Units)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = customRateInput,
-                    onValueChange = { customRateInput = it },
-                    label = { Text("Custom Hourly Rate (£) (Optional)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                val hours = hoursInput.toDoubleOrNull() ?: 0.0
-                val rate = customRateInput.toDoubleOrNull()
-                onSave(selectedType, hours, rate)
-            }) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
 }

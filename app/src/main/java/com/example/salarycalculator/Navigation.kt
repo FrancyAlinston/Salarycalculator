@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -24,6 +25,7 @@ import com.example.salarycalculator.domain.SalaryRepository
 import com.example.salarycalculator.ui.calendar.CalendarScreen
 import com.example.salarycalculator.ui.report.ReportScreen
 import com.example.salarycalculator.ui.settings.SettingsScreen
+import com.example.salarycalculator.ui.templates.TemplateScreen
 
 @Composable
 fun MainNavigation(salaryRepository: SalaryRepository) {
@@ -37,6 +39,12 @@ fun MainNavigation(salaryRepository: SalaryRepository) {
                   onClick = { currentTab = Calendar },
                   icon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") },
                   label = { Text("Duty Rota") }
+              )
+              NavigationBarItem(
+                  selected = currentTab == Templates,
+                  onClick = { currentTab = Templates },
+                  icon = { Icon(Icons.Default.List, contentDescription = "Templates") },
+                  label = { Text("Templates") }
               )
               NavigationBarItem(
                   selected = currentTab == Report,
@@ -61,6 +69,7 @@ fun MainNavigation(salaryRepository: SalaryRepository) {
         onBack = { backStack.removeLastOrNull() },
         entryProvider = entryProvider {
             entry<Calendar> { CalendarScreen(salaryRepository, Modifier.padding(padding)) }
+            entry<Templates> { TemplateScreen(salaryRepository, Modifier.padding(padding)) }
             entry<Report> { ReportScreen(salaryRepository, Modifier.padding(padding)) }
             entry<Settings> { SettingsScreen(salaryRepository, Modifier.padding(padding)) }
         }

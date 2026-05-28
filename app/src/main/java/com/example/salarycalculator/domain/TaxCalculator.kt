@@ -2,13 +2,21 @@ package com.example.salarycalculator.domain
 
 import kotlin.math.max
 
+data class TemplateEarnings(
+    val templateName: String,
+    val units: Double,
+    val rate: Double,
+    val amount: Double
+)
+
 data class SalaryReport(
     val grossPay: Double,
     val totalHours: Double,
     val taxablePay: Double,
     val incomeTax: Double,
     val nationalInsurance: Double,
-    val netPay: Double
+    val netPay: Double,
+    val earningsBreakdown: List<TemplateEarnings> = emptyList()
 )
 
 object TaxCalculator {

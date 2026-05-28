@@ -55,12 +55,24 @@ fun ReportScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modifi
         salaryReport?.let { report ->
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    Text("Payments Breakdown", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    report.earningsBreakdown.forEach { earnings ->
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(earnings.templateName, modifier = Modifier.weight(1f))
+                            Text("${earnings.units} u", modifier = Modifier.weight(0.5f))
+                            Text("£${earnings.rate}", modifier = Modifier.weight(0.5f))
+                            Text("£${"%.2f".format(earnings.amount)}", modifier = Modifier.weight(0.5f))
+                        }
+                    }
+
+                    Divider(modifier = Modifier.padding(vertical = 16.dp))
                     Text("Total Hours: ${report.totalHours}", style = MaterialTheme.typography.bodyLarge)
-                    Text("Gross Pay: £${"%.2f".format(report.grossPay)}", style = MaterialTheme.typography.bodyLarge)
+                    Text("Gross Pay: £${"%.2f".format(report.grossPay)}", style = MaterialTheme.typography.titleMedium)
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
                     Text("Taxable Pay: £${"%.2f".format(report.taxablePay)}", style = MaterialTheme.typography.bodyMedium)
-                    Text("Estimated Income Tax: £${"%.2f".format(report.incomeTax)}", color = MaterialTheme.colorScheme.error)
-                    Text("Estimated National Insurance: £${"%.2f".format(report.nationalInsurance)}", color = MaterialTheme.colorScheme.error)
+                    Text("PAYE Tax: £${"%.2f".format(report.incomeTax)}", color = MaterialTheme.colorScheme.error)
+                    Text("National Insurance: £${"%.2f".format(report.nationalInsurance)}", color = MaterialTheme.colorScheme.error)
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
                     Text("Net Pay: £${"%.2f".format(report.netPay)}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
                 }

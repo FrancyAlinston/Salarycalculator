@@ -6,3 +6,4 @@ import kotlinx.serialization.Serializable
 @Serializable data object Calendar : NavKey
 @Serializable data object Report : NavKey
 @Serializable data object Settings : NavKey
+@Serializable data object Templates : NavKey

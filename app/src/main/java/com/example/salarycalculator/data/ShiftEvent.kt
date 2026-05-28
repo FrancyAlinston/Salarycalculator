@@ -2,20 +2,14 @@ package com.example.salarycalculator.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.time.LocalDate
+import java.util.UUID
 
-@Entity(tableName = "shift_events")
+@Entity(tableName = "shifts")
 data class ShiftEvent(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val date: String, // Stored as ISO string (e.g., "2024-05-28")
-    val type: ShiftType,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
+    val date: String,
+    val templateId: String,
     val hours: Double,
-    val hourlyRate: Double? = null // Null means use default rate from settings
+    val hourlyRate: Double? = null,
+    val notes: String = ""
 )
-
-enum class ShiftType {
-    WORKING_DAY,
-    ANNUAL_LEAVE,
-    OVERTIME,
-    CUSTOM_SHIFT
-}

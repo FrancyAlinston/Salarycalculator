@@ -6,10 +6,10 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [ShiftEvent::class], version = 1, exportSchema = false)
-@TypeConverters(Converters::class)
+@Database(entities = [ShiftEvent::class, ShiftTemplate::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun shiftDao(): ShiftDao
+    abstract fun templateDao(): TemplateDao
 
     companion object {
         @Volatile

@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
     
     val database = AppDatabase.getDatabase(this)
     val settingsRepo = SettingsRepository(this)
-    val salaryRepo = SalaryRepository(database.shiftDao(), settingsRepo)
+    val salaryRepo = SalaryRepository(database.shiftDao(), database.templateDao(), settingsRepo)
 
     enableEdgeToEdge()
     setContent {

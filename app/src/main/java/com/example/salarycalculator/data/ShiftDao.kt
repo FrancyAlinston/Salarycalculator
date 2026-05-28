@@ -10,13 +10,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ShiftDao {
-    @Query("SELECT * FROM shift_events ORDER BY date ASC")
+    @Query("SELECT * FROM shifts ORDER BY date ASC")
     fun getAllShifts(): Flow<List<ShiftEvent>>
 
-    @Query("SELECT * FROM shift_events WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC")
+    @Query("SELECT * FROM shifts WHERE date BETWEEN :startDate AND :endDate ORDER BY date ASC")
     fun getShiftsBetweenDates(startDate: String, endDate: String): Flow<List<ShiftEvent>>
     
-    @Query("SELECT * FROM shift_events WHERE date = :date")
+    @Query("SELECT * FROM shifts WHERE date = :date")
     fun getShiftsByDate(date: String): Flow<List<ShiftEvent>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
