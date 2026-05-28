@@ -29,41 +29,51 @@ import com.example.salarycalculator.ui.templates.TemplateScreen
 
 @Composable
 fun MainNavigation(salaryRepository: SalaryRepository) {
-  var currentTab by remember { mutableStateOf<NavKey>(Calendar) }
+  val backStack = rememberNavBackStack(Calendar)
+  val currentTab = backStack.lastOrNull() ?: Calendar
 
   Scaffold(
       bottomBar = {
           NavigationBar {
               NavigationBarItem(
                   selected = currentTab == Calendar,
-                  onClick = { currentTab = Calendar },
+                  onClick = { 
+                      backStack.clear()
+                      backStack.add(Calendar)
+                  },
                   icon = { Icon(Icons.Default.DateRange, contentDescription = "Calendar") },
                   label = { Text("Duty Rota") }
               )
               NavigationBarItem(
                   selected = currentTab == Templates,
-                  onClick = { currentTab = Templates },
+                  onClick = { 
+                      backStack.clear()
+                      backStack.add(Templates)
+                  },
                   icon = { Icon(Icons.Default.List, contentDescription = "Templates") },
                   label = { Text("Templates") }
               )
               NavigationBarItem(
                   selected = currentTab == Report,
-                  onClick = { currentTab = Report },
+                  onClick = { 
+                      backStack.clear()
+                      backStack.add(Report)
+                  },
                   icon = { Icon(Icons.Default.Info, contentDescription = "Report") },
                   label = { Text("Report") }
               )
               NavigationBarItem(
                   selected = currentTab == Settings,
-                  onClick = { currentTab = Settings },
+                  onClick = { 
+                      backStack.clear()
+                      backStack.add(Settings)
+                  },
                   icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                   label = { Text("Settings") }
               )
           }
       }
   ) { padding ->
-      // Extremely simple navigation for tabs
-      val backStack = rememberNavBackStack(currentTab)
-      
       NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
