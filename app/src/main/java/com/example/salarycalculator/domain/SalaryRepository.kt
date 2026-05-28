@@ -1,110 +1,40 @@
 package com.example.salarycalculator.domain
 
-import com.example.salarycalculator.data.SettingsRepository
-import com.example.salarycalculator.data.ShiftDao
-import com.example.salarycalculator.data.ShiftEvent
-import com.example.salarycalculator.data.TemplateDao
-import com.example.salarycalculator.data.ShiftTemplate
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.map
 
-class SalaryRepository(
-    private val shiftDao: ShiftDao,
-    private val templateDao: TemplateDao,
-    private val settingsRepository: SettingsRepository
-) {
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-    fun getShiftsBetweenDates(startDate: String, endDate: String): Flow<List<ShiftEvent>> {
-        return shiftDao.getShiftsBetweenDates(startDate, endDate)
-    }
+class SalaryRepository(private val context: Context) {
 
-    fun getAllShifts(): Flow<List<ShiftEvent>> {
-        return shiftDao.getAllShifts()
-    }
-    
-    fun getShiftsByDate(date: String): Flow<List<ShiftEvent>> {
-        return shiftDao.getShiftsByDate(date)
-    }
+    private val TAX_CODE_KEY = stringPreferencesKey("tax_code")
+    private val DEFAULT_HOURLY_RATE_KEY = doublePreferencesKey("default_hourly_rate")
 
-    fun getAllTemplates(): Flow<List<ShiftTemplate>> {
-        return templateDao.getAllTemplates()
-    }
-
-    suspend fun addTemplate(template: ShiftTemplate) {
-        withContext(Dispatchers.IO) {
-            templateDao.insertTemplate(template)
+    fun getTaxCode(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[TAX_CODE_KEY] ?: "1257L"
         }
     }
 
-    suspend fun updateTemplate(template: ShiftTemplate) {
-        withContext(Dispatchers.IO) {
-            templateDao.updateTemplate(template)
+    suspend fun setTaxCode(taxCode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[TAX_CODE_KEY] = taxCode
         }
     }
 
-    suspend fun deleteTemplate(template: ShiftTemplate) {
-        withContext(Dispatchers.IO) {
-            templateDao.deleteTemplate(template)
+    fun getDefaultHourlyRate(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[DEFAULT_HOURLY_RATE_KEY] ?: 12.71
         }
     }
 
-    suspend fun addShift(shift: ShiftEvent) {
-        withContext(Dispatchers.IO) {
-            shiftDao.insertShift(shift)
-        }
-    }
-    
-    suspend fun deleteShift(shift: ShiftEvent) {
-        withContext(Dispatchers.IO) {
-            shiftDao.deleteShift(shift)
-        }
-    }
-
-    /**
-     * Calculates the salary report for a given date range.
-     * It observes shifts and settings, and dynamically calculates the total pay.
-     */
-    fun getSalaryReport(startDate: String, endDate: String): Flow<SalaryReport> {
-        val shiftsFlow = shiftDao.getShiftsBetweenDates(startDate, endDate)
-        val defaultRateFlow = settingsRepository.defaultHourlyRateFlow
-        val taxCodeFlow = settingsRepository.taxCodeFlow
-        val templatesFlow = templateDao.getAllTemplates()
-
-        return combine(shiftsFlow, defaultRateFlow, taxCodeFlow, templatesFlow) { shifts, defaultRate, taxCode, templates ->
-            var grossPay = 0.0
-            var totalHours = 0.0
-            
-            val templateMap = templates.associateBy { it.id }
-            val breakdownMap = mutableMapOf<String, TemplateEarnings>()
-
-            for (shift in shifts) {
-                val template = templateMap[shift.templateId]
-                val templateName = template?.name ?: "Basic"
-                // If a shift has no template or hours, fallback to 0. 
-                val hours = shift.hours
-                val rate = shift.hourlyRate ?: template?.defaultRate ?: defaultRate
-                
-                // Subtract unpaid break from hours if applicable
-                val effectiveHours = maxOf(0.0, hours - (template?.unpaidBreakHours ?: 0.0))
-                
-                totalHours += effectiveHours
-                val shiftAmount = effectiveHours * rate
-                grossPay += shiftAmount
-
-                val current = breakdownMap[templateName] ?: TemplateEarnings(templateName, 0.0, rate, 0.0)
-                breakdownMap[templateName] = current.copy(
-                    units = current.units + effectiveHours,
-                    amount = current.amount + shiftAmount
-                )
-            }
-
-            val report = TaxCalculator.calculateTax(grossPay, taxCode, isMonthly = true)
-            report.copy(
-                totalHours = totalHours,
-                earningsBreakdown = breakdownMap.values.toList()
-            )
+    suspend fun setDefaultHourlyRate(rate: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[DEFAULT_HOURLY_RATE_KEY] = rate
         }
     }
 }

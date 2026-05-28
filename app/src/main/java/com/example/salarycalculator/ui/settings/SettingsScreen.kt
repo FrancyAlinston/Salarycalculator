@@ -8,18 +8,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.salarycalculator.data.SettingsRepository
 import com.example.salarycalculator.domain.SalaryRepository
 import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val settingsRepository = remember { SettingsRepository(context) }
     val scope = rememberCoroutineScope()
 
-    val taxCode by settingsRepository.taxCodeFlow.collectAsState(initial = "")
-    val hourlyRate by settingsRepository.defaultHourlyRateFlow.collectAsState(initial = 0.0)
+    val taxCode by salaryRepository.getTaxCode().collectAsState(initial = "")
+    val hourlyRate by salaryRepository.getDefaultHourlyRate().collectAsState(initial = 0.0)
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
@@ -54,9 +51,9 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
         Button(
             onClick = {
                 scope.launch {
-                    settingsRepository.saveTaxCode(inputTaxCode)
+                    salaryRepository.setTaxCode(inputTaxCode)
                     inputHourlyRate.toDoubleOrNull()?.let {
-                        settingsRepository.saveDefaultHourlyRate(it)
+                        salaryRepository.setDefaultHourlyRate(it)
                     }
                 }
             },

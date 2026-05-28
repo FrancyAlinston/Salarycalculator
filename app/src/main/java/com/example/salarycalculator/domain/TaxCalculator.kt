@@ -2,21 +2,12 @@ package com.example.salarycalculator.domain
 
 import kotlin.math.max
 
-data class TemplateEarnings(
-    val templateName: String,
-    val units: Double,
-    val rate: Double,
-    val amount: Double
-)
-
 data class SalaryReport(
     val grossPay: Double,
-    val totalHours: Double,
     val taxablePay: Double,
     val incomeTax: Double,
     val nationalInsurance: Double,
-    val netPay: Double,
-    val earningsBreakdown: List<TemplateEarnings> = emptyList()
+    val netPay: Double
 )
 
 object TaxCalculator {
@@ -31,7 +22,7 @@ object TaxCalculator {
 
     /**
      * Calculates UK Income Tax and National Insurance for a given gross pay in a given period (usually a month).
-     * Note: This uses roughly standard 24/25 UK tax bands for demonstration. 
+     * Note: This uses roughly standard 24/25 UK tax bands.
      */
     fun calculateTax(grossPay: Double, taxCode: String, isMonthly: Boolean = true): SalaryReport {
         // Income Tax
@@ -80,7 +71,6 @@ object TaxCalculator {
 
         return SalaryReport(
             grossPay = grossPay,
-            totalHours = 0.0, // Filled in by caller
             taxablePay = taxablePay,
             incomeTax = incomeTax,
             nationalInsurance = nationalInsurance,
