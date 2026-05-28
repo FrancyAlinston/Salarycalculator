@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,7 +34,7 @@ fun CalendarScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val scope = rememberCoroutineScope()
 
     val templates by salaryRepository.getAllTemplates().collectAsState(initial = emptyList())
-    var selectedTemplate by remember { mutableStateOf<ShiftTemplate?>(null) }
+    var showBottomSheet by remember { mutableStateOf(false) }
     
     val selectedDateStr = remember(datePickerState.selectedDateMillis) {
         datePickerState.selectedDateMillis?.let {
@@ -42,50 +44,18 @@ fun CalendarScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
 
     val shiftsOnSelectedDate by salaryRepository.getShiftsByDate(selectedDateStr).collectAsState(initial = emptyList())
 
-    // The Paint Mechanic: When a date is selected, if a template is active, instantly apply it.
-    LaunchedEffect(datePickerState.selectedDateMillis) {
-        val millis = datePickerState.selectedDateMillis
-        val template = selectedTemplate
-        if (millis != null && template != null) {
-            val dateStr = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate().toString()
-            salaryRepository.addShift(ShiftEvent(
-                date = dateStr,
-                templateId = template.id,
-                hours = template.defaultHours,
-                hourlyRate = template.defaultRate
-            ))
-            // We do NOT clear selectedTemplate here so they can keep "painting" other days!
-        }
-    }
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        bottomBar = {
-            Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                Text("Select a Template to Paint:", style = MaterialTheme.typography.labelLarge)
-                Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    item {
-                        FilterChip(
-                            selected = selectedTemplate == null,
-                            onClick = { selectedTemplate = null },
-                            label = { Text("None (View Only)") }
-                        )
-                    }
-                    items(templates) { template ->
-                        FilterChip(
-                            selected = selectedTemplate?.id == template.id,
-                            onClick = { selectedTemplate = template },
-                            label = { Text(template.name) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(template.color).copy(alpha = 0.2f),
-                                selectedLabelColor = Color(template.color)
-                            )
-                        )
-                    }
-                }
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showBottomSheet = true },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Shift")
             }
         }
+
     ) { padding ->
         Column(
             modifier = Modifier
@@ -142,6 +112,69 @@ fun CalendarScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 if (shiftsOnSelectedDate.isEmpty()) {
                     item {
                         Text("No events for this date.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    "Shift",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 16.dp)
+                )
+                Divider()
+                LazyColumn {
+                    items(templates) { template ->
+                        ListItem(
+                            headlineContent = { Text(template.name) },
+                            supportingContent = { Text("All Day") },
+                            leadingContent = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(template.color))
+                                )
+                            },
+                            modifier = Modifier.clickable {
+                                scope.launch {
+                                    salaryRepository.addShift(ShiftEvent(
+                                        date = selectedDateStr,
+                                        templateId = template.id,
+                                        hours = template.defaultHours,
+                                        hourlyRate = template.defaultRate
+                                    ))
+                                    showBottomSheet = false
+                                }
+                            }
+                        )
+                        Divider()
+                    }
+                    item {
+                        ListItem(
+                            headlineContent = { Text("New Shift") },
+                            leadingContent = {
+                                Icon(Icons.Default.Add, contentDescription = "Add")
+                            },
+                            modifier = Modifier.clickable {
+                                showBottomSheet = false
+                                // Since we are in bottom tabs, creating a new shift would normally navigate
+                                // to the Templates tab, but for now we just dismiss.
+                            }
+                        )
                     }
                 }
             }
