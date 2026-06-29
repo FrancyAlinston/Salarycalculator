@@ -1,0 +1,11 @@
+sources:
+  salary-db:
+    kind: sqlite
+    path: salary.db
+
+tools:
+  get_all_salaries:
+    kind: sqlite-sql
+    source: salary-db
+    description: "Get all employee salaries"
+    statement: "SELECT * FROM salaries"
