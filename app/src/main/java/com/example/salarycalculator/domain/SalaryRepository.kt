@@ -7,6 +7,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+// CRITICAL: DATASTORE_PERSISTENCE
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class SalaryRepository(private val context: Context) {
@@ -14,24 +15,28 @@ class SalaryRepository(private val context: Context) {
     private val TAX_CODE_KEY = stringPreferencesKey("tax_code")
     private val DEFAULT_HOURLY_RATE_KEY = doublePreferencesKey("default_hourly_rate")
 
+    // CRITICAL: DATASTORE_PERSISTENCE
     fun getTaxCode(): Flow<String> {
         return context.dataStore.data.map { preferences ->
             preferences[TAX_CODE_KEY] ?: "1257L"
         }
     }
 
+    // CRITICAL: DATASTORE_PERSISTENCE
     suspend fun setTaxCode(taxCode: String) {
         context.dataStore.edit { preferences ->
             preferences[TAX_CODE_KEY] = taxCode
         }
     }
 
+    // CRITICAL: DATASTORE_PERSISTENCE
     fun getDefaultHourlyRate(): Flow<Double> {
         return context.dataStore.data.map { preferences ->
             preferences[DEFAULT_HOURLY_RATE_KEY] ?: 12.71
         }
     }
 
+    // CRITICAL: DATASTORE_PERSISTENCE
     suspend fun setDefaultHourlyRate(rate: Double) {
         context.dataStore.edit { preferences ->
             preferences[DEFAULT_HOURLY_RATE_KEY] = rate

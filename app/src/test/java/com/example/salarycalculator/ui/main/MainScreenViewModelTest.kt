@@ -1,27 +1,36 @@
 package com.example.salarycalculator.ui.main
 
-import com.example.salarycalculator.data.DataRepository
-import junit.framework.TestCase.assertEquals
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class MainScreenViewModelTest {
+
   @Test
-  fun uiState_initiallyLoading() = runTest {
-    val viewModel = MainScreenViewModel(FakeMyModelRepository())
-    assertEquals(viewModel.uiState.first(), MainScreenUiState.Loading)
+  fun initialValues_areDefault() {
+    val viewModel = MainScreenViewModel()
+    assertEquals("", viewModel.grossSalary.value)
+    assertEquals("", viewModel.taxRate.value)
+    assertEquals(0.0, viewModel.netSalary.value, 0.001)
   }
 
   @Test
-  fun uiState_onItemSaved_isDisplayed() = runTest {
-    val viewModel = MainScreenViewModel(FakeMyModelRepository())
-    assertEquals(viewModel.uiState.first(), MainScreenUiState.Loading)
-  }
-}
+  fun calculate_computesNetSalaryCorrectly() {
+    val viewModel = MainScreenViewModel()
+    viewModel.updateGrossSalary("3000")
+    viewModel.updateTaxRate("20")
+    viewModel.calculate()
 
-private class FakeMyModelRepository : DataRepository {
-  override val data: Flow<List<String>> = flow { emit(listOf("Sample")) }
+    // 3000 - (3000 * 20 / 100) = 2400
+    assertEquals(2400.0, viewModel.netSalary.value, 0.001)
+  }
+
+  @Test
+  fun calculate_withInvalidInputs_defaultsToZero() {
+    val viewModel = MainScreenViewModel()
+    viewModel.updateGrossSalary("invalid")
+    viewModel.updateTaxRate("20")
+    viewModel.calculate()
+
+    assertEquals(0.0, viewModel.netSalary.value, 0.001)
+  }
 }

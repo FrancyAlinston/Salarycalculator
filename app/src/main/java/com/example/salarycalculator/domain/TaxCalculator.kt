@@ -12,24 +12,40 @@ data class SalaryReport(
 
 object TaxCalculator {
 
-    // Simple parser for standard UK Tax codes (e.g. "1257L" -> 12570)
+    // CRITICAL: TAX_ENGINE
+    /**
+     * Parses tax-free allowance from standard UK Tax codes (e.g., "1257L" -> £12,570/year).
+     * // EDGE_CASE: Handles special tax codes (BR, 0T, etc.)
+     */
     fun parseTaxFreeAllowance(taxCode: String, isMonthly: Boolean = true): Double {
         val upperCode = taxCode.uppercase().trim()
+        
+        // Special flat/zero allowance codes
+        if (upperCode == "BR" || upperCode == "0T" || upperCode == "D0" || upperCode == "D1") {
+            // RULE VIOLATION: NON_STANDARD_CODE
+            return 0.0
+        }
+
         val numericPart = upperCode.filter { it.isDigit() }.toIntOrNull() ?: 1257
         val yearlyAllowance = numericPart * 10.0
         return if (isMonthly) yearlyAllowance / 12 else yearlyAllowance
     }
 
     /**
-     * Calculates UK Income Tax and National Insurance for a given gross pay in a given period (usually a month).
-     * Note: This uses roughly standard 24/25 UK tax bands.
+     * Calculates UK Income Tax and Class 1 Primary National Insurance for a given gross pay.
+     * Uses UK 2024/2025 standard tax bands.
+     * Sequence: Hours/Overtime -> Gross Pay -> Tax-Free Allowance -> Taxable Income -> PAYE Tax -> NI -> Net Pay
      */
+    // CRITICAL: TAX_ENGINE
     fun calculateTax(grossPay: Double, taxCode: String, isMonthly: Boolean = true): SalaryReport {
-        // Income Tax
-        val allowance = parseTaxFreeAllowance(taxCode, isMonthly)
-        val taxablePay = max(0.0, grossPay - allowance)
+        // Zero / Negative bounds protection
+        val safeGross = max(0.0, grossPay)
 
-        // 24/25 Bands (Yearly) -> divide by 12 for monthly
+        // 1. Income Tax Calculation
+        val allowance = parseTaxFreeAllowance(taxCode, isMonthly)
+        val taxablePay = max(0.0, safeGross - allowance)
+
+        // 2024/2025 Yearly Bands -> converted to monthly if isMonthly = true
         val basicRateLimit = if (isMonthly) 37700.0 / 12 else 37700.0
         val higherRateLimit = if (isMonthly) 125140.0 / 12 else 125140.0
 
@@ -50,27 +66,28 @@ object TaxCalculator {
             }
         }
 
-        // National Insurance (Class 1 Primary - 24/25 rates, 8% above PT)
-        // Primary Threshold (PT): £1,048/month
-        // Upper Earnings Limit (UEL): £4,189/month
+        // 2. Class 1 Primary National Insurance (2024/2025 rates: 8% main rate, 2% upper rate)
+        // Primary Threshold (PT): £1,048/month (£12,576/year)
+        // Upper Earnings Limit (UEL): £4,189/month (£50,268/year)
         val pt = if (isMonthly) 1048.0 else 1048.0 * 12
         val uel = if (isMonthly) 4189.0 else 4189.0 * 12
 
         var nationalInsurance = 0.0
-        if (grossPay > pt) {
-            val niBasicBand = minOf(grossPay - pt, uel - pt)
+        if (safeGross > pt) {
+            val niBasicBand = minOf(safeGross - pt, uel - pt)
             nationalInsurance += niBasicBand * 0.08 // 8% main rate
 
-            if (grossPay > uel) {
-                val niAdditionalBand = grossPay - uel
+            if (safeGross > uel) {
+                val niAdditionalBand = safeGross - uel
                 nationalInsurance += niAdditionalBand * 0.02 // 2% additional rate
             }
         }
 
-        val netPay = grossPay - incomeTax - nationalInsurance
+        // 3. Net Pay Calculation with non-negative bounds
+        val netPay = max(0.0, safeGross - incomeTax - nationalInsurance)
 
         return SalaryReport(
-            grossPay = grossPay,
+            grossPay = safeGross,
             taxablePay = taxablePay,
             incomeTax = incomeTax,
             nationalInsurance = nationalInsurance,

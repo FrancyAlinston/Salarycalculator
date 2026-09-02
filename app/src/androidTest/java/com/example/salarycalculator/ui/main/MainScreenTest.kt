@@ -3,6 +3,8 @@ package com.example.salarycalculator.ui.main
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -14,13 +16,22 @@ class MainScreenTest {
 
   @Before
   fun setup() {
-    composeTestRule.setContent { MainScreen(FAKE_DATA) }
+    composeTestRule.setContent { MainScreen(onItemClick = {}) }
   }
 
   @Test
-  fun firstItem_exists() {
-    FAKE_DATA.forEach { composeTestRule.onNodeWithText("Hello $it!").assertExists() }
+  fun uiElements_exist() {
+    composeTestRule.onNodeWithText("Salary Calculator").assertExists()
+    composeTestRule.onNodeWithText("Gross Salary").assertExists()
+    composeTestRule.onNodeWithText("Tax Rate (%)").assertExists()
+    composeTestRule.onNodeWithText("Calculate Net Salary").assertExists()
+  }
+
+  @Test
+  fun calculation_updatesNetSalaryDisplay() {
+    composeTestRule.onNodeWithText("Gross Salary").performTextInput("5000")
+    composeTestRule.onNodeWithText("Tax Rate (%)").performTextInput("20")
+    composeTestRule.onNodeWithText("Calculate Net Salary").performClick()
+    composeTestRule.onNodeWithText("Net Salary: $4000.00").assertExists()
   }
 }
-
-private val FAKE_DATA = listOf("Sample1", "Sample2", "Sample3")
