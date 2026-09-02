@@ -1,6 +1,6 @@
 # Salary Calculator - Agent Working Rules & Standards
 
-These rules define the mandatory behavioral constraints, development workflows, domain accuracy requirements, version tracking rules, and reporting standards for AI agents operating within the **Salary Calculator** repository.
+These rules define the mandatory behavioral constraints, development workflows, domain accuracy requirements, version tracking rules, gap analysis standards, and reporting standards for AI agents operating within the **Salary Calculator** repository.
 
 ---
 
@@ -87,9 +87,9 @@ These rules define the mandatory behavioral constraints, development workflows, 
 
 ---
 
-## 6. Task Completion Reporting Standard (EOT Report)
+## 6. Gap Analysis & Task Completion Reporting Standard (`@rules:gap_analysis_and_opportunity_reporting`)
 
-When completing any development task or feature request, you MUST generate a structured **End-of-Task (EOT)** report adhering to the following categorized schema:
+On **EVERY** change or task completed, the agent MUST generate a structured **End-of-Task (EOT)** report adhering to the following categorized schema:
 
 1. **Task Summary**: Concise summary of what was requested and the technical actions performed.
 2. **Issues**: Any blockers, bugs, or inconsistencies discovered during execution.
@@ -97,7 +97,7 @@ When completing any development task or feature request, you MUST generate a str
 4. **Concerns**: Potential edge cases, tax legislation ambiguities, or platform constraints.
 5. **Optimizations**: Code refactoring, memory, or state-efficiency gains.
 6. **Alerts**: Breaking changes, required manual configurations, or signing notes.
-7. **Future Roadmap**:
-   - **Code**: Architectural refinements, additional unit tests.
-   - **UI**: Visual improvements, animations, payslip breakdown visualizations.
-   - **Features**: Student loan deductions, pension contributions (auto-enrolment), Scottish tax bands, export to PDF/CSV.
+7. **Comprehensive Gap Analysis & Roadmap**:
+   - **Areas That Needed Work**: Technical debt, missing test coverage, code structure improvements, performance bottlenecks, or limitations identified in the existing codebase.
+   - **New Features & Improvements That Can Be Implemented**: Concrete, high-value opportunities and upcoming feature suggestions (e.g., pension relief, student loan tiers, Scottish tax bands, overtime multipliers, frequency toggles, PDF/CSV export).
+   - **Unworked / Pending Areas**: Features, screens, domain modules, or integrations that have not yet been touched or remain in a baseline state.
