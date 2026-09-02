@@ -1,0 +1,12 @@
+{
+  "java.jdt.ls.java.home": "/home/d3fault/.jdks/temurin-17",
+  "java.home": "/home/d3fault/.jdks/temurin-17",
+  "gradle.java.home": "/home/d3fault/.jdks/temurin-17",
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-17",
+      "path": "/home/d3fault/.jdks/temurin-17",
+      "default": true
+    }
+  ]
+}
