@@ -1,14 +1,14 @@
 # Salary Calculator - Agent Working Rules & Standards
 
-These rules define the mandatory behavioral constraints, development workflows, domain accuracy requirements, and reporting standards for AI agents operating within the **Salary Calculator** repository.
+These rules define the mandatory behavioral constraints, development workflows, domain accuracy requirements, version tracking rules, and reporting standards for AI agents operating within the **Salary Calculator** repository.
 
 ---
 
 ## 1. Documentation & Architecture Compliance
 
 - **Living Documentation**:
-  - Whenever you add a new screen, modify tax computation formulas, adjust Gradle dependencies, or alter navigation routes, you MUST update [`README.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/README.md) and [`AGENTS.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/AGENTS.md).
-  - Never leave documentation or version catalogs out of sync with actual codebase implementations.
+  - Whenever you add a new screen, modify tax computation formulas, adjust Gradle dependencies, or alter navigation routes, you MUST update [`README.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/README.md), [`CHANGELOG.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/CHANGELOG.md), and [`AGENTS.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/AGENTS.md).
+  - Never leave documentation, version catalogs, or changelogs out of sync with actual codebase implementations.
 - **Dependency & Build Integrity**:
   - All library dependencies and plugins MUST be declared and managed centrally in the Gradle Version Catalog ([`gradle/libs.versions.toml`](file:///home/d3fault/Documents/Projects/Salarycalculator/gradle/libs.versions.toml)). Do not hardcode version strings inside `build.gradle.kts`.
   - Always maintain Unix (LF) line terminators on scripts such as [`gradlew`](file:///home/d3fault/Documents/Projects/Salarycalculator/gradlew).
@@ -51,14 +51,22 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - Use Material 3 theming tokens ([`theme/Theme.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/theme/Theme.kt)) and avoid hardcoded colors. Support dynamic colors on Android 12+.
   - State hoisting: Screens should collect state using `collectAsState()` or `collectAsStateWithLifecycle()` from repository flows or ViewModels.
 - **Data Persistence**:
-  - Always persist user settings (custom tax code, default hourly rate) using Jetpack DataStore Preferences via [`SalaryRepository.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/domain/SalaryRepository.kt).
+  - Always persist user settings (custom tax code, default hourly rate, theme mode) using Jetpack DataStore Preferences via [`SalaryRepository.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/domain/SalaryRepository.kt).
 
 ---
 
-## 4. Version Control, Build & Release Automation
+## 4. Version Control, Build, Release & Tracking Automation
 
 - **Automated Commit & Push on Every Change (`@rules:auto_git_sync`)**:
   - Whenever any new change, feature, bugfix, or update is detected/completed, the agent MUST automatically stage all changes (`git add .`), create a semantic and descriptive commit (`git commit -m "..."`), and push immediately to GitHub (`git push origin <branch>`).
+- **Version Tracking & Changelog Integrity (`@rules:version_changelog_tracking`)**:
+  - For EVERY version change, the agent MUST maintain a structured, up-to-date entry in [`CHANGELOG.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/CHANGELOG.md).
+  - Every version log MUST categorically document:
+    1. **Version Header**: `[VersionName] - YYYY-MM-DD (VersionCode: N)`
+    2. **Added / Changed**: Detailed explanation of all new features and UI/architectural modifications.
+    3. **Bugs Found & Fixed**: Comprehensive list of bugs, glitches, deprecations, or build issues identified and fixed.
+    4. **What Needs to Be Fixed / Pending**: Unresolved issues, upcoming statutory additions, or improvements scheduled for subsequent versions.
+  - Never bump version codes in `app/build.gradle.kts` without adding a corresponding entry to `CHANGELOG.md`.
 - **Version Bump Compliance**:
   - When introducing user-facing features, schema modifications, or calculation updates, increment `versionCode` and update `versionName` in [`app/build.gradle.kts`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/build.gradle.kts).
 - **Keystore & Signing Integrity**:
