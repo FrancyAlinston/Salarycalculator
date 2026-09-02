@@ -14,6 +14,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [2.2] - 2026-09-03 (VersionCode: 7)
+### Added
+- **Adaptive Dual-Pane Layout for Foldables & Tablets**: Automatic transformation into a 2-column wide layout (`maxWidth >= 600dp`) separating input controls and real-time calculation output panes.
+- **Adaptive Centering on Large Phones**: Added `Modifier.widthIn(max = ...)` container bounds across all screens (`CalculatorScreen`, `HistoryScreen`, `SettingsScreen`) for balanced visual composition.
+- **Zero-Wrap Currency Formatting**: Fixed decimal truncation and currency wrapping (`+£61.01`, `£2,034 grs`) with `maxLines = 1` and flexible-weight labels.
+- **Redesigned Cumulative History Header**: Clean horizontal column separation between Total Take-Home and Average Monthly Net figures in `HistoryScreen.kt`, preventing text collisions.
+
+### Bugs Found & Fixed
+- **History Header Text Overlap**: Resolved vertical label collision in `HistoryScreen` where average net pay overlapped total take-home numbers.
+- **Currency Splitting in Payslip Rows**: Prevented currency symbols and decimal fractions from wrapping onto multiple lines across compact displays.
+
+### What Needs to Be Fixed / Pending
+- Direct PDF vector generation (currently supports native text-based payslip sharing).
+
+---
+
 ## [2.1] - 2026-09-03 (VersionCode: 6)
 ### Added
 - **Persistent Monthly Salary History**: Full snapshot persistence of monthly payslips (Days, Hours, Overtime, Wage, Pension, Tax, NI, Student Loans, Net Take-Home, and Custom Notes) using Jetpack DataStore Preferences and `kotlinx.serialization`.

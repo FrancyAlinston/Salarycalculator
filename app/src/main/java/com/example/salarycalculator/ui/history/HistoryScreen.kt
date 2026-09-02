@@ -2,8 +2,6 @@ package com.example.salarycalculator.ui.history
 
 import android.content.Intent
 import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.salarycalculator.domain.MonthlySalaryRecord
@@ -51,191 +50,202 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier
     ) { innerPadding ->
-        if (historyList.isEmpty()) {
-            // Empty State
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            if (historyList.isEmpty()) {
+                // Empty State
+                Box(
+                    modifier = Modifier
+                        .widthIn(max = 560.dp)
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = CircleShape,
-                        modifier = Modifier.size(88.dp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Outlined.HistoryEdu,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(44.dp)
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = "No Salary History Saved",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-
-                    Text(
-                        text = "Calculate your monthly salary and tap 'Save to History' on the Calculator screen to track your earnings, tax, and take-home pay month by month.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 20.dp),
-                contentPadding = PaddingValues(vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Header & Clear All Button
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = "Salary History",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = "${historyList.size} month${if (historyList.size > 1) "s" else ""} recorded",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        IconButton(onClick = { showClearAllDialog = true }) {
-                            Icon(
-                                Icons.Outlined.DeleteSweep,
-                                contentDescription = "Clear All History",
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                }
-
-                // Cumulative Statistics Hero Card
-                item {
-                    ElevatedCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.elevatedCardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = CircleShape,
+                            modifier = Modifier.size(88.dp)
                         ) {
-                            Text(
-                                text = "Cumulative Earnings",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Outlined.HistoryEdu,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(44.dp)
+                                )
+                            }
+                        }
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "Total Take-Home",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "£${"%,.2f".format(totalNet)}",
-                                        style = MaterialTheme.typography.headlineLarge,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Emerald60
-                                    )
-                                }
+                        Text(
+                            text = "No Salary History Saved",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
 
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = "Avg. Monthly Net",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "£${"%,.2f".format(avgNet)}",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
+                        Text(
+                            text = "Calculate your monthly salary and tap 'Save Record' on the Calculator screen to track your earnings, tax, and take-home pay month by month.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .widthIn(max = 680.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = 20.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Header & Clear All Button
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = "Salary History",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = "${historyList.size} month${if (historyList.size > 1) "s" else ""} recorded",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
 
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                StatItem(label = "Total Gross", value = "£${"%,.0f".format(totalGross)}")
-                                StatItem(label = "Total Tax Paid", value = "£${"%,.0f".format(totalTax)}", valueColor = Rose60)
-                                StatItem(label = "Total NI Paid", value = "£${"%,.0f".format(totalNI)}", valueColor = Amber60)
+                            IconButton(onClick = { showClearAllDialog = true }) {
+                                Icon(
+                                    Icons.Outlined.DeleteSweep,
+                                    contentDescription = "Clear All History",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
                             }
                         }
                     }
-                }
 
-                // Month History Item Cards
-                items(historyList, key = { it.id }) { record ->
-                    HistoryRecordCard(
-                        record = record,
-                        onDelete = { recordToDelete = record },
-                        onShare = {
-                            val shareText = """
-                                💰 Salary Record: ${record.monthYear}
-                                ---------------------------------------
-                                Gross Pay: £${"%.2f".format(record.grossPay)}
-                                Days Worked: ${record.daysWorked}d @ ${record.hoursPerDay}h/d (£${"%.2f".format(record.hourlyRate)}/hr)
-                                ${if (record.overtimeHours > 0) "Overtime: ${record.overtimeHours}h @ ${record.overtimeMultiplier}x\n" else ""}
-                                Deductions:
-                                • Pension (${record.pensionRate}%): £${"%.2f".format(record.pensionContribution)}
-                                • PAYE Tax: £${"%.2f".format(record.incomeTax)}
-                                • National Insurance: £${"%.2f".format(record.nationalInsurance)}
-                                ${if (record.studentLoanDeduction > 0) "• Student Loan: £${"%.2f".format(record.studentLoanDeduction)}\n" else ""}
-                                💵 Net Take-Home: £${"%.2f".format(record.netPay)}
-                                ${if (record.note.isNotBlank()) "\nNote: ${record.note}" else ""}
-                                ---------------------------------------
-                            """.trimIndent()
+                    // Cumulative Statistics Hero Card (Non-overlapping layout)
+                    item {
+                        ElevatedCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = CardDefaults.elevatedCardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Text(
+                                    text = "Cumulative Earnings Overview",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
 
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                                type = "text/plain"
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Total Take-Home",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "£${"%,.2f".format(totalNet)}",
+                                            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp),
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = Emerald60,
+                                            maxLines = 1
+                                        )
+                                    }
+
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalAlignment = Alignment.End
+                                    ) {
+                                        Text(
+                                            text = "Avg Monthly Net",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "£${"%,.2f".format(avgNet)}",
+                                            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp),
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    StatItem(label = "Total Gross", value = "£${"%,.0f".format(totalGross)}")
+                                    StatItem(label = "Total Tax Paid", value = "£${"%,.0f".format(totalTax)}", valueColor = Rose60)
+                                    StatItem(label = "Total NI Paid", value = "£${"%,.0f".format(totalNI)}", valueColor = Amber60)
+                                }
                             }
-                            context.startActivity(Intent.createChooser(sendIntent, "Share ${record.monthYear} Payslip"))
                         }
-                    )
+                    }
+
+                    // Month History Item Cards
+                    items(historyList, key = { it.id }) { record ->
+                        HistoryRecordCard(
+                            record = record,
+                            onDelete = { recordToDelete = record },
+                            onShare = {
+                                val shareText = """
+                                    💰 Salary Record: ${record.monthYear}
+                                    ---------------------------------------
+                                    Gross Pay: £${"%.2f".format(record.grossPay)}
+                                    Days Worked: ${record.daysWorked}d @ ${record.hoursPerDay}h/d (£${"%.2f".format(record.hourlyRate)}/hr)
+                                    ${if (record.overtimeHours > 0) "Overtime: ${record.overtimeHours}h @ ${record.overtimeMultiplier}x\n" else ""}
+                                    Deductions:
+                                    • Pension (${record.pensionRate}%): £${"%.2f".format(record.pensionContribution)}
+                                    • PAYE Tax: £${"%.2f".format(record.incomeTax)}
+                                    • National Insurance: £${"%.2f".format(record.nationalInsurance)}
+                                    ${if (record.studentLoanDeduction > 0) "• Student Loan: £${"%.2f".format(record.studentLoanDeduction)}\n" else ""}
+                                    💵 Net Take-Home: £${"%.2f".format(record.netPay)}
+                                    ${if (record.note.isNotBlank()) "\nNote: ${record.note}" else ""}
+                                    ---------------------------------------
+                                """.trimIndent()
+
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                    type = "text/plain"
+                                }
+                                context.startActivity(Intent.createChooser(sendIntent, "Share ${record.monthYear} Payslip"))
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -316,29 +326,35 @@ private fun HistoryRecordCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = record.monthYear,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "Gross: £${"%.2f".format(record.grossPay)} · ${record.daysWorked} days",
+                        text = "Gross: £${"%.2f".format(record.grossPay)} · ${record.daysWorked}d",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
                     )
                 }
 
+                Spacer(modifier = Modifier.width(8.dp))
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
                         text = "£${"%.2f".format(record.netPay)}",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
                         fontWeight = FontWeight.ExtraBold,
-                        color = Emerald60
+                        color = Emerald60,
+                        maxLines = 1
                     )
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
@@ -386,12 +402,12 @@ private fun HistoryRecordCard(
                     HistoryDetailRow(label = "Standard Hourly Rate", value = "£${"%.2f".format(record.hourlyRate)}/hr")
                     HistoryDetailRow(
                         label = "Schedule",
-                        value = "${record.daysWorked}d × ${record.hoursPerDay}h (${"%.1f".format(record.daysWorked * record.hoursPerDay)} hrs)"
+                        value = "${record.daysWorked}d × ${record.hoursPerDay}h (${"%.1f".format(record.daysWorked * record.hoursPerDay)}h)"
                     )
                     if (record.overtimeHours > 0) {
                         HistoryDetailRow(
                             label = "Overtime",
-                            value = "${record.overtimeHours} hrs @ ${record.overtimeMultiplier}x"
+                            value = "${record.overtimeHours}h @ ${record.overtimeMultiplier}x"
                         )
                     }
 
@@ -464,12 +480,13 @@ private fun HistoryRecordCard(
 @Composable
 private fun StatItem(label: String, value: String, valueColor: Color = Color.Unspecified) {
     Column {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         Text(
             text = value,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
-            color = if (valueColor != Color.Unspecified) valueColor else MaterialTheme.colorScheme.onSurface
+            color = if (valueColor != Color.Unspecified) valueColor else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
         )
     }
 }
@@ -490,13 +507,18 @@ private fun HistoryDetailRow(
             text = label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f, fill = false),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
+        Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Medium,
-            color = if (valueColor != Color.Unspecified) valueColor else MaterialTheme.colorScheme.onSurface
+            color = if (valueColor != Color.Unspecified) valueColor else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
         )
     }
 }
