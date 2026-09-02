@@ -7,10 +7,13 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 ## Features
 
 - **UK PAYE Tax Engine (2024/2025):** Computes tax bands (Basic 20%, Higher 40%, Additional 45%) and Class 1 Primary National Insurance (8% and 2% rates).
-- **Tax Code Parsing:** Dynamically calculates personal allowances from standard UK tax codes (e.g., `1257L` $\rightarrow$ £12,570/yr) and custom codes.
+- **Tax Code Parsing:** Dynamically calculates personal allowances from standard UK tax codes (e.g., `1257L` $\rightarrow$ £12,570/yr) and non-standard codes (`BR`, `0T`, `D0`, `D1`).
 - **Hourly & Overtime Pay Breakdown:** Calculates gross pay from days worked, standard daily hours, and overtime hours.
-- **Persistent User Settings:** Saves default hourly rate and tax code preferences using Jetpack DataStore Preferences.
-- **Modern Jetpack Compose UI:** Material 3 design system with dynamic theming and AndroidX Navigation 3.
+- **Deep Slate Dark & Light Themes:** Dedicated Material 3 theme switcher (System Default, Light, Dark) with edge-to-edge transparent system bars.
+- **Micro-Animations & Visual Breakdown:** Animated proportional progress bar (Take-Home %, PAYE Tax %, NI %), smooth number slide-fades, and expandable rows.
+- **Quick-Select Presets:** One-tap presets for standard UK working schedules (20d, 21.7d, 16d) and National Living Wage benchmark rates.
+- **Persistent User Settings:** Saves default hourly rate, tax code, and theme mode preferences using Jetpack DataStore Preferences.
+- **Modern Jetpack Compose UI:** AndroidX Navigation 3 with responsive layout hierarchy and zero-stutter calculation memoization.
 
 ---
 

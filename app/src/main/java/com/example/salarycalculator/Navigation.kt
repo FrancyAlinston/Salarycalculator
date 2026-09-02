@@ -2,15 +2,20 @@ package com.example.salarycalculator
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
@@ -25,24 +30,54 @@ fun MainNavigation(salaryRepository: SalaryRepository) {
 
   Scaffold(
       bottomBar = {
-          NavigationBar {
+          NavigationBar(
+              tonalElevation = 8.dp,
+              containerColor = MaterialTheme.colorScheme.surface
+          ) {
+              val isCalculator = currentTab == Calculator
+              val isSettings = currentTab == Settings
+
               NavigationBarItem(
-                  selected = currentTab == Calculator,
+                  selected = isCalculator,
                   onClick = { 
-                      backStack.clear()
-                      backStack.add(Calculator)
+                      if (!isCalculator) {
+                          backStack.clear()
+                          backStack.add(Calculator)
+                      }
                   },
-                  icon = { Icon(Icons.Default.Info, contentDescription = "Calculator") },
-                  label = { Text("Calculator") }
+                  icon = { 
+                      Icon(
+                          imageVector = if (isCalculator) Icons.Filled.Calculate else Icons.Outlined.Calculate,
+                          contentDescription = "Calculator"
+                      ) 
+                  },
+                  label = { Text("Calculator", style = MaterialTheme.typography.labelMedium) },
+                  colors = NavigationBarItemDefaults.colors(
+                      indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                      selectedIconColor = MaterialTheme.colorScheme.primary,
+                      selectedTextColor = MaterialTheme.colorScheme.primary
+                  )
               )
               NavigationBarItem(
-                  selected = currentTab == Settings,
+                  selected = isSettings,
                   onClick = { 
-                      backStack.clear()
-                      backStack.add(Settings)
+                      if (!isSettings) {
+                          backStack.clear()
+                          backStack.add(Settings)
+                      }
                   },
-                  icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                  label = { Text("Settings") }
+                  icon = { 
+                      Icon(
+                          imageVector = if (isSettings) Icons.Filled.Settings else Icons.Outlined.Settings,
+                          contentDescription = "Settings"
+                      ) 
+                  },
+                  label = { Text("Settings", style = MaterialTheme.typography.labelMedium) },
+                  colors = NavigationBarItemDefaults.colors(
+                      indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                      selectedIconColor = MaterialTheme.colorScheme.primary,
+                      selectedTextColor = MaterialTheme.colorScheme.primary
+                  )
               )
           }
       }
