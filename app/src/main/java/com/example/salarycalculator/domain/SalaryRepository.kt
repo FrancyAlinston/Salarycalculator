@@ -6,6 +6,8 @@ import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 enum class ThemeMode {
     SYSTEM,
@@ -25,6 +27,13 @@ class SalaryRepository(private val context: Context) {
     private val PENSION_RATE_KEY = doublePreferencesKey("pension_rate")
     private val STUDENT_LOAN_PLAN_KEY = stringPreferencesKey("student_loan_plan")
     private val OVERTIME_MULTIPLIER_KEY = doublePreferencesKey("overtime_multiplier")
+    private val SALARY_HISTORY_KEY = stringPreferencesKey("salary_history_json")
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        isLenient = true
+        encodeDefaults = true
+    }
 
     // CRITICAL: DATASTORE_PERSISTENCE
     fun getTaxCode(): Flow<String> {
@@ -136,6 +145,69 @@ class SalaryRepository(private val context: Context) {
     suspend fun setOvertimeMultiplier(multiplier: Double) {
         context.dataStore.edit { preferences ->
             preferences[OVERTIME_MULTIPLIER_KEY] = multiplier
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getSalaryHistory(): Flow<List<MonthlySalaryRecord>> {
+        return context.dataStore.data.map { preferences ->
+            val jsonStr = preferences[SALARY_HISTORY_KEY] ?: ""
+            if (jsonStr.isBlank()) {
+                emptyList()
+            } else {
+                try {
+                    json.decodeFromString<List<MonthlySalaryRecord>>(jsonStr)
+                        .sortedByDescending { it.timestamp }
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun saveSalaryRecord(record: MonthlySalaryRecord) {
+        context.dataStore.edit { preferences ->
+            val jsonStr = preferences[SALARY_HISTORY_KEY] ?: ""
+            val currentList = if (jsonStr.isBlank()) {
+                mutableListOf()
+            } else {
+                try {
+                    json.decodeFromString<List<MonthlySalaryRecord>>(jsonStr).toMutableList()
+                } catch (_: Exception) {
+                    mutableListOf()
+                }
+            }
+
+            // Remove existing record for the same ID or same monthYear if updating
+            currentList.removeAll { it.id == record.id || it.monthYear.equals(record.monthYear, ignoreCase = true) }
+            currentList.add(0, record)
+
+            val updatedJson = json.encodeToString(currentList)
+            preferences[SALARY_HISTORY_KEY] = updatedJson
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun deleteSalaryRecord(recordId: String) {
+        context.dataStore.edit { preferences ->
+            val jsonStr = preferences[SALARY_HISTORY_KEY] ?: ""
+            if (jsonStr.isNotBlank()) {
+                try {
+                    val currentList = json.decodeFromString<List<MonthlySalaryRecord>>(jsonStr).toMutableList()
+                    currentList.removeAll { it.id == recordId }
+                    preferences[SALARY_HISTORY_KEY] = json.encodeToString(currentList)
+                } catch (_: Exception) {
+                    // Ignore decoding errors
+                }
+            }
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun clearSalaryHistory() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(SALARY_HISTORY_KEY)
         }
     }
 }

@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.salarycalculator"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "2.0"
+        versionCode = 6
+        versionName = "2.1"
     }
 
     signingConfigs {
@@ -100,6 +100,7 @@ dependencies {
   implementation(libs.androidx.navigation3.runtime)
   implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 
-  // DataStore
+  // Serialization & DataStore
+  implementation(libs.kotlinx.serialization.json)
   implementation(libs.androidx.datastore.preferences)
 }

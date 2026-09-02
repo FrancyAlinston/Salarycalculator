@@ -3,8 +3,10 @@ package com.example.salarycalculator
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Calculate
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +23,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.example.salarycalculator.domain.SalaryRepository
 import com.example.salarycalculator.ui.calculator.CalculatorScreen
+import com.example.salarycalculator.ui.history.HistoryScreen
 import com.example.salarycalculator.ui.settings.SettingsScreen
 
 @Composable
@@ -35,6 +38,7 @@ fun MainNavigation(salaryRepository: SalaryRepository) {
               containerColor = MaterialTheme.colorScheme.surface
           ) {
               val isCalculator = currentTab == Calculator
+              val isHistory = currentTab == History
               val isSettings = currentTab == Settings
 
               NavigationBarItem(
@@ -58,6 +62,29 @@ fun MainNavigation(salaryRepository: SalaryRepository) {
                       selectedTextColor = MaterialTheme.colorScheme.primary
                   )
               )
+
+              NavigationBarItem(
+                  selected = isHistory,
+                  onClick = { 
+                      if (!isHistory) {
+                          backStack.clear()
+                          backStack.add(History)
+                      }
+                  },
+                  icon = { 
+                      Icon(
+                          imageVector = if (isHistory) Icons.Filled.History else Icons.Outlined.History,
+                          contentDescription = "History"
+                      ) 
+                  },
+                  label = { Text("History", style = MaterialTheme.typography.labelMedium) },
+                  colors = NavigationBarItemDefaults.colors(
+                      indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                      selectedIconColor = MaterialTheme.colorScheme.primary,
+                      selectedTextColor = MaterialTheme.colorScheme.primary
+                  )
+              )
+
               NavigationBarItem(
                   selected = isSettings,
                   onClick = { 
@@ -87,6 +114,7 @@ fun MainNavigation(salaryRepository: SalaryRepository) {
         onBack = { backStack.removeLastOrNull() },
         entryProvider = entryProvider {
             entry<Calculator> { CalculatorScreen(salaryRepository, Modifier.padding(padding)) }
+            entry<History> { HistoryScreen(salaryRepository, Modifier.padding(padding)) }
             entry<Settings> { SettingsScreen(salaryRepository, Modifier.padding(padding)) }
         }
       )

@@ -8,10 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] PDF payslip report generator with direct vector rendering.
-- [ ] CSV timesheet log exporter.
-- [ ] Saved comparison history with local Room database.
-- [ ] Salary sacrifice scheme options (Cycle to Work, EV company car).
+- [ ] Direct PDF vector export with custom company/employee header formatting.
+- [ ] CSV timesheet log file generation and saving.
+- [ ] Side-by-side historical pay period comparison diff tool.
+
+---
+
+## [2.1] - 2026-09-03 (VersionCode: 6)
+### Added
+- **Persistent Monthly Salary History**: Full snapshot persistence of monthly payslips (Days, Hours, Overtime, Wage, Pension, Tax, NI, Student Loans, Net Take-Home, and Custom Notes) using Jetpack DataStore Preferences and `kotlinx.serialization`.
+- **Dedicated History Screen (`HistoryScreen.kt`)**: Added 3rd navigation destination featuring cumulative earnings statistics (Total Take-Home, Avg Monthly Net, Total Gross, Total Tax, Total NI) and a chronological list of monthly records.
+- **Expandable Payslip Cards with Mini Distribution Bars**: Visual breakdown bars and expandable itemized deductions for every historical salary record.
+- **Save Record Flow on Calculator**: 1-tap "Save Record" action on `CalculatorScreen.kt` with a month/year suggestion chip picker and custom note input.
+- **Record Management & Sharing**: Per-record deletion, clear-all action, and 1-tap sharing of historical payslip summaries via Android Sharesheet.
+- **Unit Test for Serialization**: Added `monthlySalaryRecord_serialization_isLossless` in [`TaxCalculatorTest.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/test/java/com/example/salarycalculator/domain/TaxCalculatorTest.kt).
+
+### Bugs Found & Fixed
+- **Multi-Period Layout Overflow on 320px Screens**: Optimized font scaling and padding in `PeriodColumn` and `PayslipRow` to eliminate unwanted number wrapping on compact displays.
+- **Bottom Navigation Bar Overlap**: Adjusted bottom padding on CalculatorScreen so action buttons scroll completely into view.
+
+### What Needs to Be Fixed / Pending
+- Direct PDF vector generation (currently supports native text-based payslip sharing).
 
 ---
 
@@ -32,7 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Chip Horizontal Overflow**: Wrapped Tax Region, Student Loan, and Overtime Multiplier chip rows with horizontal scrolling to prevent layout clipping on compact displays.
 
 ### What Needs to Be Fixed / Pending
-- Direct PDF vector generation (currently supports native text-based payslip sharing).
+- Monthly history storage (resolved in v2.1).
 
 ---
 
