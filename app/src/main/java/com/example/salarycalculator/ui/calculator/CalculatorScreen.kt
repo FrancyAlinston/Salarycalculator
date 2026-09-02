@@ -1,5 +1,6 @@
 package com.example.salarycalculator.ui.calculator
 
+import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -20,46 +21,88 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.salarycalculator.domain.SalaryReport
-import com.example.salarycalculator.domain.SalaryRepository
-import com.example.salarycalculator.domain.TaxCalculator
+import com.example.salarycalculator.domain.*
 import com.example.salarycalculator.theme.*
 
 @Composable
 fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+
     val taxCode by salaryRepository.getTaxCode().collectAsState(initial = "1257L")
     val defaultHourlyRate by salaryRepository.getDefaultHourlyRate().collectAsState(initial = 12.71)
+    val taxRegion by salaryRepository.getTaxRegion().collectAsState(initial = TaxRegion.UK_STANDARD)
+    val pensionRate by salaryRepository.getPensionRate().collectAsState(initial = 5.0)
+    val studentLoanPlan by salaryRepository.getStudentLoanPlan().collectAsState(initial = StudentLoanPlan.NONE)
+    val defaultOvertimeMultiplier by salaryRepository.getOvertimeMultiplier().collectAsState(initial = 1.5)
+
+    var selectedFrequency by remember { mutableStateOf(PayFrequency.MONTHLY) }
+    var selectedOvertimeMultiplier by remember(defaultOvertimeMultiplier) { mutableStateOf(defaultOvertimeMultiplier) }
+    var selectedPensionPercent by remember(pensionRate) { mutableStateOf(pensionRate) }
+    var selectedStudentLoan by remember(studentLoanPlan) { mutableStateOf(studentLoanPlan) }
 
     var daysWorkedInput by remember { mutableStateOf("20") }
     var hoursPerDayInput by remember { mutableStateOf("8.0") }
     var overtimeHoursInput by remember { mutableStateOf("") }
 
-    // Performance: Memoize parsed doubles
+    // Memoize input numbers
     val daysWorked = remember(daysWorkedInput) { daysWorkedInput.toDoubleOrNull() ?: 0.0 }
     val hoursPerDay = remember(hoursPerDayInput) { hoursPerDayInput.toDoubleOrNull() ?: 8.0 }
     val overtimeHours = remember(overtimeHoursInput) { overtimeHoursInput.toDoubleOrNull() ?: 0.0 }
 
-    // Performance: Memoize Gross Pay and Tax Calculation
+    // Memoize standard and overtime pay
     val standardPay = remember(daysWorked, hoursPerDay, defaultHourlyRate) {
         (daysWorked * hoursPerDay) * defaultHourlyRate
     }
-    val overtimePay = remember(overtimeHours, defaultHourlyRate) {
-        overtimeHours * defaultHourlyRate
+    val overtimePay = remember(overtimeHours, defaultHourlyRate, selectedOvertimeMultiplier) {
+        overtimeHours * (defaultHourlyRate * selectedOvertimeMultiplier)
     }
     val grossPay = remember(standardPay, overtimePay) { standardPay + overtimePay }
 
-    val report: SalaryReport = remember(grossPay, taxCode) {
-        TaxCalculator.calculateTax(grossPay, taxCode, isMonthly = true)
+    // Full Salary Report
+    val report: SalaryReport = remember(
+        grossPay,
+        taxCode,
+        taxRegion,
+        selectedPensionPercent,
+        selectedStudentLoan
+    ) {
+        TaxCalculator.calculateTax(
+            grossPay = grossPay,
+            taxCode = taxCode,
+            isMonthly = true,
+            region = taxRegion,
+            pensionRatePercent = selectedPensionPercent,
+            studentLoanPlan = selectedStudentLoan
+        )
     }
 
     val totalHours = remember(daysWorked, hoursPerDay, overtimeHours) {
         (daysWorked * hoursPerDay) + overtimeHours
+    }
+
+    // Active displayed net amount based on selected frequency
+    val displayedNetAmount = remember(selectedFrequency, report) {
+        when (selectedFrequency) {
+            PayFrequency.MONTHLY -> report.monthlyNet
+            PayFrequency.WEEKLY -> report.weeklyNet
+            PayFrequency.ANNUAL -> report.annualNet
+            PayFrequency.HOURLY -> report.hourlyNet
+        }
+    }
+
+    val displayedGrossAmount = remember(selectedFrequency, report) {
+        when (selectedFrequency) {
+            PayFrequency.MONTHLY -> report.grossPay
+            PayFrequency.WEEKLY -> (report.grossPay * 12.0) / 52.0
+            PayFrequency.ANNUAL -> report.grossPay * 12.0
+            PayFrequency.HOURLY -> ((report.grossPay * 12.0) / 52.0) / 37.5
+        }
     }
 
     Column(
@@ -69,8 +112,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // App Header & Rate Subtitle
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // App Header & Region/Tax Code Chips
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -82,18 +125,38 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                AssistChip(
-                    onClick = {},
-                    label = { Text("Tax Code: $taxCode", style = MaterialTheme.typography.labelMedium) },
-                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null, Modifier.size(16.dp)) },
-                    shape = RoundedCornerShape(12.dp)
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(if (taxRegion == TaxRegion.SCOTLAND) "Scotland" else "UK Standard", style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(taxCode, style = MaterialTheme.typography.labelSmall) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
             }
             Text(
-                text = "Rate: £${"%.2f".format(defaultHourlyRate)}/hr · Monthly View",
+                text = "Rate: £${"%.2f".format(defaultHourlyRate)}/hr · Base Pay: £${"%.2f".format(standardPay)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+
+        // Pay Frequency Selector (SingleChoiceSegmentedButtonRow)
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            PayFrequency.entries.forEachIndexed { index, freq ->
+                SegmentedButton(
+                    selected = selectedFrequency == freq,
+                    onClick = { selectedFrequency = freq },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = PayFrequency.entries.size),
+                    icon = {}
+                ) {
+                    Text(freq.displayName, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, maxLines = 1)
+                }
+            }
         }
 
         // Hero Take-Home Pay Card
@@ -117,7 +180,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Estimated Net Pay",
+                        text = "Estimated Net (${selectedFrequency.displayName})",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -126,7 +189,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (grossPay > 0) "${"%.1f".format((report.netPay / grossPay) * 100)}% Take-Home" else "100%",
+                            text = "${"%.1f".format(report.takeHomePercentage)}% Take-Home",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
@@ -135,31 +198,36 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                     }
                 }
 
-                // Animated Net Pay Display
+                // Animated Net Amount Display
                 AnimatedContent(
-                    targetState = report.netPay,
+                    targetState = displayedNetAmount,
                     transitionSpec = {
                         (fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
                          slideInVertically { it / 2 }) togetherWith
                         (fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
                          slideOutVertically { -it / 2 })
                     },
-                    label = "NetPayAnimation"
-                ) { netAmount ->
+                    label = "NetAmountAnimation"
+                ) { amount ->
                     Text(
-                        text = "£${"%.2f".format(netAmount)}",
+                        text = "£${"%.2f".format(amount)}",
                         style = MaterialTheme.typography.displayLarge.copy(fontSize = 38.sp),
                         fontWeight = FontWeight.ExtraBold,
                         color = Emerald60
                     )
                 }
 
-                // Animated Distribution Progress Bar
+                // Animated Proportional Breakdown Bar
                 if (grossPay > 0) {
                     val netRatio by animateFloatAsState(
                         targetValue = (report.netPay / grossPay).toFloat(),
                         animationSpec = spring(stiffness = Spring.StiffnessLow),
                         label = "netRatio"
+                    )
+                    val pensionRatio by animateFloatAsState(
+                        targetValue = (report.pensionContribution / grossPay).toFloat(),
+                        animationSpec = spring(stiffness = Spring.StiffnessLow),
+                        label = "pensionRatio"
                     )
                     val taxRatio by animateFloatAsState(
                         targetValue = (report.incomeTax / grossPay).toFloat(),
@@ -170,6 +238,11 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                         targetValue = (report.nationalInsurance / grossPay).toFloat(),
                         animationSpec = spring(stiffness = Spring.StiffnessLow),
                         label = "niRatio"
+                    )
+                    val studentLoanRatio by animateFloatAsState(
+                        targetValue = (report.studentLoanDeduction / grossPay).toFloat(),
+                        animationSpec = spring(stiffness = Spring.StiffnessLow),
+                        label = "studentLoanRatio"
                     )
 
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -188,6 +261,14 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                                         .background(Emerald60)
                                 )
                             }
+                            if (pensionRatio > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(pensionRatio.coerceAtLeast(0.001f))
+                                        .fillMaxHeight()
+                                        .background(Teal60)
+                                )
+                            }
                             if (taxRatio > 0) {
                                 Box(
                                     modifier = Modifier
@@ -204,16 +285,28 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                                         .background(Amber60)
                                 )
                             }
+                            if (studentLoanRatio > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(studentLoanRatio.coerceAtLeast(0.001f))
+                                        .fillMaxHeight()
+                                        .background(Violet60)
+                                )
+                            }
                         }
 
                         // Legend
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             LegendItem(color = Emerald60, label = "Take Home")
+                            if (report.pensionContribution > 0) LegendItem(color = Teal60, label = "Pension")
                             LegendItem(color = Rose60, label = "PAYE Tax")
-                            LegendItem(color = Amber60, label = "National Insurance")
+                            LegendItem(color = Amber60, label = "NI")
+                            if (report.studentLoanDeduction > 0) LegendItem(color = Violet60, label = "Student Loan")
                         }
                     }
                 }
@@ -223,7 +316,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
         // Quick Input Presets
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = "Quick Presets",
+                text = "Schedule Presets",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -263,7 +356,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
             }
         }
 
-        // Input Fields Section
+        // Working Hours & Overtime Multiplier Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
@@ -275,7 +368,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Working Hours & Schedule",
+                    text = "Working Hours & Overtime Rate",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -337,6 +430,108 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
+
+                // Overtime Multiplier Selection
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Overtime Multiplier",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = selectedOvertimeMultiplier == 1.0,
+                            onClick = { selectedOvertimeMultiplier = 1.0 },
+                            label = { Text("1.0x (Standard)") },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        FilterChip(
+                            selected = selectedOvertimeMultiplier == 1.5,
+                            onClick = { selectedOvertimeMultiplier = 1.5 },
+                            label = { Text("1.5x (Time & Half)") },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        FilterChip(
+                            selected = selectedOvertimeMultiplier == 2.0,
+                            onClick = { selectedOvertimeMultiplier = 2.0 },
+                            label = { Text("2.0x (Double)") },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Deductions & Allowances Selector Card (Pension & Student Loan)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Pension & Student Loan Adjustments",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                // Pension Rate Options
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Employee Pension Contribution: ${"%.1f".format(selectedPensionPercent)}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(0.0, 3.0, 5.0, 8.0, 10.0).forEach { rate ->
+                            FilterChip(
+                                selected = selectedPensionPercent == rate,
+                                onClick = { selectedPensionPercent = rate },
+                                label = { Text("${rate.toInt()}%") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Student Loan Plan Options
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Student Loan Plan: ${selectedStudentLoan.displayName}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        StudentLoanPlan.entries.forEach { plan ->
+                            FilterChip(
+                                selected = selectedStudentLoan == plan,
+                                onClick = { selectedStudentLoan = plan },
+                                label = { Text(if (plan == StudentLoanPlan.NONE) "None" else plan.name.replace("_", " ")) },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -357,7 +552,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Payslip Breakdown",
+                        text = "Monthly Payslip Breakdown",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -371,45 +566,53 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                // Basic Pay
                 PayslipRow(
                     label = "Basic Pay (${"%.1f".format(daysWorked * hoursPerDay)} hrs)",
                     value = "£${"%.2f".format(standardPay)}"
                 )
 
-                // Overtime Pay Animated
                 AnimatedVisibility(
                     visible = overtimeHours > 0,
                     enter = fadeIn() + expandVertically(),
                     exit = fadeOut() + shrinkVertically()
                 ) {
                     PayslipRow(
-                        label = "Overtime (${"%.1f".format(overtimeHours)} hrs)",
+                        label = "Overtime (${"%.1f".format(overtimeHours)} hrs @ ${selectedOvertimeMultiplier}x)",
                         value = "£${"%.2f".format(overtimePay)}"
                     )
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                // Gross Pay
                 PayslipRow(
                     label = "Gross Total Pay",
                     value = "£${"%.2f".format(report.grossPay)}",
                     isBold = true
                 )
 
-                // Taxable Pay
+                if (report.pensionContribution > 0) {
+                    PayslipRow(
+                        label = "Employee Pension (${"%.1f".format(selectedPensionPercent)}%)",
+                        value = "-£${"%.2f".format(report.pensionContribution)}",
+                        valueColor = Teal60
+                    )
+                    PayslipRow(
+                        label = "Employer Pension (3% Company)",
+                        value = "+£${"%.2f".format(report.employerPensionContribution)}",
+                        isSecondary = true
+                    )
+                }
+
                 PayslipRow(
-                    label = "Taxable Income",
+                    label = "Taxable Pay (after relief)",
                     value = "£${"%.2f".format(report.taxablePay)}",
                     isSecondary = true
                 )
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                // Deductions
                 PayslipRow(
-                    label = "PAYE Income Tax (2024/25)",
+                    label = if (taxRegion == TaxRegion.SCOTLAND) "Scottish Income Tax (2024/25)" else "PAYE Income Tax (2024/25)",
                     value = "-£${"%.2f".format(report.incomeTax)}",
                     valueColor = Rose60
                 )
@@ -419,6 +622,14 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                     value = "-£${"%.2f".format(report.nationalInsurance)}",
                     valueColor = Amber60
                 )
+
+                if (report.studentLoanDeduction > 0) {
+                    PayslipRow(
+                        label = "Student Loan (${selectedStudentLoan.name.replace("_", " ")})",
+                        value = "-£${"%.2f".format(report.studentLoanDeduction)}",
+                        valueColor = Violet60
+                    )
+                }
 
                 HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
 
@@ -438,7 +649,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "After tax & NI",
+                            text = "After tax, NI, pension & loan",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -453,6 +664,88 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 }
             }
         }
+
+        // Multi-Period Comparison Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Multi-Period Comparison",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    PeriodColumn(title = "Hourly", net = report.hourlyNet, gross = ((report.grossPay * 12.0) / 52.0) / 37.5)
+                    PeriodColumn(title = "Weekly", net = report.weeklyNet, gross = (report.grossPay * 12.0) / 52.0)
+                    PeriodColumn(title = "Monthly", net = report.monthlyNet, gross = report.grossPay)
+                    PeriodColumn(title = "Annual", net = report.annualNet, gross = report.grossPay * 12.0)
+                }
+            }
+        }
+
+        // Share Payslip Button
+        Button(
+            onClick = {
+                val shareText = """
+                    💰 UK Salary Calculator (v2.0) Summary
+                    ---------------------------------------
+                    Gross Pay: £${"%.2f".format(report.grossPay)} / month
+                    Tax Code: $taxCode (${if (taxRegion == TaxRegion.SCOTLAND) "Scotland" else "UK Standard"})
+                    
+                    Deductions:
+                    • Pension (5%): £${"%.2f".format(report.pensionContribution)}
+                    • PAYE Income Tax: £${"%.2f".format(report.incomeTax)}
+                    • National Insurance: £${"%.2f".format(report.nationalInsurance)}
+                    • Student Loan: £${"%.2f".format(report.studentLoanDeduction)}
+                    
+                    💵 Net Take-Home:
+                    • Monthly: £${"%.2f".format(report.monthlyNet)} (${"%.1f".format(report.takeHomePercentage)}%)
+                    • Weekly:  £${"%.2f".format(report.weeklyNet)}
+                    • Annual:  £${"%.2f".format(report.annualNet)}
+                    ---------------------------------------
+                """.trimIndent()
+
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, shareText)
+                    type = "text/plain"
+                }
+                val shareIntent = Intent.createChooser(sendIntent, "Share Payslip Summary")
+                context.startActivity(shareIntent)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Share Payslip Summary", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun PeriodColumn(title: String, net: Double, gross: Double) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(text = title, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = "£${"%.0f".format(net)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Emerald60)
+        Text(text = "Gross £${"%.0f".format(gross)}", style = MaterialTheme.typography.bodySmall, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

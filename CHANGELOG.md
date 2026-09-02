@@ -8,11 +8,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] Auto-enrolment pension contribution calculations (default 5% employee / 3% employer relief).
-- [ ] Student loan repayment plan deduction options (Plan 1, Plan 2, Plan 4, Postgraduate).
-- [ ] Scottish Income Tax Bands support (Starter, Basic, Intermediate, Higher, Advanced, Top).
-- [ ] PDF and CSV payslip export and sharing.
-- [ ] Yearly vs. monthly payslip comparison toggle.
+- [ ] PDF payslip report generator with direct vector rendering.
+- [ ] CSV timesheet log exporter.
+- [ ] Saved comparison history with local Room database.
+- [ ] Salary sacrifice scheme options (Cycle to Work, EV company car).
+
+---
+
+## [2.0] - 2026-09-02 (VersionCode: 5)
+### Added
+- **Workplace Auto-Enrolment Pension**: Configurable employee contribution (0% to 15%, default 5%) with upfront **Net Pay Arrangement** tax relief reducing taxable gross; 3% statutory employer contribution calculated and displayed.
+- **Scottish 6-Tier Income Tax Engine**: Complete support for Scotland's 2024/2025 tax system (Starter 19%, Basic 20%, Intermediate 21%, Higher 42%, Advanced 45%, Top 48%) toggled via Tax Region preference.
+- **UK Student Loan Repayments**: Deductions for Plan 1 (threshold £24,990 @ 9%), Plan 2 (threshold £27,295 @ 9%), Plan 4 Scottish (threshold £31,395 @ 9%), and Postgraduate (threshold £21,000 @ 6%).
+- **Pay Frequency Switcher**: Dynamic view switching between **Monthly**, **Weekly**, **Annual**, and **Hourly** take-home representations.
+- **Overtime Multiplier Selector**: Support for `1.0x` (Standard), `1.5x` (Time-and-a-Half), and `2.0x` (Double Time) overtime calculation multipliers.
+- **Multi-Period Comparison Table**: Comprehensive 4-column summary grid comparing Gross and Net earnings across Hourly, Weekly, Monthly, and Annual frequencies.
+- **In-App Changelog & Release Notes Dialog**: Interactive modal in Settings rendering version 2.0 feature highlights.
+- **Native Android Share Sheet**: 1-tap "Share Payslip Summary" action generating formatted plaintext payslip summaries.
+- **Comprehensive Unit Testing Suite**: New test cases in [`TaxCalculatorTest.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/test/java/com/example/salarycalculator/domain/TaxCalculatorTest.kt) asserting Scottish 6-band rates, Student Loan thresholds, Pension tax relief, and multi-period conversions.
+
+### Bugs Found & Fixed
+- **Segmented Button Text Wrap**: Resolved text wrapping on 320px screens for `Monthly`/`Weekly` frequency buttons by optimizing icon slots and typography scaling.
+- **Chip Horizontal Overflow**: Wrapped Tax Region, Student Loan, and Overtime Multiplier chip rows with horizontal scrolling to prevent layout clipping on compact displays.
+
+### What Needs to Be Fixed / Pending
+- Direct PDF vector generation (currently supports native text-based payslip sharing).
 
 ---
 
@@ -45,7 +65,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Deprecated Color APIs**: Replaced deprecated `statusBarColor`/`navigationBarColor` window calls with modern `WindowCompat.getInsetsController` edge-to-edge system bar tinting.
 
 ### What Needs to Be Fixed / Pending
-- Add unit tests for `ThemeMode` preference serialization.
+- Scottish tax tiers and Student Loans (resolved in v2.0).
 
 ---
 

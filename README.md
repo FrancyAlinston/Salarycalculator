@@ -6,15 +6,17 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ## Features
 
-- **UK PAYE Tax Engine (2024/2025):** Computes tax bands (Basic 20%, Higher 40%, Additional 45%) and Class 1 Primary National Insurance (8% and 2% rates).
-- **Tax Code Parsing:** Dynamically calculates personal allowances from standard UK tax codes (e.g., `1257L` $\rightarrow$ £12,570/yr) and non-standard codes (`BR`, `0T`, `D0`, `D1`).
-- **Hourly & Overtime Pay Breakdown:** Calculates gross pay from days worked, standard daily hours, and overtime hours.
-- **Deep Slate Dark & Light Themes:** Dedicated Material 3 theme switcher (System Default, Light, Dark) with edge-to-edge transparent system bars.
-- **Material You Adaptive App Icon:** Custom Material 3 vector icon featuring British Pound (£) currency styling, rich gradient depth, and Android 13+ dynamic monochrome wallpaper theming.
-- **Micro-Animations & Visual Breakdown:** Animated proportional progress bar (Take-Home %, PAYE Tax %, NI %), smooth number slide-fades, and expandable rows.
-- **Quick-Select Presets:** One-tap presets for standard UK working schedules (20d, 21.7d, 16d) and National Living Wage benchmark rates.
-- **Persistent User Settings:** Saves default hourly rate, tax code, and theme mode preferences using Jetpack DataStore Preferences.
-- **Modern Jetpack Compose UI:** AndroidX Navigation 3 with responsive layout hierarchy and zero-stutter calculation memoization.
+- **UK & Scottish PAYE Tax Engines (2024/2025):** Full support for England/Wales/NI (20%, 40%, 45%) and Scottish 6-tier system (Starter 19%, Basic 20%, Intermediate 21%, Higher 42%, Advanced 45%, Top 48%).
+- **Workplace Auto-Enrolment Pension:** Configurable employee contribution (default 5%) with **Net Pay Arrangement** upfront tax relief and 3% employer contribution tracking.
+- **UK Student Loan Repayments:** Full calculation for Plan 1, Plan 2, Plan 4 (Scotland), and Postgraduate loan thresholds.
+- **Pay Frequency Switcher & Matrix:** Instant conversion across **Monthly**, **Weekly**, **Annual**, and **Hourly** views with full multi-period comparison tables.
+- **Overtime Multipliers & Schedule Presets:** Configurable overtime rates (`1.0x`, `1.5x`, `2.0x`) and 1-tap schedule chips (20d, 21.7d, 16d).
+- **Tax Code Parsing:** Dynamically calculates personal allowances from standard UK codes (`1257L`) and non-standard codes (`BR`, `0T`, `D0`, `D1`).
+- **Deep Slate Dark & Light Themes:** Material 3 theme switcher (System Default, Light, Dark) with edge-to-edge transparent system bars.
+- **Material You Adaptive App Icon:** Custom vector icon featuring British Pound (£) currency branding and Android 13+ monochrome wallpaper theming.
+- **Micro-Animations & Visual Distribution:** Spring-animated multi-segment breakdown bar, numerical slide-fade transitions, and expandable rows.
+- **In-App Release Notes & Share Sheet:** 1-tap payslip export via native Android share sheet and in-app Changelog modal.
+- **Persistent User Settings:** Saves tax code, region, pension rate, student loan plan, hourly rate, and theme mode via Jetpack DataStore Preferences.
 
 ---
 

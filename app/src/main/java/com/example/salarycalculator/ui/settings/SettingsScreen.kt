@@ -17,9 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.salarycalculator.domain.SalaryRepository
-import com.example.salarycalculator.domain.TaxCalculator
-import com.example.salarycalculator.domain.ThemeMode
+import androidx.compose.ui.unit.sp
+import com.example.salarycalculator.domain.*
 import kotlinx.coroutines.launch
 
 @Composable
@@ -30,10 +29,20 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val taxCode by salaryRepository.getTaxCode().collectAsState(initial = "1257L")
     val hourlyRate by salaryRepository.getDefaultHourlyRate().collectAsState(initial = 12.71)
     val currentThemeMode by salaryRepository.getThemeMode().collectAsState(initial = ThemeMode.SYSTEM)
+    val taxRegion by salaryRepository.getTaxRegion().collectAsState(initial = TaxRegion.UK_STANDARD)
+    val pensionRate by salaryRepository.getPensionRate().collectAsState(initial = 5.0)
+    val studentLoanPlan by salaryRepository.getStudentLoanPlan().collectAsState(initial = StudentLoanPlan.NONE)
+    val overtimeMultiplier by salaryRepository.getOvertimeMultiplier().collectAsState(initial = 1.5)
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
+    var inputPensionRate by remember(pensionRate) { mutableStateOf(pensionRate.toString()) }
     var selectedThemeMode by remember(currentThemeMode) { mutableStateOf(currentThemeMode) }
+    var selectedTaxRegion by remember(taxRegion) { mutableStateOf(taxRegion) }
+    var selectedStudentLoan by remember(studentLoanPlan) { mutableStateOf(studentLoanPlan) }
+    var selectedOvertimeMultiplier by remember(overtimeMultiplier) { mutableStateOf(overtimeMultiplier) }
+
+    var showChangelogDialog by remember { mutableStateOf(false) }
 
     val calculatedAllowance = remember(inputTaxCode) {
         TaxCalculator.parseTaxFreeAllowance(inputTaxCode, isMonthly = false)
@@ -61,7 +70,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Customize your theme, UK tax allowances, and default wage.",
+                    text = "Configure your regional tax rules, pension relief, student loans, and app theme.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -152,7 +161,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 }
             }
 
-            // 2. Tax Code Configuration Card
+            // 2. Tax Region & Tax Code Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -168,15 +177,39 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Description,
+                            imageVector = Icons.Outlined.Public,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Tax Code Configuration",
+                            text = "Tax Region & Allowance",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
+                    }
+
+                    // Region Selector
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Tax Region", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = selectedTaxRegion == TaxRegion.UK_STANDARD,
+                                onClick = { selectedTaxRegion = TaxRegion.UK_STANDARD },
+                                label = { Text("UK Standard") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            FilterChip(
+                                selected = selectedTaxRegion == TaxRegion.SCOTLAND,
+                                onClick = { selectedTaxRegion = TaxRegion.SCOTLAND },
+                                label = { Text("Scotland (6 Rates)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
                     }
 
                     OutlinedTextField(
@@ -218,7 +251,69 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 }
             }
 
-            // 3. Default Hourly Wage Card
+            // 3. Pension & Student Loan Configuration Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Savings,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Pension & Student Loan",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    OutlinedTextField(
+                        value = inputPensionRate,
+                        onValueChange = { inputPensionRate = it },
+                        label = { Text("Employee Pension Contribution (%)") },
+                        placeholder = { Text("e.g. 5.0") },
+                        suffix = { Text("%") },
+                        supportingText = { Text("Auto-enrolment standard is 5% employee / 3% employer") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    // Student Loan Plan Selector
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Student Loan Repayment Plan", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            StudentLoanPlan.entries.forEach { plan ->
+                                FilterChip(
+                                    selected = selectedStudentLoan == plan,
+                                    onClick = { selectedStudentLoan = plan },
+                                    label = { Text(if (plan == StudentLoanPlan.NONE) "No Loan" else plan.name.replace("_", " ")) },
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Default Wage & Overtime Multiplier Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -239,7 +334,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Default Hourly Rate",
+                            text = "Default Wage & Overtime",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -248,7 +343,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                     OutlinedTextField(
                         value = inputHourlyRate,
                         onValueChange = { inputHourlyRate = it },
-                        label = { Text("Hourly Rate (£)") },
+                        label = { Text("Default Hourly Rate (£)") },
                         placeholder = { Text("e.g. 12.71") },
                         prefix = { Text("£ ") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -266,12 +361,12 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                     ) {
                         SuggestionChip(
                             onClick = { inputHourlyRate = "12.21" },
-                            label = { Text("£12.21 (UK Living Wage)") },
+                            label = { Text("£12.21 (Living Wage)") },
                             shape = RoundedCornerShape(10.dp)
                         )
                         SuggestionChip(
                             onClick = { inputHourlyRate = "12.60" },
-                            label = { Text("£12.60 (Real Living Wage)") },
+                            label = { Text("£12.60 (Real Living)") },
                             shape = RoundedCornerShape(10.dp)
                         )
                         SuggestionChip(
@@ -279,6 +374,36 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             label = { Text("£13.85 (London)") },
                             shape = RoundedCornerShape(10.dp)
                         )
+                    }
+
+                    // Default Overtime Multiplier
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Default Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = selectedOvertimeMultiplier == 1.0,
+                                onClick = { selectedOvertimeMultiplier = 1.0 },
+                                label = { Text("1.0x (Standard)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            FilterChip(
+                                selected = selectedOvertimeMultiplier == 1.5,
+                                onClick = { selectedOvertimeMultiplier = 1.5 },
+                                label = { Text("1.5x (Time & Half)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            FilterChip(
+                                selected = selectedOvertimeMultiplier == 2.0,
+                                onClick = { selectedOvertimeMultiplier = 2.0 },
+                                label = { Text("2.0x (Double)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -288,8 +413,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 onClick = {
                     scope.launch {
                         salaryRepository.setTaxCode(inputTaxCode)
+                        salaryRepository.setTaxRegion(selectedTaxRegion)
+                        salaryRepository.setStudentLoanPlan(selectedStudentLoan)
+                        salaryRepository.setOvertimeMultiplier(selectedOvertimeMultiplier)
                         inputHourlyRate.toDoubleOrNull()?.let {
                             salaryRepository.setDefaultHourlyRate(it)
+                        }
+                        inputPensionRate.toDoubleOrNull()?.let {
+                            salaryRepository.setPensionRate(it)
                         }
                         snackbarHostState.showSnackbar("Settings saved successfully!")
                     }
@@ -301,8 +432,53 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
             ) {
                 Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Save Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Save All Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
+
+            // In-App Changelog & Version Info Button
+            OutlinedButton(
+                onClick = { showChangelogDialog = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("View Version 2.0 Release Notes", style = MaterialTheme.typography.labelLarge)
+            }
+        }
+
+        // What's New Dialog
+        if (showChangelogDialog) {
+            AlertDialog(
+                onDismissRequest = { showChangelogDialog = false },
+                title = {
+                    Text(
+                        text = "What's New in v2.0 🚀",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text("• Auto-Enrolment Pension: 5% employee relief + 3% employer contribution.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Student Loan Repayments: Plan 1, Plan 2, Plan 4 (Scotland), and Postgraduate.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Scottish 6-Band Tax System: Starter (19%), Basic (20%), Intermediate (21%), Higher (42%), Advanced (45%), Top (48%).", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Pay Frequency Switcher: Toggle between Monthly, Weekly, Annual, and Hourly views.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Overtime Multipliers: 1.0x, 1.5x, and 2.0x rates.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Share Payslips: Export plaintext payslip receipts to any app.", style = MaterialTheme.typography.bodyMedium)
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showChangelogDialog = false }) {
+                        Text("Close", fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
         }
     }
 }
