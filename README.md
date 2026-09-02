@@ -10,6 +10,7 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 - **Tax Code Parsing:** Dynamically calculates personal allowances from standard UK tax codes (e.g., `1257L` $\rightarrow$ £12,570/yr) and non-standard codes (`BR`, `0T`, `D0`, `D1`).
 - **Hourly & Overtime Pay Breakdown:** Calculates gross pay from days worked, standard daily hours, and overtime hours.
 - **Deep Slate Dark & Light Themes:** Dedicated Material 3 theme switcher (System Default, Light, Dark) with edge-to-edge transparent system bars.
+- **Material You Adaptive App Icon:** Custom Material 3 vector icon featuring British Pound (£) currency styling, rich gradient depth, and Android 13+ dynamic monochrome wallpaper theming.
 - **Micro-Animations & Visual Breakdown:** Animated proportional progress bar (Take-Home %, PAYE Tax %, NI %), smooth number slide-fades, and expandable rows.
 - **Quick-Select Presets:** One-tap presets for standard UK working schedules (20d, 21.7d, 16d) and National Living Wage benchmark rates.
 - **Persistent User Settings:** Saves default hourly rate, tax code, and theme mode preferences using Jetpack DataStore Preferences.
