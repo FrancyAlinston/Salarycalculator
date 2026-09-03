@@ -76,6 +76,11 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - When introducing user-facing features, schema modifications, or calculation updates, increment `versionCode` and update `versionName` in [`app/build.gradle.kts`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/build.gradle.kts).
 - **Keystore & Signing Integrity**:
   - Maintain signing config referencing [`app/debug.keystore`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/debug.keystore) to ensure compatibility with automated release workflows.
+- **GitHub Actions Storage Limits & Release Backtracking (`@rules:github_upload_storage_limits_management`)**:
+  - On every change or build push for release, the agent MUST consider GitHub Actions upload/artifact storage quotas.
+  - Never allow intermediate workflow artifact upload steps (`actions/upload-artifact`) to block or fail release publishing (`softprops/action-gh-release`), because GitHub Releases utilize independent, uncapped release asset storage.
+  - If a storage quota or recalculation window (6-12 hours) prevents immediate artifact staging, the agent MUST bypass ephemeral workflow artifact uploads and attach production and debug APKs directly to the GitHub Release.
+  - The agent MUST backtrack across past versions (from the last successful GitHub release up to the current active version) to verify all intervening releases are properly tagged, built, and published.
 - **Automated CI/CD**:
   - Releases are automatically generated via GitHub Actions ([`.github/workflows/release.yml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.github/workflows/release.yml)) on push to `main` with semantic tags `v*`.
   - Artifact path rules:
