@@ -233,6 +233,7 @@ fun SalaryCalculatorTheme(
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
+        ThemeMode.SOLAR -> com.example.salarycalculator.domain.SolarThemeScheduler.isSolarNightTime()
     }
 
     val context = LocalContext.current

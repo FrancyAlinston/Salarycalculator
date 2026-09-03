@@ -12,7 +12,8 @@ import kotlinx.serialization.json.Json
 enum class ThemeMode {
     SYSTEM,
     LIGHT,
-    DARK
+    DARK,
+    SOLAR
 }
 
 enum class ThemePalette {

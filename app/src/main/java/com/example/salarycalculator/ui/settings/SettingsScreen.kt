@@ -209,7 +209,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                     selectedThemeMode = ThemeMode.SYSTEM
                                     scope.launch { salaryRepository.setThemeMode(ThemeMode.SYSTEM) }
                                 },
-                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 4),
                                 icon = {}
                             ) {
                                 Text("System", style = MaterialTheme.typography.labelSmall, maxLines = 1)
@@ -221,7 +221,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                     selectedThemeMode = ThemeMode.LIGHT
                                     scope.launch { salaryRepository.setThemeMode(ThemeMode.LIGHT) }
                                 },
-                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 4),
                                 icon = {}
                             ) {
                                 Text("Light", style = MaterialTheme.typography.labelSmall, maxLines = 1)
@@ -233,10 +233,22 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                     selectedThemeMode = ThemeMode.DARK
                                     scope.launch { salaryRepository.setThemeMode(ThemeMode.DARK) }
                                 },
-                                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
+                                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 4),
                                 icon = {}
                             ) {
                                 Text("Dark", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            }
+
+                            SegmentedButton(
+                                selected = selectedThemeMode == ThemeMode.SOLAR,
+                                onClick = {
+                                    selectedThemeMode = ThemeMode.SOLAR
+                                    scope.launch { salaryRepository.setThemeMode(ThemeMode.SOLAR) }
+                                },
+                                shape = SegmentedButtonDefaults.itemShape(index = 3, count = 4),
+                                icon = {}
+                            ) {
+                                Text("Solar ☀️", style = MaterialTheme.typography.labelSmall, maxLines = 1)
                             }
                         }
 

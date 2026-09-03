@@ -4,6 +4,23 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [16.0] - 2026-09-03 (VersionCode: 22)
+### Added
+- **Self-Employed Payments on Account & Balancing Charge Calculator (`SelfEmployedTaxEngine.kt` & `SelfEmployedTaxDialog.kt`)**: Implemented HMRC statutory Self-Assessment calculations including £1,000 Trading Allowance, Class 4 NI (6% main band / 2% upper band), combined PAYE + Self-Employment assessment, and automatic Payments on Account calculation (50% due 31 January, 50% due 31 July) with first-year cash outlay projections.
+- **Gift Aid Tax Relief & Higher-Rate Band Extension Optimizer (`GiftAidOptimizer.kt` & `GiftAidDialog.kt`)**: Modeled charitable donations with 25% HMRC basic rate top-up, Higher Rate (40%) and Additional Rate (45%) personal tax reclaim calculations (saving up to 25% of gross donation), and basic rate tax band expansion from £37,700.
+- **Capital Gains Tax (CGT) Annual Exemption (£3,000) & Asset Disposal Planner (`CapitalGainsTaxEngine.kt` & `CapitalGainsDialog.kt`)**: Modeled 2024/25 & 2025/26 £3,000 statutory CGT annual exempt amounts, basic rate (10% standard / 18% residential property) and higher rate (20% standard / 24% residential property) tax computations, and taxable income band absorption.
+- **Direct PDF/CSV Email Dispatch Intent (`EmailExporter.kt`)**: Added 1-tap email composer button in action toolbar pre-filling subject, body summary, and attaching monthly PDF payslips, P60 certificates, or CSV reports via Android `FileProvider`.
+- **Astronomical Solar Sunset/Sunrise Dynamic Dark Mode (`SolarThemeScheduler.kt`, `Theme.kt`, `SettingsScreen.kt`)**: Integrated astronomical sunrise and sunset calculation for UK coordinates to smoothly auto-toggle Material 3 Dark/Light mode at twilight without requiring location permissions.
+- **Comprehensive v16.0 Unit Test Suite (`SelfEmployedAndCgtTest.kt`)**: Automated test coverage for self-employed profits, Class 4 NI, Payments on Account triggers, Gift Aid relief, CGT calculations, and Solar scheduler decimal hours (100% pass rate).
+
+### Bugs Found & Fixed
+- **Actions Storage Quota Resilience**: Removed ephemeral `actions/upload-artifact` blocker from release workflow to guarantee releases attach APK assets directly to GitHub Releases without hitting the 500MB Actions storage limit.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [15.0] - 2026-09-03 (VersionCode: 21)
 ### Added
 - **Pension Annual Allowance (£60,000) & Tapered Allowance Optimizer (`PensionAllowanceOptimizer.kt` & `PensionAllowanceDialog.kt`)**: Implemented statutory UK pension allowance calculations covering £60k standard annual allowance, high-earner tapered allowance (£260k–£360k adjusted income tapering £1 for every £2 down to £10k floor), Money Purchase Annual Allowance (MPAA £10k) restriction, 3-year unused carry-forward calculations (2021/22–2023/24), and marginal rate tax charge estimations on excess contributions.

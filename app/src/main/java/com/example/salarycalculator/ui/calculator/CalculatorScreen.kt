@@ -89,6 +89,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showSalaryBenchmarkDialog by remember { mutableStateOf(false) }
     var showPensionAllowanceDialog by remember { mutableStateOf(false) }
     var showStudentLoanPayoffDialog by remember { mutableStateOf(false) }
+    var showSelfEmployedDialog by remember { mutableStateOf(false) }
+    var showGiftAidDialog by remember { mutableStateOf(false) }
+    var showCapitalGainsDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -310,6 +313,39 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             },
                             onShareClick = {
                                 launchShareIntent(context, report, taxCode, taxRegion, selectedPensionPercent, selectedStudentLoan)
+                            },
+                            onEmailClick = {
+                                val tempRecord = MonthlySalaryRecord(
+                                    monthYear = saveMonthYear,
+                                    daysWorked = daysWorked,
+                                    hoursPerDay = hoursPerDay,
+                                    overtimeHours = overtimeHours,
+                                    overtimeMultiplier = selectedOvertimeMultiplier,
+                                    hourlyRate = defaultHourlyRate,
+                                    grossPay = report.grossPay,
+                                    salarySacrifice = report.salarySacrifice,
+                                    pensionRate = selectedPensionPercent,
+                                    pensionContribution = report.pensionContribution,
+                                    employerPension = report.employerPensionContribution,
+                                    taxablePay = report.taxablePay,
+                                    incomeTax = report.incomeTax,
+                                    nationalInsurance = report.nationalInsurance,
+                                    studentLoanPlan = selectedStudentLoan,
+                                    studentLoanDeduction = report.studentLoanDeduction,
+                                    totalDeductions = report.totalDeductions,
+                                    netPay = report.netPay,
+                                    taxCode = taxCode,
+                                    taxRegion = taxRegion,
+                                    note = "Generated from Live Calculator"
+                                )
+                                val pdfFile = PdfPayslipGenerator.generatePayslipPdf(context, tempRecord)
+                                val bodyText = "Hello,\n\nPlease find attached the salary calculation breakdown for ${tempRecord.monthYear}.\n\nGross Pay: £${"%.2f".format(report.grossPay)}\nNet Take-Home: £${"%.2f".format(report.netPay)}\n\nKind regards."
+                                EmailExporter.dispatchEmailWithAttachment(
+                                    context = context,
+                                    file = pdfFile,
+                                    subject = "[Salary Calculator] Payslip - ${tempRecord.monthYear}",
+                                    bodyText = bodyText
+                                )
                             }
                         )
                         Spacer(modifier = Modifier.height(16.dp))
@@ -376,7 +412,10 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onYtdProjectionClick = { showYtdProjectionDialog = true },
                             onSalaryBenchmarkClick = { showSalaryBenchmarkDialog = true },
                             onPensionAllowanceClick = { showPensionAllowanceDialog = true },
-                            onStudentLoanPayoffClick = { showStudentLoanPayoffDialog = true }
+                            onStudentLoanPayoffClick = { showStudentLoanPayoffDialog = true },
+                            onSelfEmployedClick = { showSelfEmployedDialog = true },
+                            onGiftAidClick = { showGiftAidDialog = true },
+                            onCapitalGainsClick = { showCapitalGainsDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -445,6 +484,39 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             },
                             onShareClick = {
                                 launchShareIntent(context, report, taxCode, taxRegion, selectedPensionPercent, selectedStudentLoan)
+                            },
+                            onEmailClick = {
+                                val tempRecord = MonthlySalaryRecord(
+                                    monthYear = saveMonthYear,
+                                    daysWorked = daysWorked,
+                                    hoursPerDay = hoursPerDay,
+                                    overtimeHours = overtimeHours,
+                                    overtimeMultiplier = selectedOvertimeMultiplier,
+                                    hourlyRate = defaultHourlyRate,
+                                    grossPay = report.grossPay,
+                                    salarySacrifice = report.salarySacrifice,
+                                    pensionRate = selectedPensionPercent,
+                                    pensionContribution = report.pensionContribution,
+                                    employerPension = report.employerPensionContribution,
+                                    taxablePay = report.taxablePay,
+                                    incomeTax = report.incomeTax,
+                                    nationalInsurance = report.nationalInsurance,
+                                    studentLoanPlan = selectedStudentLoan,
+                                    studentLoanDeduction = report.studentLoanDeduction,
+                                    totalDeductions = report.totalDeductions,
+                                    netPay = report.netPay,
+                                    taxCode = taxCode,
+                                    taxRegion = taxRegion,
+                                    note = "Generated from Live Calculator"
+                                )
+                                val pdfFile = PdfPayslipGenerator.generatePayslipPdf(context, tempRecord)
+                                val bodyText = "Hello,\n\nPlease find attached the salary calculation breakdown for ${tempRecord.monthYear}.\n\nGross Pay: £${"%.2f".format(report.grossPay)}\nNet Take-Home: £${"%.2f".format(report.netPay)}\n\nKind regards."
+                                EmailExporter.dispatchEmailWithAttachment(
+                                    context = context,
+                                    file = pdfFile,
+                                    subject = "[Salary Calculator] Payslip - ${tempRecord.monthYear}",
+                                    bodyText = bodyText
+                                )
                             }
                         )
                     }
@@ -719,6 +791,30 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showStudentLoanPayoffDialog = false }
             )
         }
+        // Self-Employed & Payments on Account Dialog
+        if (showSelfEmployedDialog) {
+            SelfEmployedTaxDialog(
+                initialPayeGross = report.annualGross,
+                initialPayeTax = report.incomeTax * 12.0,
+                taxRegion = taxRegion,
+                onDismiss = { showSelfEmployedDialog = false }
+            )
+        }
+        // Gift Aid & Higher-Rate Tax Relief Dialog
+        if (showGiftAidDialog) {
+            GiftAidDialog(
+                initialSalary = report.annualGross,
+                taxRegion = taxRegion,
+                onDismiss = { showGiftAidDialog = false }
+            )
+        }
+        // Capital Gains Tax (CGT) Dialog
+        if (showCapitalGainsDialog) {
+            CapitalGainsDialog(
+                initialSalary = report.annualGross,
+                onDismiss = { showCapitalGainsDialog = false }
+            )
+        }
     }
 }
 
@@ -965,7 +1061,10 @@ private fun SchedulePresetsSection(
     onYtdProjectionClick: () -> Unit = {},
     onSalaryBenchmarkClick: () -> Unit = {},
     onPensionAllowanceClick: () -> Unit = {},
-    onStudentLoanPayoffClick: () -> Unit = {}
+    onStudentLoanPayoffClick: () -> Unit = {},
+    onSelfEmployedClick: () -> Unit = {},
+    onGiftAidClick: () -> Unit = {},
+    onCapitalGainsClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -979,6 +1078,24 @@ private fun SchedulePresetsSection(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            AssistChip(
+                onClick = onSelfEmployedClick,
+                label = { Text("Self-Employed Tax", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onGiftAidClick,
+                label = { Text("Gift Aid Relief", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.VolunteerActivism, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onCapitalGainsClick,
+                label = { Text("Capital Gains (CGT)", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
+            )
             AssistChip(
                 onClick = onYtdProjectionClick,
                 label = { Text("YTD Projections", style = MaterialTheme.typography.labelSmall) },
@@ -1530,7 +1647,8 @@ private fun MultiPeriodCard(report: SalaryReport) {
 private fun ActionButtonsRow(
     onSaveClick: () -> Unit,
     onPdfClick: () -> Unit,
-    onShareClick: () -> Unit
+    onShareClick: () -> Unit,
+    onEmailClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -1541,7 +1659,7 @@ private fun ActionButtonsRow(
         Button(
             onClick = onSaveClick,
             modifier = Modifier
-                .weight(1.2f)
+                .weight(1.1f)
                 .height(48.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -1553,7 +1671,7 @@ private fun ActionButtonsRow(
         FilledTonalButton(
             onClick = onPdfClick,
             modifier = Modifier
-                .weight(1f)
+                .weight(0.9f)
                 .height(48.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
@@ -1563,9 +1681,21 @@ private fun ActionButtonsRow(
         }
 
         FilledTonalButton(
+            onClick = onEmailClick,
+            modifier = Modifier
+                .weight(0.9f)
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("Email", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+        }
+
+        FilledTonalButton(
             onClick = onShareClick,
             modifier = Modifier
-                .weight(1f)
+                .weight(0.9f)
                 .height(48.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
