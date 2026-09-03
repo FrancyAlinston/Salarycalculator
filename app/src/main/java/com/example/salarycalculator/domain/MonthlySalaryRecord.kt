@@ -14,6 +14,7 @@ data class MonthlySalaryRecord(
     val overtimeMultiplier: Double = 1.5,
     val hourlyRate: Double,
     val grossPay: Double,
+    val salarySacrifice: Double = 0.0,
     val pensionRate: Double = 5.0,
     val pensionContribution: Double = 0.0,
     val employerPension: Double = 0.0,

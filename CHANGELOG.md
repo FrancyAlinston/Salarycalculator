@@ -8,9 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] Direct PDF vector export with custom company/employee header formatting.
-- [ ] CSV timesheet log file generation and saving.
-- [ ] Side-by-side historical pay period comparison diff tool.
+- [ ] Annual P60 summary document generator.
+- [ ] Multiple concurrent employer profiles.
+- [ ] Marriage allowance & childcare statutory relief toggles.
+
+---
+
+## [3.0] - 2026-09-03 (VersionCode: 9)
+### Added
+- **Native Vector PDF Payslip Generator (`PdfPayslipGenerator.kt`)**: Generates official A4 payslip documents with company/employee header, schedule, tax & pension details, payments breakdown, deductions, and bold take-home hero boxes.
+- **Android FileProvider Integration**: Configured secure file sharing in `AndroidManifest.xml` and `provider_paths.xml` for seamless PDF and CSV sharing via Android Sharesheet.
+- **CSV Spreadsheet Exporter (`CsvSalaryExporter.kt`)**: 1-tap export of the entire salary history ledger into `.csv` files for Excel and Google Sheets.
+- **Side-by-Side Month Diff & Comparison Tool (`MonthDiffDialog.kt`)**: Interactive comparison dialog calculating exact numerical and percentage variances (Gross, Tax, NI, Pension, Net) between any two saved months.
+- **Interactive Salary Analytics Chart (`SalaryTrendChart.kt`)**: Custom Compose Canvas rendering monthly Gross vs Take-Home bars along with a dashed average pay reference line.
+- **Salary Sacrifice Schemes**: Pre-tax deductions for Cycle to Work and Electric Vehicle (EV) schemes reducing taxable gross before Income Tax, NI, and pension calculations.
+- **Direct PDF Export Actions**: Added 1-tap "PDF" generation buttons directly on the Live Calculator screen and on every saved monthly record in History.
+
+### Bugs Found & Fixed
+- **Missing File Sharing Permissions**: Resolved Android URI sharing crashes by integrating `androidx.core.content.FileProvider`.
+
+### What Needs to Be Fixed / Pending
+- Annual P60 tax document generator.
 
 ---
 
@@ -25,7 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Large Screen Real Estate Underutilization**: Replaced stretched single-column layouts on wide foldables with side-by-side productive dual-screen layout.
 
 ### What Needs to Be Fixed / Pending
-- Direct PDF vector generation (currently supports native text-based payslip sharing).
+- Direct PDF vector generation (resolved in v3.0).
 
 ---
 
@@ -41,7 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Currency Splitting in Payslip Rows**: Prevented currency symbols and decimal fractions from wrapping onto multiple lines across compact displays.
 
 ### What Needs to Be Fixed / Pending
-- Direct PDF vector generation (currently supports native text-based payslip sharing).
+- Direct PDF vector generation (resolved in v3.0).
 
 ---
 
@@ -59,7 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Bottom Navigation Bar Overlap**: Adjusted bottom padding on CalculatorScreen so action buttons scroll completely into view.
 
 ### What Needs to Be Fixed / Pending
-- Direct PDF vector generation (currently supports native text-based payslip sharing).
+- Direct PDF vector generation (resolved in v3.0).
 
 ---
 

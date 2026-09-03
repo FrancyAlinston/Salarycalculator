@@ -24,6 +24,8 @@ enum class PayFrequency(val displayName: String) {
 
 data class SalaryReport(
     val grossPay: Double,
+    val salarySacrifice: Double = 0.0,
+    val adjustedGrossPay: Double = grossPay,
     val pensionContribution: Double,
     val employerPensionContribution: Double,
     val taxablePay: Double,
@@ -62,9 +64,9 @@ object TaxCalculator {
     }
 
     /**
-     * Calculates UK & Scottish Income Tax, Class 1 Primary NI, Pension, and Student Loan.
+     * Calculates UK & Scottish Income Tax, Class 1 Primary NI, Pension, Student Loan, and Salary Sacrifice.
      * Uses UK Standard and Scotland 2024/2025 statutory tax bands.
-     * Sequence: Hours/Overtime -> Gross Pay -> Pension (Net Pay Relief) -> Allowance -> Taxable Income -> PAYE Tax -> NI -> Student Loan -> Net Pay
+     * Sequence: Hours/Overtime -> Gross Pay -> Salary Sacrifice -> Pension (Net Pay Relief) -> Allowance -> Taxable Income -> PAYE Tax -> NI -> Student Loan -> Net Pay
      */
     // CRITICAL: TAX_ENGINE
     fun calculateTax(
@@ -74,18 +76,21 @@ object TaxCalculator {
         region: TaxRegion = TaxRegion.UK_STANDARD,
         pensionRatePercent: Double = 0.0,
         studentLoanPlan: StudentLoanPlan = StudentLoanPlan.NONE,
+        salarySacrificeAmount: Double = 0.0,
         standardHoursPerWeek: Double = 37.5
     ): SalaryReport {
         // Zero / Negative bounds protection
         val safeGross = max(0.0, grossPay)
+        val safeSacrifice = max(0.0, minOf(salarySacrificeAmount, safeGross))
+        val adjustedGross = max(0.0, safeGross - safeSacrifice)
 
         // 1. Workplace Pension (Net Pay Arrangement relief reduces taxable pay)
         val safePensionRate = max(0.0, pensionRatePercent)
-        val employeePension = safeGross * (safePensionRate / 100.0)
-        val employerPension = safeGross * 0.03 // Standard 3% statutory employer auto-enrolment
+        val employeePension = adjustedGross * (safePensionRate / 100.0)
+        val employerPension = adjustedGross * 0.03 // Standard 3% statutory employer auto-enrolment
 
         // 2. Taxable Income Calculation after Pension Relief
-        val grossAfterPension = max(0.0, safeGross - employeePension)
+        val grossAfterPension = max(0.0, adjustedGross - employeePension)
         val allowance = parseTaxFreeAllowance(taxCode, isMonthly)
         val taxablePay = max(0.0, grossAfterPension - allowance)
 
@@ -162,12 +167,12 @@ object TaxCalculator {
         val uel = if (isMonthly) 4189.0 else 4189.0 * 12.0
 
         var nationalInsurance = 0.0
-        if (safeGross > pt) {
-            val niBasicBand = minOf(safeGross - pt, uel - pt)
+        if (adjustedGross > pt) {
+            val niBasicBand = minOf(adjustedGross - pt, uel - pt)
             nationalInsurance += niBasicBand * 0.08
 
-            if (safeGross > uel) {
-                val niAdditionalBand = safeGross - uel
+            if (adjustedGross > uel) {
+                val niAdditionalBand = adjustedGross - uel
                 nationalInsurance += niAdditionalBand * 0.02
             }
         }
@@ -176,13 +181,13 @@ object TaxCalculator {
         var studentLoan = 0.0
         if (studentLoanPlan != StudentLoanPlan.NONE && studentLoanPlan.rate > 0.0) {
             val periodThreshold = if (isMonthly) studentLoanPlan.annualThreshold / 12.0 else studentLoanPlan.annualThreshold
-            if (safeGross > periodThreshold) {
-                studentLoan = (safeGross - periodThreshold) * studentLoanPlan.rate
+            if (adjustedGross > periodThreshold) {
+                studentLoan = (adjustedGross - periodThreshold) * studentLoanPlan.rate
             }
         }
 
         // 6. Net Pay & Deductions with zero/negative bounds
-        val totalDeductions = employeePension + incomeTax + nationalInsurance + studentLoan
+        val totalDeductions = safeSacrifice + employeePension + incomeTax + nationalInsurance + studentLoan
         val netPay = max(0.0, safeGross - totalDeductions)
 
         val effectiveTaxRate = if (safeGross > 0.0) (totalDeductions / safeGross) * 100.0 else 0.0
@@ -197,6 +202,8 @@ object TaxCalculator {
 
         return SalaryReport(
             grossPay = safeGross,
+            salarySacrifice = safeSacrifice,
+            adjustedGrossPay = adjustedGross,
             pensionContribution = employeePension,
             employerPensionContribution = employerPension,
             taxablePay = taxablePay,

@@ -23,10 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.salarycalculator.domain.MonthlySalaryRecord
-import com.example.salarycalculator.domain.SalaryRepository
-import com.example.salarycalculator.domain.StudentLoanPlan
-import com.example.salarycalculator.domain.TaxRegion
+import com.example.salarycalculator.domain.*
 import com.example.salarycalculator.theme.*
 import kotlinx.coroutines.launch
 
@@ -38,6 +35,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
 
     var recordToDelete by remember { mutableStateOf<MonthlySalaryRecord?>(null) }
     var showClearAllDialog by remember { mutableStateOf(false) }
+    var showCompareDialog by remember { mutableStateOf(false) }
 
     // Cumulative stats
     val totalNet = remember(historyList) { historyList.sumOf { it.netPay } }
@@ -109,7 +107,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                     contentPadding = PaddingValues(vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Header & Clear All Button
+                    // Header & Action Bar
                     item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -130,17 +128,47 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                                 )
                             }
 
-                            IconButton(onClick = { showClearAllDialog = true }) {
-                                Icon(
-                                    Icons.Outlined.DeleteSweep,
-                                    contentDescription = "Clear All History",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (historyList.size >= 2) {
+                                    FilledTonalIconButton(onClick = { showCompareDialog = true }) {
+                                        Icon(
+                                            Icons.Default.CompareArrows,
+                                            contentDescription = "Compare Periods",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+
+                                FilledTonalIconButton(
+                                    onClick = {
+                                        val file = CsvSalaryExporter.exportHistoryCsv(context, historyList)
+                                        CsvSalaryExporter.shareCsv(context, file)
+                                    }
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.FileDownload,
+                                        contentDescription = "Export CSV",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                IconButton(onClick = { showClearAllDialog = true }) {
+                                    Icon(
+                                        Icons.Outlined.DeleteSweep,
+                                        contentDescription = "Clear All History",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                     }
 
-                    // Cumulative Statistics Hero Card (Non-overlapping layout)
+                    // Earnings Trend Chart
+                    item {
+                        SalaryTrendChart(history = historyList)
+                    }
+
+                    // Cumulative Statistics Hero Card
                     item {
                         ElevatedCard(
                             modifier = Modifier.fillMaxWidth(),
@@ -219,6 +247,10 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                     items(historyList, key = { it.id }) { record ->
                         HistoryRecordCard(
                             record = record,
+                            onExportPdf = {
+                                val pdfFile = PdfPayslipGenerator.generatePayslipPdf(context, record)
+                                PdfPayslipGenerator.sharePdf(context, pdfFile)
+                            },
                             onDelete = { recordToDelete = record },
                             onShare = {
                                 val shareText = """
@@ -228,6 +260,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                                     Days Worked: ${record.daysWorked}d @ ${record.hoursPerDay}h/d (£${"%.2f".format(record.hourlyRate)}/hr)
                                     ${if (record.overtimeHours > 0) "Overtime: ${record.overtimeHours}h @ ${record.overtimeMultiplier}x\n" else ""}
                                     Deductions:
+                                    ${if (record.salarySacrifice > 0) "• Salary Sacrifice: £${"%.2f".format(record.salarySacrifice)}\n" else ""}
                                     • Pension (${record.pensionRate}%): £${"%.2f".format(record.pensionContribution)}
                                     • PAYE Tax: £${"%.2f".format(record.incomeTax)}
                                     • National Insurance: £${"%.2f".format(record.nationalInsurance)}
@@ -248,6 +281,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                     }
                 }
             }
+        }
+
+        // Compare Months Dialog
+        if (showCompareDialog) {
+            MonthDiffDialog(
+                historyList = historyList,
+                onDismiss = { showCompareDialog = false }
+            )
         }
 
         // Delete Single Record Confirmation Dialog
@@ -303,6 +344,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
 @Composable
 private fun HistoryRecordCard(
     record: MonthlySalaryRecord,
+    onExportPdf: () -> Unit,
     onDelete: () -> Unit,
     onShare: () -> Unit
 ) {
@@ -414,6 +456,13 @@ private fun HistoryRecordCard(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                     HistoryDetailRow(label = "Gross Total Pay", value = "£${"%.2f".format(record.grossPay)}", isBold = true)
+                    if (record.salarySacrifice > 0) {
+                        HistoryDetailRow(
+                            label = "Salary Sacrifice Schemes",
+                            value = "-£${"%.2f".format(record.salarySacrifice)}",
+                            valueColor = Rose60
+                        )
+                    }
                     if (record.pensionContribution > 0) {
                         HistoryDetailRow(
                             label = "Employee Pension (${record.pensionRate}%)",
@@ -460,6 +509,16 @@ private fun HistoryRecordCard(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        FilledTonalButton(
+                            onClick = onExportPdf,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("PDF", style = MaterialTheme.typography.labelMedium)
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
                         TextButton(onClick = onShare) {
                             Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))

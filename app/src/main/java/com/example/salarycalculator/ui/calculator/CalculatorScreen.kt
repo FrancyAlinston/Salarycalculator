@@ -49,6 +49,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var selectedOvertimeMultiplier by remember(defaultOvertimeMultiplier) { mutableStateOf(defaultOvertimeMultiplier) }
     var selectedPensionPercent by remember(pensionRate) { mutableStateOf(pensionRate) }
     var selectedStudentLoan by remember(studentLoanPlan) { mutableStateOf(studentLoanPlan) }
+    var salarySacrificeInput by remember { mutableStateOf("") }
 
     var daysWorkedInput by remember { mutableStateOf("20") }
     var hoursPerDayInput by remember { mutableStateOf("8.0") }
@@ -62,6 +63,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     val daysWorked = remember(daysWorkedInput) { daysWorkedInput.toDoubleOrNull() ?: 0.0 }
     val hoursPerDay = remember(hoursPerDayInput) { hoursPerDayInput.toDoubleOrNull() ?: 8.0 }
     val overtimeHours = remember(overtimeHoursInput) { overtimeHoursInput.toDoubleOrNull() ?: 0.0 }
+    val salarySacrificeAmount = remember(salarySacrificeInput) { salarySacrificeInput.toDoubleOrNull() ?: 0.0 }
 
     // Memoize standard and overtime pay
     val standardPay = remember(daysWorked, hoursPerDay, defaultHourlyRate) {
@@ -78,7 +80,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
         taxCode,
         taxRegion,
         selectedPensionPercent,
-        selectedStudentLoan
+        selectedStudentLoan,
+        salarySacrificeAmount
     ) {
         TaxCalculator.calculateTax(
             grossPay = grossPay,
@@ -86,7 +89,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
             isMonthly = true,
             region = taxRegion,
             pensionRatePercent = selectedPensionPercent,
-            studentLoanPlan = selectedStudentLoan
+            studentLoanPlan = selectedStudentLoan,
+            salarySacrificeAmount = salarySacrificeAmount
         )
     }
 
@@ -117,7 +121,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
             val isWideScreen = maxWidth >= 900.dp
 
             if (isWideScreen) {
-                // Adaptive 2-Column Dual-Pane Layout for Foldables & Tablets
+                // Adaptive 2-Column Dual-Pane Layout for Massive Screens
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -154,7 +158,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             selectedPensionPercent = selectedPensionPercent,
                             onPensionChange = { selectedPensionPercent = it },
                             selectedStudentLoan = selectedStudentLoan,
-                            onStudentLoanChange = { selectedStudentLoan = it }
+                            onStudentLoanChange = { selectedStudentLoan = it },
+                            salarySacrificeInput = salarySacrificeInput,
+                            onSalarySacrificeChange = { salarySacrificeInput = it }
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -189,6 +195,33 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                         MultiPeriodCard(report = report)
                         ActionButtonsRow(
                             onSaveClick = { showSaveDialog = true },
+                            onPdfClick = {
+                                val tempRecord = MonthlySalaryRecord(
+                                    monthYear = saveMonthYear,
+                                    daysWorked = daysWorked,
+                                    hoursPerDay = hoursPerDay,
+                                    overtimeHours = overtimeHours,
+                                    overtimeMultiplier = selectedOvertimeMultiplier,
+                                    hourlyRate = defaultHourlyRate,
+                                    grossPay = report.grossPay,
+                                    salarySacrifice = report.salarySacrifice,
+                                    pensionRate = selectedPensionPercent,
+                                    pensionContribution = report.pensionContribution,
+                                    employerPension = report.employerPensionContribution,
+                                    taxablePay = report.taxablePay,
+                                    incomeTax = report.incomeTax,
+                                    nationalInsurance = report.nationalInsurance,
+                                    studentLoanPlan = selectedStudentLoan,
+                                    studentLoanDeduction = report.studentLoanDeduction,
+                                    totalDeductions = report.totalDeductions,
+                                    netPay = report.netPay,
+                                    taxCode = taxCode,
+                                    taxRegion = taxRegion,
+                                    note = "Generated from Live Calculator"
+                                )
+                                val pdfFile = PdfPayslipGenerator.generatePayslipPdf(context, tempRecord)
+                                PdfPayslipGenerator.sharePdf(context, pdfFile)
+                            },
                             onShareClick = {
                                 launchShareIntent(context, report, taxCode, taxRegion, selectedPensionPercent, selectedStudentLoan)
                             }
@@ -197,7 +230,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                     }
                 }
             } else {
-                // Single Column Layout with Centering for Phones
+                // Single Column Layout with Centering for Mobile / Dual-Pane Panels
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.TopCenter
@@ -240,7 +273,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             selectedPensionPercent = selectedPensionPercent,
                             onPensionChange = { selectedPensionPercent = it },
                             selectedStudentLoan = selectedStudentLoan,
-                            onStudentLoanChange = { selectedStudentLoan = it }
+                            onStudentLoanChange = { selectedStudentLoan = it },
+                            salarySacrificeInput = salarySacrificeInput,
+                            onSalarySacrificeChange = { salarySacrificeInput = it }
                         )
                         DetailedPayslipCard(
                             daysWorked = daysWorked,
@@ -258,6 +293,33 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                         MultiPeriodCard(report = report)
                         ActionButtonsRow(
                             onSaveClick = { showSaveDialog = true },
+                            onPdfClick = {
+                                val tempRecord = MonthlySalaryRecord(
+                                    monthYear = saveMonthYear,
+                                    daysWorked = daysWorked,
+                                    hoursPerDay = hoursPerDay,
+                                    overtimeHours = overtimeHours,
+                                    overtimeMultiplier = selectedOvertimeMultiplier,
+                                    hourlyRate = defaultHourlyRate,
+                                    grossPay = report.grossPay,
+                                    salarySacrifice = report.salarySacrifice,
+                                    pensionRate = selectedPensionPercent,
+                                    pensionContribution = report.pensionContribution,
+                                    employerPension = report.employerPensionContribution,
+                                    taxablePay = report.taxablePay,
+                                    incomeTax = report.incomeTax,
+                                    nationalInsurance = report.nationalInsurance,
+                                    studentLoanPlan = selectedStudentLoan,
+                                    studentLoanDeduction = report.studentLoanDeduction,
+                                    totalDeductions = report.totalDeductions,
+                                    netPay = report.netPay,
+                                    taxCode = taxCode,
+                                    taxRegion = taxRegion,
+                                    note = "Generated from Live Calculator"
+                                )
+                                val pdfFile = PdfPayslipGenerator.generatePayslipPdf(context, tempRecord)
+                                PdfPayslipGenerator.sharePdf(context, pdfFile)
+                            },
                             onShareClick = {
                                 launchShareIntent(context, report, taxCode, taxRegion, selectedPensionPercent, selectedStudentLoan)
                             }
@@ -337,6 +399,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                                 overtimeMultiplier = selectedOvertimeMultiplier,
                                 hourlyRate = defaultHourlyRate,
                                 grossPay = report.grossPay,
+                                salarySacrifice = report.salarySacrifice,
                                 pensionRate = selectedPensionPercent,
                                 pensionContribution = report.pensionContribution,
                                 employerPension = report.employerPensionContribution,
@@ -371,7 +434,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     }
 }
 
-// Subcomponents for Modular Responsive Layout
+// Subcomponents
 
 @Composable
 private fun AppHeaderSection(
@@ -721,7 +784,9 @@ private fun DeductionsAdjustmentsCard(
     selectedPensionPercent: Double,
     onPensionChange: (Double) -> Unit,
     selectedStudentLoan: StudentLoanPlan,
-    onStudentLoanChange: (StudentLoanPlan) -> Unit
+    onStudentLoanChange: (StudentLoanPlan) -> Unit,
+    salarySacrificeInput: String,
+    onSalarySacrificeChange: (String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -734,12 +799,13 @@ private fun DeductionsAdjustmentsCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Pension & Student Loan Adjustments",
+                text = "Pension, Student Loan & Sacrifice",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
             )
 
+            // Employee Pension
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "Employee Pension: ${"%.1f".format(selectedPensionPercent)}%",
@@ -763,6 +829,7 @@ private fun DeductionsAdjustmentsCard(
                 }
             }
 
+            // Student Loan
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "Student Loan: ${selectedStudentLoan.displayName}",
@@ -785,6 +852,20 @@ private fun DeductionsAdjustmentsCard(
                     }
                 }
             }
+
+            // Salary Sacrifice Pre-Tax Deduction
+            OutlinedTextField(
+                value = salarySacrificeInput,
+                onValueChange = onSalarySacrificeChange,
+                label = { Text("Salary Sacrifice (Cycle to Work / EV)") },
+                placeholder = { Text("e.g. 150.00") },
+                prefix = { Text("£ ") },
+                supportingText = { Text("Pre-tax deduction reducing Income Tax & NI") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
         }
     }
 }
@@ -856,6 +937,14 @@ private fun DetailedPayslipCard(
                 value = "£${"%.2f".format(report.grossPay)}",
                 isBold = true
             )
+
+            if (report.salarySacrifice > 0) {
+                PayslipRow(
+                    label = "Salary Sacrifice Schemes",
+                    value = "-£${"%.2f".format(report.salarySacrifice)}",
+                    valueColor = Rose60
+                )
+            }
 
             if (report.pensionContribution > 0) {
                 PayslipRow(
@@ -968,36 +1057,49 @@ private fun MultiPeriodCard(report: SalaryReport) {
 @Composable
 private fun ActionButtonsRow(
     onSaveClick: () -> Unit,
+    onPdfClick: () -> Unit,
     onShareClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Button(
             onClick = onSaveClick,
             modifier = Modifier
-                .weight(1f)
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp)
+                .weight(1.2f)
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Default.BookmarkAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.BookmarkAdd, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Save Record", style = MaterialTheme.typography.titleMedium, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text("Save", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+        }
+
+        FilledTonalButton(
+            onClick = onPdfClick,
+            modifier = Modifier
+                .weight(1f)
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text("PDF", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
         }
 
         FilledTonalButton(
             onClick = onShareClick,
             modifier = Modifier
                 .weight(1f)
-                .height(50.dp),
-            shape = RoundedCornerShape(14.dp)
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Share", style = MaterialTheme.typography.titleMedium, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text("Share", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }
@@ -1017,6 +1119,7 @@ private fun launchShareIntent(
         Tax Code: $taxCode (${if (taxRegion == TaxRegion.SCOTLAND) "Scotland" else "UK Standard"})
         
         Deductions:
+        ${if (report.salarySacrifice > 0) "• Salary Sacrifice: £${"%.2f".format(report.salarySacrifice)}\n" else ""}
         • Pension (${selectedPensionPercent}%): £${"%.2f".format(report.pensionContribution)}
         • PAYE Income Tax: £${"%.2f".format(report.incomeTax)}
         • National Insurance: £${"%.2f".format(report.nationalInsurance)}

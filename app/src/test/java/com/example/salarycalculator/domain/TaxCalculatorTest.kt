@@ -98,6 +98,17 @@ class TaxCalculatorTest {
     }
 
     @Test
+    fun calculateTax_salarySacrifice_reducesTaxAndNI() {
+        val withoutSacrifice = TaxCalculator.calculateTax(3000.0, "1257L", isMonthly = true, salarySacrificeAmount = 0.0)
+        val withSacrifice = TaxCalculator.calculateTax(3000.0, "1257L", isMonthly = true, salarySacrificeAmount = 200.0)
+
+        assertEquals(200.0, withSacrifice.salarySacrifice, 0.01)
+        assertEquals(2800.0, withSacrifice.adjustedGrossPay, 0.01)
+        assertTrue(withSacrifice.incomeTax < withoutSacrifice.incomeTax)
+        assertTrue(withSacrifice.nationalInsurance < withoutSacrifice.nationalInsurance)
+    }
+
+    @Test
     fun calculateTax_studentLoanPlan2_correctDeduction() {
         val report = TaxCalculator.calculateTax(
             2916.67,
@@ -138,16 +149,17 @@ class TaxCalculatorTest {
             overtimeMultiplier = 1.5,
             hourlyRate = 15.0,
             grossPay = 2512.50,
+            salarySacrifice = 100.0,
             pensionRate = 5.0,
-            pensionContribution = 125.63,
-            employerPension = 75.38,
-            taxablePay = 1339.37,
-            incomeTax = 267.87,
-            nationalInsurance = 117.16,
+            pensionContribution = 120.63,
+            employerPension = 72.38,
+            taxablePay = 1245.37,
+            incomeTax = 249.07,
+            nationalInsurance = 109.16,
             studentLoanPlan = StudentLoanPlan.PLAN_2,
             studentLoanDeduction = 21.41,
-            totalDeductions = 532.07,
-            netPay = 1980.43,
+            totalDeductions = 600.27,
+            netPay = 1912.23,
             taxCode = "1257L",
             taxRegion = TaxRegion.UK_STANDARD,
             note = "September paycheck"
@@ -159,8 +171,9 @@ class TaxCalculatorTest {
         assertEquals(1, decoded.size)
         val first = decoded[0]
         assertEquals("September 2026", first.monthYear)
-        assertEquals(1980.43, first.netPay, 0.01)
+        assertEquals(1912.23, first.netPay, 0.01)
         assertEquals(2512.50, first.grossPay, 0.01)
+        assertEquals(100.0, first.salarySacrifice, 0.01)
         assertEquals(StudentLoanPlan.PLAN_2, first.studentLoanPlan)
         assertEquals("September paycheck", first.note)
     }
