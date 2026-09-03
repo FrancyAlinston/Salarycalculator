@@ -36,6 +36,8 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val pensionRate by salaryRepository.getPensionRate().collectAsState(initial = 5.0)
     val studentLoanPlan by salaryRepository.getStudentLoanPlan().collectAsState(initial = StudentLoanPlan.NONE)
     val overtimeMultiplier by salaryRepository.getOvertimeMultiplier().collectAsState(initial = 1.5)
+    val weekendOvertimeMultiplier by salaryRepository.getWeekendOvertimeMultiplier().collectAsState(initial = 2.0)
+    val bankHolidayOvertimeMultiplier by salaryRepository.getBankHolidayOvertimeMultiplier().collectAsState(initial = 2.5)
     val hasMarriageAllowance by salaryRepository.getHasMarriageAllowance().collectAsState(initial = false)
     val hasBlindPersonsAllowance by salaryRepository.getHasBlindPersonsAllowance().collectAsState(initial = false)
     val profiles by salaryRepository.getEmployerProfiles().collectAsState(initial = emptyList())
@@ -54,6 +56,8 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var selectedTaxYear by remember(taxYear) { mutableStateOf(taxYear) }
     var selectedStudentLoan by remember(studentLoanPlan) { mutableStateOf(studentLoanPlan) }
     var selectedOvertimeMultiplier by remember(overtimeMultiplier) { mutableStateOf(overtimeMultiplier) }
+    var selectedWeekendOvertime by remember(weekendOvertimeMultiplier) { mutableStateOf(weekendOvertimeMultiplier) }
+    var selectedBankHolidayOvertime by remember(bankHolidayOvertimeMultiplier) { mutableStateOf(bankHolidayOvertimeMultiplier) }
     var switchMarriageAllowance by remember(hasMarriageAllowance) { mutableStateOf(hasMarriageAllowance) }
     var switchBlindAllowance by remember(hasBlindPersonsAllowance) { mutableStateOf(hasBlindPersonsAllowance) }
     var switchBiometricLock by remember(biometricLockEnabled) { mutableStateOf(biometricLockEnabled) }
@@ -495,33 +499,63 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             )
                         }
 
-                        // Default Overtime Multiplier
+                        // Default Weekday Overtime Multiplier
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Default Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Text("Weekday Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                FilterChip(
-                                    selected = selectedOvertimeMultiplier == 1.0,
-                                    onClick = { selectedOvertimeMultiplier = 1.0 },
-                                    label = { Text("1.0x (Standard)") },
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                                FilterChip(
-                                    selected = selectedOvertimeMultiplier == 1.5,
-                                    onClick = { selectedOvertimeMultiplier = 1.5 },
-                                    label = { Text("1.5x (Time & Half)") },
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                                FilterChip(
-                                    selected = selectedOvertimeMultiplier == 2.0,
-                                    onClick = { selectedOvertimeMultiplier = 2.0 },
-                                    label = { Text("2.0x (Double)") },
-                                    shape = RoundedCornerShape(10.dp)
-                                )
+                                listOf(1.0 to "1.0x (Standard)", 1.25 to "1.25x", 1.5 to "1.5x (Time & Half)", 2.0 to "2.0x (Double)").forEach { (rate, label) ->
+                                    FilterChip(
+                                        selected = selectedOvertimeMultiplier == rate,
+                                        onClick = { selectedOvertimeMultiplier = rate },
+                                        label = { Text(label) },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Default Weekend Overtime Multiplier
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Weekend Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(1.5 to "1.5x", 1.75 to "1.75x", 2.0 to "2.0x (Double)", 2.25 to "2.25x").forEach { (rate, label) ->
+                                    FilterChip(
+                                        selected = selectedWeekendOvertime == rate,
+                                        onClick = { selectedWeekendOvertime = rate },
+                                        label = { Text(label) },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        // Bank Holiday Overtime Multiplier
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Bank Holiday Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(2.0 to "2.0x (Double)", 2.5 to "2.5x (Double & Half)", 3.0 to "3.0x (Triple)").forEach { (rate, label) ->
+                                    FilterChip(
+                                        selected = selectedBankHolidayOvertime == rate,
+                                        onClick = { selectedBankHolidayOvertime = rate },
+                                        label = { Text(label) },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -739,6 +773,8 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             salaryRepository.setTaxYear(selectedTaxYear)
                             salaryRepository.setStudentLoanPlan(selectedStudentLoan)
                             salaryRepository.setOvertimeMultiplier(selectedOvertimeMultiplier)
+                            salaryRepository.setWeekendOvertimeMultiplier(selectedWeekendOvertime)
+                            salaryRepository.setBankHolidayOvertimeMultiplier(selectedBankHolidayOvertime)
                             salaryRepository.setHasMarriageAllowance(switchMarriageAllowance)
                             salaryRepository.setHasBlindPersonsAllowance(switchBlindAllowance)
                             salaryRepository.setBiometricLockEnabled(switchBiometricLock)

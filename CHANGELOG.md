@@ -8,8 +8,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] End-of-year tax refund & rebate estimator for mid-year tax code corrections.
-- [ ] Direct export of annual payroll summaries to HMRC self-assessment SA100 format.
+- [ ] Direct bank statement CSV import & automatic payslip matching.
+- [ ] Real-time HMRC live tax rate updates via remote JSON configuration.
+
+---
+
+## [8.0] - 2026-09-03 (VersionCode: 14)
+### Added
+- **Multi-Year Statutory Tax Comparison Matrix (`TaxYearComparison.kt` & `TaxComparisonDialog.kt`)**: Interactive comparative analysis engine and custom Canvas bar chart comparing take-home pay, PAYE income tax, and Class 1 National Insurance across 2023/2024 (12% NI rate), 2024/2025 (8% NI rate cut), and 2025/2026 statutory regimes with instant annual savings badges.
+- **HMRC Self-Assessment (SA100 / SA102) Formatter & PDF Exporter (`Sa100Generator.kt` & `Sa100Dialog.kt`)**: Automatic mapping of payroll records and live calculations to official HMRC employment return box numbers (Boxes 1–7) with 1-tap A4 vector PDF generation and system sharing via Android `FileProvider`.
+- **Mid-Year Tax Code Refund & Rebate Estimator (`TaxRefundEstimator.kt` & `TaxRefundEstimatorDialog.kt`)**: Interactive cumulative PAYE refund model calculating one-off payslip refunds and monthly take-home increases when transitioning from emergency tax codes (`BR`, `0T`, `D0`) to standard allowances (`1257L`, `1383M`).
+- **Multi-Tier Weekend & Bank Holiday Overtime Rates (`SalaryRepository.kt` & `SettingsScreen.kt`)**: Dedicated configuration chips and persistence for Weekday (`1.0x`–`1.5x`), Weekend (`1.5x`–`2.25x`), and Bank Holiday (`2.0x`–`3.0x`) overtime multipliers.
+- **Dual Stable & Debug GitHub Release Packaging (`release.yml`)**: Automated GitHub Actions CI workflow assembling both debug and release APKs, guaranteeing stable releases are packaged strictly as `Salarycalculator.apk` and debug builds as `Salarycalculator-debug.apk`.
+- **Comprehensive v8.0 Tax Test Battery (`TaxCalculatorTest.kt`)**: Automated unit test coverage verifying 2023–2025 NI savings calculations, emergency code refund formulas, and SA100 return box distributions.
+
+### Bugs Found & Fixed
+- **Deprecated Icon Migration**: Updated `Assignment`, `TrendingUp`, and `CompareArrows` icons to use `Icons.AutoMirrored.Filled.*`.
+- **Responsive Layout for Tool Chips**: Placed the `Schedule Presets & Tools` header and horizontal chip bar into dedicated rows to prevent horizontal scrolling truncation in foldable and compact orientations.
+- **Type Signature Unification**: Resolved `TaxReport` to `SalaryReport` references across SA100 generation dialogs.
+
+### What Needs to Be Fixed / Pending
+- Direct bank statement CSV import & automatic payslip matching.
+- Real-time HMRC live tax rate updates via remote JSON configuration.
 
 ---
 

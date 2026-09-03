@@ -363,5 +363,119 @@ class TaxCalculatorTest {
         val allowanceLostHigh = minOf(12570.0, (incomeHigh - 100000.0) / 2.0)
         assertEquals(12570.0, allowanceLostHigh, 0.01)
     }
+
+    @Test
+    fun taxYearComparison_computesAccurate2023to2025NiSavings() {
+        // £35,000 annual income
+        val comparison = TaxYearComparisonCalculator.compare(
+            grossAmount = 35000.0,
+            isMonthly = false,
+            pensionRatePercent = 0.0
+        )
+
+        assertEquals(3, comparison.summaries.size)
+        val s2023 = comparison.summaries.find { it.yearLabel == "2023/2024" }!!
+        val s2024 = comparison.summaries.find { it.yearLabel == "2024/2025" }!!
+        val s2025 = comparison.summaries.find { it.yearLabel == "2025/2026" }!!
+
+        // In 2023/24, main NI was 12% on (35000 - 12570) = 22430 * 0.12 = 2691.60
+        assertEquals(2691.60, s2023.nationalInsurance, 0.01)
+
+        // In 2024/25 & 2025/26, main NI was cut to 8% on 22430 * 0.08 = 1794.40
+        assertEquals(1794.40, s2024.nationalInsurance, 0.01)
+        assertEquals(1794.40, s2025.nationalInsurance, 0.01)
+
+        // Annual NI saving from cut: 2691.60 - 1794.40 = 897.20
+        assertEquals(897.20, s2024.annualSavingsVs2023, 0.01)
+        assertTrue(s2024.netPay > s2023.netPay)
+    }
+
+    @Test
+    fun taxRefundEstimator_emergencyCodeSwitch_calculatesAccurateCumulativeRefund() {
+        // £3,000/mo on BR (flat 20% = £600 tax/mo) for 4 months (paid £2,400 tax so far)
+        // Under 1257L, 4 months allowance is £4,190 -> cumulative taxable is £12,000 - £4,190 = £7,810 -> tax is £1,562
+        // Immediate refund is £2,400 - £1,562 = £838
+        val result = TaxRefundEstimator.estimate(
+            monthlyGross = 3000.0,
+            monthsOnOldCode = 4,
+            oldTaxCode = "BR",
+            newTaxCode = "1257L",
+            pensionRatePercent = 0.0
+        )
+
+        assertEquals(12000.0, result.cumulativeGross, 0.01)
+        assertEquals(2400.0, result.taxPaidUnderOldCode, 0.01)
+        assertEquals(1562.0, result.cumulativeTaxDueUnderNewCode, 0.01)
+        assertEquals(838.0, result.immediatePaycheckRefund, 0.01)
+        assertTrue(result.newMonthlyTakeHome > result.oldMonthlyTakeHome)
+    }
+
+    @Test
+    fun sa100Generator_mapsBoxesCorrectly() {
+        val records = listOf(
+            MonthlySalaryRecord(
+                monthYear = "January 2025",
+                daysWorked = 20.0,
+                hoursPerDay = 8.0,
+                overtimeHours = 0.0,
+                overtimeMultiplier = 1.5,
+                hourlyRate = 18.75,
+                grossPay = 3000.0,
+                salarySacrifice = 0.0,
+                pensionRate = 5.0,
+                pensionContribution = 150.0,
+                employerPension = 90.0,
+                taxablePay = 1802.50,
+                incomeTax = 360.50,
+                nationalInsurance = 139.44,
+                studentLoanPlan = StudentLoanPlan.PLAN_1,
+                studentLoanDeduction = 45.0,
+                totalDeductions = 694.94,
+                netPay = 2305.06,
+                taxCode = "1257L",
+                taxRegion = TaxRegion.UK_STANDARD
+            ),
+            MonthlySalaryRecord(
+                monthYear = "February 2025",
+                daysWorked = 20.0,
+                hoursPerDay = 8.0,
+                overtimeHours = 0.0,
+                overtimeMultiplier = 1.5,
+                hourlyRate = 18.75,
+                grossPay = 3000.0,
+                salarySacrifice = 0.0,
+                pensionRate = 5.0,
+                pensionContribution = 150.0,
+                employerPension = 90.0,
+                taxablePay = 1802.50,
+                incomeTax = 360.50,
+                nationalInsurance = 139.44,
+                studentLoanPlan = StudentLoanPlan.PLAN_1,
+                studentLoanDeduction = 45.0,
+                totalDeductions = 694.94,
+                netPay = 2305.06,
+                taxCode = "1257L",
+                taxRegion = TaxRegion.UK_STANDARD
+            )
+        )
+
+        val summary = Sa100Generator.generateFromRecords(records, taxYearLabel = "2024/2025")
+        assertEquals(6000.0, summary.totalGrossPay, 0.01)
+        assertEquals(721.00, summary.totalTaxDeducted, 0.01)
+        assertEquals(300.00, summary.totalPensionRelief, 0.01)
+        assertEquals(90.00, summary.totalStudentLoan, 0.01)
+        assertEquals(4610.12, summary.netTakeHome, 0.01)
+
+        val box1 = summary.boxes.find { it.boxNumber == "Box 1" }!!
+        val box2 = summary.boxes.find { it.boxNumber == "Box 2" }!!
+        val box5 = summary.boxes.find { it.boxNumber == "Box 5" }!!
+        val box6 = summary.boxes.find { it.boxNumber == "Box 6" }!!
+
+        assertEquals(6000.0, box1.amount, 0.01)
+        assertEquals(721.00, box2.amount, 0.01)
+        assertEquals(300.00, box5.amount, 0.01)
+        assertEquals(90.00, box6.amount, 0.01)
+    }
 }
+
 

@@ -6,6 +6,10 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ## Features
 
+- **Multi-Year Statutory Tax Comparison Matrix:** Interactive comparative analysis engine and custom Canvas bar chart comparing net take-home, PAYE tax, and Class 1 NI across 2023/2024 (12% NI rate), 2024/2025 (8% NI rate cut), and 2025/2026 statutory regimes with annual savings badges.
+- **HMRC Self-Assessment (SA100 / SA102) Formatter & PDF Exporter:** Automatic mapping of payroll records and live calculations to official HMRC employment return box numbers (Boxes 1–7) with 1-tap A4 vector PDF generation and system sharing via Android `FileProvider`.
+- **Mid-Year Tax Code Refund & Rebate Estimator:** Interactive cumulative PAYE refund model calculating one-off payslip refunds and monthly take-home increases when transitioning from emergency tax codes (`BR`, `0T`, `D0`) to standard allowances (`1257L`, `1383M`).
+- **Multi-Tier Weekend & Bank Holiday Overtime Rates:** Dedicated configuration chips and persistence for Weekday (`1.0x`–`1.5x`), Weekend (`1.5x`–`2.25x`), and Bank Holiday (`2.0x`–`3.0x`) overtime multipliers.
 - **Scheduled Background Cloud Auto-Sync:** Automated 24-hour background ledger backup sync to your self-hosted private domain via Android `WorkManager` with network and battery constraints.
 - **Export Shift Calendar to iCalendar (.ics):** 1-tap export of logged monthly shift calendars and overtime shifts to RFC 5545 compliant `.ics` files importable directly into Google Calendar, Apple Calendar, and Outlook.
 - **60% Marginal Tax Trap & Pension Sacrifice Visualizer:** Dynamic visual tool analyzing personal allowance tapering between £100,000 and £125,140 with interactive pension salary sacrifice remedy modeling.

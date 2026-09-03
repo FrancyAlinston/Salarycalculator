@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -75,6 +76,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showShiftCalendarDialog by remember { mutableStateOf(false) }
     var showCurrencySettingsDialog by remember { mutableStateOf(false) }
     var showTaxTrapDialog by remember { mutableStateOf(false) }
+    var showTaxComparisonDialog by remember { mutableStateOf(false) }
+    var showSa100Dialog by remember { mutableStateOf(false) }
+    var showTaxRefundDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -197,7 +201,10 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             },
                             onChildBenefitClick = { showChildBenefitDialog = true },
                             onCalendarClick = { showShiftCalendarDialog = true },
-                            onTaxTrapClick = { showTaxTrapDialog = true }
+                            onTaxTrapClick = { showTaxTrapDialog = true },
+                            onTaxComparisonClick = { showTaxComparisonDialog = true },
+                            onSa100Click = { showSa100Dialog = true },
+                            onTaxRefundClick = { showTaxRefundDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -340,7 +347,10 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             },
                             onChildBenefitClick = { showChildBenefitDialog = true },
                             onCalendarClick = { showShiftCalendarDialog = true },
-                            onTaxTrapClick = { showTaxTrapDialog = true }
+                            onTaxTrapClick = { showTaxTrapDialog = true },
+                            onTaxComparisonClick = { showTaxComparisonDialog = true },
+                            onSa100Click = { showSa100Dialog = true },
+                            onTaxRefundClick = { showTaxRefundDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -566,6 +576,35 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
             MarginalTaxTrapDialog(
                 initialAnnualIncome = report.annualGross,
                 onDismiss = { showTaxTrapDialog = false }
+            )
+        }
+        // Multi-Year Tax Comparison Dialog
+        if (showTaxComparisonDialog) {
+            TaxComparisonDialog(
+                initialGrossAmount = report.grossPay,
+                isMonthly = true,
+                taxRegion = taxRegion,
+                taxCode = taxCode,
+                pensionRatePercent = selectedPensionPercent,
+                onDismiss = { showTaxComparisonDialog = false }
+            )
+        }
+        // HMRC SA100 Self-Assessment Return Dialog
+        if (showSa100Dialog) {
+            Sa100Dialog(
+                taxReport = report,
+                taxCode = taxCode,
+                employerName = activeProfile?.name ?: "Primary Employment",
+                taxYearLabel = taxYear.name.replace("YEAR_", "").replace("_", "/"),
+                onDismiss = { showSa100Dialog = false }
+            )
+        }
+        // Mid-Year Tax Code Refund & Rebate Estimator Dialog
+        if (showTaxRefundDialog) {
+            TaxRefundEstimatorDialog(
+                initialMonthlyGross = report.grossPay,
+                taxRegion = taxRegion,
+                onDismiss = { showTaxRefundDialog = false }
             )
         }
     }
@@ -802,42 +841,59 @@ private fun SchedulePresetsSection(
     onSelect: (String, String) -> Unit,
     onChildBenefitClick: () -> Unit = {},
     onCalendarClick: () -> Unit = {},
-    onTaxTrapClick: () -> Unit = {}
+    onTaxTrapClick: () -> Unit = {},
+    onTaxComparisonClick: () -> Unit = {},
+    onSa100Click: () -> Unit = {},
+    onTaxRefundClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Schedule Presets & Tools",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text(
-                text = "Schedule Presets",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+            AssistChip(
+                onClick = onTaxComparisonClick,
+                label = { Text("Multi-Year Tax", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.AutoGraph, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
             )
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                AssistChip(
-                    onClick = onCalendarClick,
-                    label = { Text("Shift Heatmap", style = MaterialTheme.typography.labelSmall) },
-                    leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp)) },
-                    shape = RoundedCornerShape(10.dp)
-                )
-                AssistChip(
-                    onClick = onChildBenefitClick,
-                    label = { Text("Child Benefit", style = MaterialTheme.typography.labelSmall) },
-                    leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp)) },
-                    shape = RoundedCornerShape(10.dp)
-                )
-                AssistChip(
-                    onClick = onTaxTrapClick,
-                    label = { Text("60% Tax Trap", style = MaterialTheme.typography.labelSmall) },
-                    leadingIcon = { Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(14.dp), tint = Rose60) },
-                    shape = RoundedCornerShape(10.dp)
-                )
-            }
+            AssistChip(
+                onClick = onSa100Click,
+                label = { Text("SA100 Return", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onTaxRefundClick,
+                label = { Text("Tax Refund", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onCalendarClick,
+                label = { Text("Shift Heatmap", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onChildBenefitClick,
+                label = { Text("Child Benefit", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onTaxTrapClick,
+                label = { Text("60% Tax Trap", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(14.dp), tint = Rose60) },
+                shape = RoundedCornerShape(10.dp)
+            )
         }
         Row(
             modifier = Modifier
@@ -1006,13 +1062,19 @@ private fun WorkingHoursCard(
                     FilterChip(
                         selected = selectedOvertimeMultiplier == 1.5,
                         onClick = { onOvertimeMultiplierChange(1.5) },
-                        label = { Text("1.5x (Time & Half)") },
+                        label = { Text("1.5x (Weekday)") },
                         shape = RoundedCornerShape(10.dp)
                     )
                     FilterChip(
                         selected = selectedOvertimeMultiplier == 2.0,
                         onClick = { onOvertimeMultiplierChange(2.0) },
-                        label = { Text("2.0x (Double)") },
+                        label = { Text("2.0x (Weekend)") },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    FilterChip(
+                        selected = selectedOvertimeMultiplier == 2.5,
+                        onClick = { onOvertimeMultiplierChange(2.5) },
+                        label = { Text("2.5x (Bank Hol)") },
                         shape = RoundedCornerShape(10.dp)
                     )
                 }

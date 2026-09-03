@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -25,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.salarycalculator.domain.*
 import com.example.salarycalculator.theme.*
+import com.example.salarycalculator.ui.calculator.Sa100Dialog
 import kotlinx.coroutines.launch
 
 @Composable
@@ -37,6 +40,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
     var showClearAllDialog by remember { mutableStateOf(false) }
     var showCompareDialog by remember { mutableStateOf(false) }
     var showP60Dialog by remember { mutableStateOf(false) }
+    var showSa100Dialog by remember { mutableStateOf(false) }
 
     // Cumulative stats
     val totalNet = remember(historyList) { historyList.sumOf { it.netPay } }
@@ -130,6 +134,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalIconButton(onClick = { showSa100Dialog = true }) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Assignment,
+                                        contentDescription = "HMRC SA100 Self-Assessment",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
                                 FilledTonalIconButton(onClick = { showP60Dialog = true }) {
                                     Icon(
                                         Icons.Default.Description,
@@ -141,7 +153,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                                 if (historyList.size >= 2) {
                                     FilledTonalIconButton(onClick = { showCompareDialog = true }) {
                                         Icon(
-                                            Icons.Default.CompareArrows,
+                                            Icons.AutoMirrored.Filled.CompareArrows,
                                             contentDescription = "Compare Periods",
                                             tint = MaterialTheme.colorScheme.primary
                                         )
@@ -353,6 +365,15 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                         Text("Cancel")
                     }
                 }
+            )
+        }
+
+        // HMRC SA100 Return Dialog
+        if (showSa100Dialog) {
+            Sa100Dialog(
+                historyRecords = historyList,
+                taxYearLabel = "2024/2025",
+                onDismiss = { showSa100Dialog = false }
             )
         }
     }

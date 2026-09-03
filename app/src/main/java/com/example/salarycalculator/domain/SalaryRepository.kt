@@ -42,6 +42,8 @@ class SalaryRepository(private val context: Context) {
     private val CUSTOM_EUR_RATE_KEY = doublePreferencesKey("custom_eur_rate")
     private val CUSTOM_USD_RATE_KEY = doublePreferencesKey("custom_usd_rate")
     private val BIOMETRIC_TIMEOUT_KEY = longPreferencesKey("biometric_timeout_seconds")
+    private val WEEKEND_OVERTIME_KEY = doublePreferencesKey("weekend_overtime_multiplier")
+    private val BANK_HOLIDAY_OVERTIME_KEY = doublePreferencesKey("bank_holiday_overtime_multiplier")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -327,6 +329,34 @@ class SalaryRepository(private val context: Context) {
     suspend fun setOvertimeMultiplier(multiplier: Double) {
         context.dataStore.edit { preferences ->
             preferences[OVERTIME_MULTIPLIER_KEY] = multiplier
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getWeekendOvertimeMultiplier(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[WEEKEND_OVERTIME_KEY] ?: 2.0
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setWeekendOvertimeMultiplier(multiplier: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[WEEKEND_OVERTIME_KEY] = multiplier
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getBankHolidayOvertimeMultiplier(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[BANK_HOLIDAY_OVERTIME_KEY] ?: 2.5
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setBankHolidayOvertimeMultiplier(multiplier: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[BANK_HOLIDAY_OVERTIME_KEY] = multiplier
         }
     }
 
