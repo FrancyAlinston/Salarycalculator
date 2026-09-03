@@ -36,6 +36,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
     var recordToDelete by remember { mutableStateOf<MonthlySalaryRecord?>(null) }
     var showClearAllDialog by remember { mutableStateOf(false) }
     var showCompareDialog by remember { mutableStateOf(false) }
+    var showP60Dialog by remember { mutableStateOf(false) }
 
     // Cumulative stats
     val totalNet = remember(historyList) { historyList.sumOf { it.netPay } }
@@ -129,6 +130,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalIconButton(onClick = { showP60Dialog = true }) {
+                                    Icon(
+                                        Icons.Default.Description,
+                                        contentDescription = "Generate Annual P60",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
                                 if (historyList.size >= 2) {
                                     FilledTonalIconButton(onClick = { showCompareDialog = true }) {
                                         Icon(
@@ -288,6 +297,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
             MonthDiffDialog(
                 historyList = historyList,
                 onDismiss = { showCompareDialog = false }
+            )
+        }
+
+        // Annual P60 Certificate Dialog
+        if (showP60Dialog) {
+            P60Dialog(
+                historyList = historyList,
+                onDismiss = { showP60Dialog = false }
             )
         }
 

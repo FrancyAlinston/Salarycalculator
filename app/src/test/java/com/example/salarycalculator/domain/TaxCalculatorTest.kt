@@ -24,6 +24,16 @@ class TaxCalculatorTest {
     }
 
     @Test
+    fun parseTaxFreeAllowance_withMarriageAndBlindAllowance_increasesAllowance() {
+        val baseYearly = TaxCalculator.parseTaxFreeAllowance("1257L", isMonthly = false)
+        val withMarriage = TaxCalculator.parseTaxFreeAllowance("1257L", isMonthly = false, hasMarriageAllowance = true)
+        val withBlind = TaxCalculator.parseTaxFreeAllowance("1257L", isMonthly = false, hasBlindPersonsAllowance = true)
+
+        assertEquals(baseYearly + 1260.0, withMarriage, 0.01)
+        assertEquals(baseYearly + 3070.0, withBlind, 0.01)
+    }
+
+    @Test
     fun parseTaxFreeAllowance_customAndSpecialCodes_returnsCorrectValues() {
         // Custom 1100L
         val customMonthly = TaxCalculator.parseTaxFreeAllowance("1100L", isMonthly = true)
@@ -72,6 +82,25 @@ class TaxCalculatorTest {
         assertEquals(290.50, report.incomeTax, 0.01)
         assertEquals(116.16, report.nationalInsurance, 0.01)
         assertEquals(2093.34, report.netPay, 0.01)
+    }
+
+    @Test
+    fun calculateTax_marriageAllowance_reducesIncomeTax() {
+        val withoutMarriage = TaxCalculator.calculateTax(2500.0, "1257L", isMonthly = true, hasMarriageAllowance = false)
+        val withMarriage = TaxCalculator.calculateTax(2500.0, "1257L", isMonthly = true, hasMarriageAllowance = true)
+
+        assertEquals(290.50, withoutMarriage.incomeTax, 0.01)
+        assertEquals(269.50, withMarriage.incomeTax, 0.01) // £21/month tax reduction
+        assertEquals(21.0, withoutMarriage.incomeTax - withMarriage.incomeTax, 0.01)
+    }
+
+    @Test
+    fun calculateTax_customDeductions_reducesNetPay() {
+        val unionDues = CustomDeduction(name = "Unison Union", amount = 15.0, isPreTax = false)
+        val report = TaxCalculator.calculateTax(2500.0, "1257L", isMonthly = true, customDeductions = listOf(unionDues))
+
+        assertEquals(15.0, report.customDeductionsTotal, 0.01)
+        assertEquals(2093.34 - 15.0, report.netPay, 0.01)
     }
 
     @Test
@@ -137,6 +166,28 @@ class TaxCalculatorTest {
         assertEquals(report.netPay * 12.0, report.annualNet, 0.01)
         assertEquals(report.annualNet / 52.0, report.weeklyNet, 0.01)
         assertEquals(report.weeklyNet / 37.5, report.hourlyNet, 0.01)
+    }
+
+    @Test
+    fun employerProfile_serialization_isLossless() {
+        val profile = EmployerProfile(
+            name = "Tech Freelance",
+            employerName = "Apex Studio Ltd",
+            taxCode = "BR",
+            hourlyRate = 25.0,
+            pensionRate = 8.0,
+            taxRegion = TaxRegion.SCOTLAND,
+            studentLoanPlan = StudentLoanPlan.PLAN_4
+        )
+
+        val encoded = json.encodeToString(listOf(profile))
+        val decoded = json.decodeFromString<List<EmployerProfile>>(encoded)
+
+        assertEquals(1, decoded.size)
+        assertEquals("Tech Freelance", decoded[0].name)
+        assertEquals("BR", decoded[0].taxCode)
+        assertEquals(25.0, decoded[0].hourlyRate, 0.01)
+        assertEquals(TaxRegion.SCOTLAND, decoded[0].taxRegion)
     }
 
     @Test

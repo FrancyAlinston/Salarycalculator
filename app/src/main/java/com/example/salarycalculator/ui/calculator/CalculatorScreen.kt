@@ -32,6 +32,8 @@ import com.example.salarycalculator.domain.*
 import com.example.salarycalculator.theme.*
 import kotlinx.coroutines.launch
 
+import com.example.salarycalculator.ui.settings.ProfileManagerDialog
+
 @Composable
 fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -41,9 +43,14 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     val taxCode by salaryRepository.getTaxCode().collectAsState(initial = "1257L")
     val defaultHourlyRate by salaryRepository.getDefaultHourlyRate().collectAsState(initial = 12.71)
     val taxRegion by salaryRepository.getTaxRegion().collectAsState(initial = TaxRegion.UK_STANDARD)
+    val taxYear by salaryRepository.getTaxYear().collectAsState(initial = TaxYear.YEAR_2024_2025)
     val pensionRate by salaryRepository.getPensionRate().collectAsState(initial = 5.0)
     val studentLoanPlan by salaryRepository.getStudentLoanPlan().collectAsState(initial = StudentLoanPlan.NONE)
     val defaultOvertimeMultiplier by salaryRepository.getOvertimeMultiplier().collectAsState(initial = 1.5)
+    val hasMarriageAllowance by salaryRepository.getHasMarriageAllowance().collectAsState(initial = false)
+    val hasBlindPersonsAllowance by salaryRepository.getHasBlindPersonsAllowance().collectAsState(initial = false)
+    val profiles by salaryRepository.getEmployerProfiles().collectAsState(initial = emptyList())
+    val activeProfileId by salaryRepository.getActiveProfileId().collectAsState(initial = "primary_default")
 
     var selectedFrequency by remember { mutableStateOf(PayFrequency.MONTHLY) }
     var selectedOvertimeMultiplier by remember(defaultOvertimeMultiplier) { mutableStateOf(defaultOvertimeMultiplier) }
@@ -56,8 +63,13 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var overtimeHoursInput by remember { mutableStateOf("") }
 
     var showSaveDialog by remember { mutableStateOf(false) }
+    var showProfileDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
+
+    val activeProfile = remember(profiles, activeProfileId) {
+        profiles.find { it.id == activeProfileId } ?: profiles.firstOrNull()
+    }
 
     // Memoize input numbers
     val daysWorked = remember(daysWorkedInput) { daysWorkedInput.toDoubleOrNull() ?: 0.0 }
@@ -79,18 +91,24 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
         grossPay,
         taxCode,
         taxRegion,
+        taxYear,
         selectedPensionPercent,
         selectedStudentLoan,
-        salarySacrificeAmount
+        salarySacrificeAmount,
+        hasMarriageAllowance,
+        hasBlindPersonsAllowance
     ) {
         TaxCalculator.calculateTax(
             grossPay = grossPay,
             taxCode = taxCode,
             isMonthly = true,
             region = taxRegion,
+            taxYear = taxYear,
             pensionRatePercent = selectedPensionPercent,
             studentLoanPlan = selectedStudentLoan,
-            salarySacrificeAmount = salarySacrificeAmount
+            salarySacrificeAmount = salarySacrificeAmount,
+            hasMarriageAllowance = hasMarriageAllowance,
+            hasBlindPersonsAllowance = hasBlindPersonsAllowance
         )
     }
 
@@ -135,7 +153,14 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
-                        AppHeaderSection(taxRegion = taxRegion, taxCode = taxCode, defaultHourlyRate = defaultHourlyRate, standardPay = standardPay)
+                        AppHeaderSection(
+                            taxRegion = taxRegion,
+                            taxCode = taxCode,
+                            defaultHourlyRate = defaultHourlyRate,
+                            standardPay = standardPay,
+                            activeProfileName = activeProfile?.name,
+                            onProfileClick = { showProfileDialog = true }
+                        )
                         SchedulePresetsSection(
                             daysWorkedInput = daysWorkedInput,
                             hoursPerDayInput = hoursPerDayInput,
@@ -243,7 +268,14 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             .padding(horizontal = 20.dp, vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(18.dp)
                     ) {
-                        AppHeaderSection(taxRegion = taxRegion, taxCode = taxCode, defaultHourlyRate = defaultHourlyRate, standardPay = standardPay)
+                        AppHeaderSection(
+                            taxRegion = taxRegion,
+                            taxCode = taxCode,
+                            defaultHourlyRate = defaultHourlyRate,
+                            standardPay = standardPay,
+                            activeProfileName = activeProfile?.name,
+                            onProfileClick = { showProfileDialog = true }
+                        )
                         FrequencySelectorRow(selectedFrequency = selectedFrequency, onSelect = { selectedFrequency = it })
                         HeroNetPayCard(
                             selectedFrequency = selectedFrequency,
@@ -431,6 +463,13 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 }
             )
         }
+        // Profile Manager Dialog
+        if (showProfileDialog) {
+            ProfileManagerDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showProfileDialog = false }
+            )
+        }
     }
 }
 
@@ -441,33 +480,45 @@ private fun AppHeaderSection(
     taxRegion: TaxRegion,
     taxCode: String,
     defaultHourlyRate: Double,
-    standardPay: Double
+    standardPay: Double,
+    activeProfileName: String? = null,
+    onProfileClick: () -> Unit = {}
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Salary Calculator",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Salary Calculator",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (activeProfileName != null) {
                 AssistChip(
-                    onClick = {},
-                    label = { Text(if (taxRegion == TaxRegion.SCOTLAND) "Scotland" else "UK Standard", style = MaterialTheme.typography.labelSmall) },
-                    shape = RoundedCornerShape(10.dp)
-                )
-                AssistChip(
-                    onClick = {},
-                    label = { Text(taxCode, style = MaterialTheme.typography.labelSmall) },
+                    onClick = onProfileClick,
+                    label = { Text(activeProfileName, style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = { Icon(Icons.Default.WorkOutline, contentDescription = null, modifier = Modifier.size(14.dp)) },
                     shape = RoundedCornerShape(10.dp)
                 )
             }
+            AssistChip(
+                onClick = {},
+                label = { Text(if (taxRegion == TaxRegion.SCOTLAND) "Scotland" else "UK Standard", style = MaterialTheme.typography.labelSmall) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = {},
+                label = { Text(taxCode, style = MaterialTheme.typography.labelSmall) },
+                shape = RoundedCornerShape(10.dp)
+            )
         }
+
         Text(
             text = "Rate: £${"%.2f".format(defaultHourlyRate)}/hr · Base Pay: £${"%.2f".format(standardPay)}",
             style = MaterialTheme.typography.bodyMedium,

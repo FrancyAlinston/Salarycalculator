@@ -8,9 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] Annual P60 summary document generator.
-- [ ] Multiple concurrent employer profiles.
-- [ ] Marriage allowance & childcare statutory relief toggles.
+- [ ] Cloud backup and synchronization of salary ledger to Google Drive.
+- [ ] Password-protected encrypted PDF payslip generation.
+
+---
+
+## [4.0] - 2026-09-03 (VersionCode: 10)
+### Added
+- **Official Annual P60 End-of-Year Certificate (`P60Generator.kt` & `P60Dialog.kt`)**: Generates an authentic HMRC-styled A4 vector PDF P60 certificate aggregating all recorded pay periods across the tax year with total pay, total PAYE income tax, Class 1 Primary NI, workplace pension, and student loan totals.
+- **Multiple Job & Employer Profiles (`EmployerProfile.kt` & `ProfileManagerDialog.kt`)**: Full support for managing multiple concurrent employments (Primary Employment, Second Job, Freelance Shift) with independent hourly rates, tax codes (e.g. `1257L` vs `BR`), pension rates, tax regions, and student loans.
+- **1-Tap Profile Switcher**: Quick-switch active employment profile directly from the Live Calculator header chip or Settings screen.
+- **Marriage Allowance Statutory Relief (`TaxCalculator.kt`)**: Configurable toggle transferring £1,260 personal allowance from spouse, reducing income tax by up to £252/year (£21/month).
+- **Blind Person's Allowance (`TaxCalculator.kt`)**: Statutory £3,070/year additional tax-free personal allowance.
+- **Custom Recurring Deductions (`CustomDeduction.kt`)**: Support for user-defined pre-tax and post-tax deduction line items (Trade Union dues, Professional Subscriptions, Healthcare).
+- **Tax Year Framework Selector**: Seamlessly switch between current 2024/2025 and upcoming 2025/2026 statutory HMRC tax thresholds.
+
+### Bugs Found & Fixed
+- **Header Chip Text Overflow on Dual-Screen Devices**: Wrapped Calculator header chips in a horizontal scrolling row to eliminate letter clipping and prevent vertical line wrapping on wide and compact displays.
+
+### What Needs to Be Fixed / Pending
+- Cloud backup & synchronization to Google Drive.
 
 ---
 
@@ -28,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Missing File Sharing Permissions**: Resolved Android URI sharing crashes by integrating `androidx.core.content.FileProvider`.
 
 ### What Needs to Be Fixed / Pending
-- Annual P60 tax document generator.
+- Annual P60 tax document generator (resolved in v4.0).
 
 ---
 

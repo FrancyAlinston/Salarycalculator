@@ -2,6 +2,11 @@ package com.example.salarycalculator.domain
 
 import kotlin.math.max
 
+enum class TaxYear(val displayName: String) {
+    YEAR_2024_2025("2024 / 2025 (Current)"),
+    YEAR_2025_2026("2025 / 2026 (Upcoming)")
+}
+
 enum class TaxRegion(val displayName: String) {
     UK_STANDARD("England, Wales & NI"),
     SCOTLAND("Scotland (6-Tier System)")
@@ -32,10 +37,12 @@ data class SalaryReport(
     val incomeTax: Double,
     val nationalInsurance: Double,
     val studentLoanDeduction: Double,
+    val customDeductionsTotal: Double = 0.0,
     val totalDeductions: Double,
     val netPay: Double,
     val effectiveTaxRate: Double,
     val takeHomePercentage: Double,
+    val marriageAllowanceTaxSaving: Double = 0.0,
     val hourlyNet: Double,
     val weeklyNet: Double,
     val monthlyNet: Double,
@@ -49,7 +56,12 @@ object TaxCalculator {
      * Parses tax-free allowance from standard UK Tax codes (e.g., "1257L" -> £12,570/year).
      * // EDGE_CASE: Handles special tax codes (BR, 0T, D0, D1, S1257L)
      */
-    fun parseTaxFreeAllowance(taxCode: String, isMonthly: Boolean = true): Double {
+    fun parseTaxFreeAllowance(
+        taxCode: String,
+        isMonthly: Boolean = true,
+        hasMarriageAllowance: Boolean = false,
+        hasBlindPersonsAllowance: Boolean = false
+    ): Double {
         val upperCode = taxCode.uppercase().trim()
         
         // Special flat/zero allowance codes
@@ -59,14 +71,22 @@ object TaxCalculator {
         }
 
         val numericPart = upperCode.filter { it.isDigit() }.toIntOrNull() ?: 1257
-        val yearlyAllowance = numericPart * 10.0
+        var yearlyAllowance = numericPart * 10.0
+
+        // Statutory Relief Additions
+        if (hasMarriageAllowance) {
+            yearlyAllowance += 1260.0 // Marriage allowance transfer (2024/2025: £1,260)
+        }
+        if (hasBlindPersonsAllowance) {
+            yearlyAllowance += 3070.0 // Blind Person's statutory allowance (2024/2025: £3,070)
+        }
+
         return if (isMonthly) yearlyAllowance / 12.0 else yearlyAllowance
     }
 
     /**
-     * Calculates UK & Scottish Income Tax, Class 1 Primary NI, Pension, Student Loan, and Salary Sacrifice.
-     * Uses UK Standard and Scotland 2024/2025 statutory tax bands.
-     * Sequence: Hours/Overtime -> Gross Pay -> Salary Sacrifice -> Pension (Net Pay Relief) -> Allowance -> Taxable Income -> PAYE Tax -> NI -> Student Loan -> Net Pay
+     * Calculates UK & Scottish Income Tax, Class 1 Primary NI, Pension, Student Loan, Salary Sacrifice, and Custom Deductions.
+     * Sequence: Gross -> Pre-Tax Deductions -> Salary Sacrifice -> Pension (Net Pay Relief) -> Allowance (+Statutory Reliefs) -> Taxable Income -> PAYE Tax -> NI -> Student Loan -> Post-Tax Deductions -> Net Pay
      */
     // CRITICAL: TAX_ENGINE
     fun calculateTax(
@@ -74,14 +94,23 @@ object TaxCalculator {
         taxCode: String,
         isMonthly: Boolean = true,
         region: TaxRegion = TaxRegion.UK_STANDARD,
+        taxYear: TaxYear = TaxYear.YEAR_2024_2025,
         pensionRatePercent: Double = 0.0,
         studentLoanPlan: StudentLoanPlan = StudentLoanPlan.NONE,
         salarySacrificeAmount: Double = 0.0,
+        hasMarriageAllowance: Boolean = false,
+        hasBlindPersonsAllowance: Boolean = false,
+        customDeductions: List<CustomDeduction> = emptyList(),
         standardHoursPerWeek: Double = 37.5
     ): SalaryReport {
         // Zero / Negative bounds protection
         val safeGross = max(0.0, grossPay)
-        val safeSacrifice = max(0.0, minOf(salarySacrificeAmount, safeGross))
+
+        // Custom Pre-Tax & Post-Tax Deductions
+        val preTaxCustom = customDeductions.filter { it.isPreTax }.sumOf { it.amount }
+        val postTaxCustom = customDeductions.filter { !it.isPreTax }.sumOf { it.amount }
+
+        val safeSacrifice = max(0.0, minOf(salarySacrificeAmount + preTaxCustom, safeGross))
         val adjustedGross = max(0.0, safeGross - safeSacrifice)
 
         // 1. Workplace Pension (Net Pay Arrangement relief reduces taxable pay)
@@ -89,9 +118,9 @@ object TaxCalculator {
         val employeePension = adjustedGross * (safePensionRate / 100.0)
         val employerPension = adjustedGross * 0.03 // Standard 3% statutory employer auto-enrolment
 
-        // 2. Taxable Income Calculation after Pension Relief
+        // 2. Taxable Income Calculation after Pension Relief & Statutory Allowances
         val grossAfterPension = max(0.0, adjustedGross - employeePension)
-        val allowance = parseTaxFreeAllowance(taxCode, isMonthly)
+        val allowance = parseTaxFreeAllowance(taxCode, isMonthly, hasMarriageAllowance, hasBlindPersonsAllowance)
         val taxablePay = max(0.0, grossAfterPension - allowance)
 
         // 3. PAYE Income Tax Calculation
@@ -100,7 +129,7 @@ object TaxCalculator {
         if (taxablePay > 0) {
             when (region) {
                 TaxRegion.UK_STANDARD -> {
-                    // UK Standard 2024/2025: Basic (20% up to £37,700), Higher (40% up to £125,140), Additional (45% over £125,140)
+                    // UK Standard: Basic (20% up to £37,700), Higher (40% up to £125,140), Additional (45% over £125,140)
                     val basicLimit = if (isMonthly) 37700.0 / 12.0 else 37700.0
                     val higherLimit = if (isMonthly) 125140.0 / 12.0 else 125140.0
 
@@ -118,7 +147,7 @@ object TaxCalculator {
                     }
                 }
                 TaxRegion.SCOTLAND -> {
-                    // Scotland 2024/2025 6-Band System:
+                    // Scotland 6-Band System:
                     // Starter (19%): £0 to £2,306 (£192.17/mo)
                     // Basic (20%): £2,306 to £13,991 (£192.17 to £1,165.92/mo)
                     // Intermediate (21%): £13,991 to £31,092 (£1,165.92 to £2,591.00/mo)
@@ -162,7 +191,7 @@ object TaxCalculator {
             }
         }
 
-        // 4. Class 1 Primary National Insurance (2024/2025: PT £1,048/mo @ 8%, UEL £4,189/mo @ 2%)
+        // 4. Class 1 Primary National Insurance (PT £1,048/mo @ 8%, UEL £4,189/mo @ 2%)
         val pt = if (isMonthly) 1048.0 else 1048.0 * 12.0
         val uel = if (isMonthly) 4189.0 else 4189.0 * 12.0
 
@@ -187,11 +216,13 @@ object TaxCalculator {
         }
 
         // 6. Net Pay & Deductions with zero/negative bounds
-        val totalDeductions = safeSacrifice + employeePension + incomeTax + nationalInsurance + studentLoan
+        val customDeductionsTotal = preTaxCustom + postTaxCustom
+        val totalDeductions = safeSacrifice + employeePension + incomeTax + nationalInsurance + studentLoan + postTaxCustom
         val netPay = max(0.0, safeGross - totalDeductions)
 
         val effectiveTaxRate = if (safeGross > 0.0) (totalDeductions / safeGross) * 100.0 else 0.0
         val takeHomePercentage = if (safeGross > 0.0) (netPay / safeGross) * 100.0 else 100.0
+        val marriageSaving = if (hasMarriageAllowance) (if (isMonthly) 21.0 else 252.0) else 0.0
 
         // 7. Multi-Period Conversions
         val annualNet = if (isMonthly) netPay * 12.0 else netPay
@@ -210,10 +241,12 @@ object TaxCalculator {
             incomeTax = incomeTax,
             nationalInsurance = nationalInsurance,
             studentLoanDeduction = studentLoan,
+            customDeductionsTotal = customDeductionsTotal,
             totalDeductions = totalDeductions,
             netPay = netPay,
             effectiveTaxRate = effectiveTaxRate,
             takeHomePercentage = takeHomePercentage,
+            marriageAllowanceTaxSaving = marriageSaving,
             hourlyNet = hourlyNet,
             weeklyNet = weeklyNet,
             monthlyNet = monthlyNet,
