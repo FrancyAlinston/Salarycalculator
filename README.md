@@ -6,6 +6,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ## Features
 
+- **Scheduled Background Cloud Auto-Sync:** Automated 24-hour background ledger backup sync to your self-hosted private domain via Android `WorkManager` with network and battery constraints.
+- **Export Shift Calendar to iCalendar (.ics):** 1-tap export of logged monthly shift calendars and overtime shifts to RFC 5545 compliant `.ics` files importable directly into Google Calendar, Apple Calendar, and Outlook.
+- **60% Marginal Tax Trap & Pension Sacrifice Visualizer:** Dynamic visual tool analyzing personal allowance tapering between £100,000 and £125,140 with interactive pension salary sacrifice remedy modeling.
+- **Custom Foreign Exchange Rates Engine:** Configurable EUR (€) and USD ($) conversion rates with 1-tap presets and live take-home pay conversion.
+- **Biometric Auto-Lock Delay Customization:** Configurable auto-lock delay (Immediate, 1 min, 5 min, 15 min) for biometric fingerprint / face authentication.
 - **Private Domain / Custom Cloud Save & Sync:** Connect to your self-hosted server, private domain (e.g. Nextcloud, WebDAV, or custom REST API) with optional Bearer Token / API Key auth for 1-tap backup push & restore.
 - **Interactive Shift Calendar & Overtime Heatmap:** Visual 30-day interactive calendar modal with color-coded shift heatmaps (Day Off, 8h Regular, 10h Overtime) and 1-tap calculator sync.
 - **UK Tax Code Allowance Explainer:** Interactive education modal breaking down personal allowance calculation rules for standard UK (`1257L`), secondary job (`BR`, `0T`, `D0`, `D1`), and Marriage allowance (`M`, `N`) codes.

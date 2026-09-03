@@ -18,11 +18,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import com.example.salarycalculator.domain.*
 import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -38,6 +40,11 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val hasBlindPersonsAllowance by salaryRepository.getHasBlindPersonsAllowance().collectAsState(initial = false)
     val profiles by salaryRepository.getEmployerProfiles().collectAsState(initial = emptyList())
     val activeProfileId by salaryRepository.getActiveProfileId().collectAsState(initial = "primary_default")
+    val biometricLockEnabled by salaryRepository.getBiometricLockEnabled().collectAsState(initial = false)
+    val biometricTimeoutSeconds by salaryRepository.getBiometricTimeoutSeconds().collectAsState(initial = 0L)
+    val autoCloudSyncEnabled by salaryRepository.getAutoCloudSyncEnabled().collectAsState(initial = false)
+    val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
+    val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
@@ -49,12 +56,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var selectedOvertimeMultiplier by remember(overtimeMultiplier) { mutableStateOf(overtimeMultiplier) }
     var switchMarriageAllowance by remember(hasMarriageAllowance) { mutableStateOf(hasMarriageAllowance) }
     var switchBlindAllowance by remember(hasBlindPersonsAllowance) { mutableStateOf(hasBlindPersonsAllowance) }
-    val biometricLockEnabled by salaryRepository.getBiometricLockEnabled().collectAsState(initial = false)
     var switchBiometricLock by remember(biometricLockEnabled) { mutableStateOf(biometricLockEnabled) }
+    var selectedBiometricTimeout by remember(biometricTimeoutSeconds) { mutableStateOf(biometricTimeoutSeconds) }
+    var switchAutoCloudSync by remember(autoCloudSyncEnabled) { mutableStateOf(autoCloudSyncEnabled) }
 
     var showProfileDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
     var showCustomCloudSyncDialog by remember { mutableStateOf(false) }
+    var showCurrencySettingsDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
 
     val activeProfile = remember(profiles, activeProfileId) {
@@ -554,10 +563,95 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                 }
                             )
                         }
+
+                        if (switchBiometricLock) {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Auto-Lock Delay", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = selectedBiometricTimeout == 0L,
+                                        onClick = {
+                                            selectedBiometricTimeout = 0L
+                                            scope.launch { salaryRepository.setBiometricTimeoutSeconds(0L) }
+                                        },
+                                        label = { Text("Immediate") },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    FilterChip(
+                                        selected = selectedBiometricTimeout == 60L,
+                                        onClick = {
+                                            selectedBiometricTimeout = 60L
+                                            scope.launch { salaryRepository.setBiometricTimeoutSeconds(60L) }
+                                        },
+                                        label = { Text("1 Min") },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    FilterChip(
+                                        selected = selectedBiometricTimeout == 300L,
+                                        onClick = {
+                                            selectedBiometricTimeout = 300L
+                                            scope.launch { salaryRepository.setBiometricTimeoutSeconds(300L) }
+                                        },
+                                        label = { Text("5 Mins") },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                    FilterChip(
+                                        selected = selectedBiometricTimeout == 900L,
+                                        onClick = {
+                                            selectedBiometricTimeout = 900L
+                                            scope.launch { salaryRepository.setBiometricTimeoutSeconds(900L) }
+                                        },
+                                        label = { Text("15 Mins") },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
-                // 7. Cloud & Data Backup Card
+                // 7. Foreign Exchange Rates Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.CurrencyExchange, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Text("Currency Exchange Rates", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            }
+                            TextButton(onClick = { showCurrencySettingsDialog = true }) {
+                                Text("Edit Rates", fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Text(
+                            text = "Live GBP conversion rates used on take-home pay hero card: 1 GBP = €${"%.4f".format(customEurRate)} (EUR) · $${"%.4f".format(customUsdRate)} (USD).",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // 8. Cloud & Data Backup Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
@@ -587,6 +681,27 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("24-Hour Cloud Auto-Sync", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text("Background sync to personal domain every 24 hours", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(
+                                checked = switchAutoCloudSync,
+                                onCheckedChange = {
+                                    switchAutoCloudSync = it
+                                    scope.launch {
+                                        salaryRepository.setAutoCloudSyncEnabled(it)
+                                        CloudSyncWorker.scheduleAutoSync(context, it)
+                                    }
+                                }
+                            )
+                        }
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -627,6 +742,9 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             salaryRepository.setHasMarriageAllowance(switchMarriageAllowance)
                             salaryRepository.setHasBlindPersonsAllowance(switchBlindAllowance)
                             salaryRepository.setBiometricLockEnabled(switchBiometricLock)
+                            salaryRepository.setBiometricTimeoutSeconds(selectedBiometricTimeout)
+                            salaryRepository.setAutoCloudSyncEnabled(switchAutoCloudSync)
+                            CloudSyncWorker.scheduleAutoSync(context, switchAutoCloudSync)
                             inputHourlyRate.toDoubleOrNull()?.let {
                                 salaryRepository.setDefaultHourlyRate(it)
                             }
@@ -656,7 +774,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 ) {
                     Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("View Version 5.0 Release Notes", style = MaterialTheme.typography.labelLarge)
+                    Text("View Version 7.0 Release Notes", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -677,6 +795,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
             )
         }
 
+        // Foreign Exchange Rates Modal
+        if (showCurrencySettingsDialog) {
+            CurrencySettingsDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showCurrencySettingsDialog = false }
+            )
+        }
+
         // Employer Profiles Modal
         if (showProfileDialog) {
             ProfileManagerDialog(
@@ -691,7 +817,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 onDismissRequest = { showChangelogDialog = false },
                 title = {
                     Text(
-                        text = "Salary Calculator v6.0 Release Notes 🚀",
+                        text = "Salary Calculator v7.0 Release Notes 🚀",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -701,11 +827,11 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                         modifier = Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("• Private Domain Cloud Sync: Connect to self-hosted Nextcloud, WebDAV, or custom REST APIs.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Shift Calendar & Overtime Heatmap: Visual monthly calendar with day heatmaps.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Tax Code Explainer: Interactive breakdown of standard UK and Scottish tax codes.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Bonus & Commission Input: Separate discretionary variable earnings calculation.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Multi-Currency Converter: Live take-home preview in EUR (€) and USD ($).", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Scheduled Background Auto-Sync: WorkManager periodic 24-hour backup to your personal domain.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Export Shift Calendar (.ics): 1-tap export of logged shift rosters to Google Calendar, Apple Calendar, or Outlook.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• 60% Marginal Tax Trap Visualizer: Interactive chart modeling personal allowance phase-out between £100k and £125k with pension remedy calculator.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Custom Foreign Exchange Rates: Configurable GBP to EUR & USD conversion rates.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Biometric Auto-Lock Delay: Configurable timeout (Immediate, 1 min, 5 min, 15 min).", style = MaterialTheme.typography.bodyMedium)
                     }
                 },
                 confirmButton = {

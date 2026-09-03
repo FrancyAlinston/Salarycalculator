@@ -24,6 +24,22 @@ import com.example.salarycalculator.theme.SalaryCalculatorTheme
 
 class MainActivity : FragmentActivity() {
 
+    private var lastPauseTimestamp: Long = 0L
+    private var requiresReauth by mutableStateOf(false)
+
+    override fun onPause() {
+        super.onPause()
+        lastPauseTimestamp = System.currentTimeMillis()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (lastPauseTimestamp > 0L) {
+            // Signal re-auth check in Compose
+            requiresReauth = true
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -33,15 +49,30 @@ class MainActivity : FragmentActivity() {
         setContent {
             val themeMode by salaryRepo.getThemeMode().collectAsState(initial = ThemeMode.SYSTEM)
             val isBiometricEnabled by salaryRepo.getBiometricLockEnabled().collectAsState(initial = false)
+            val timeoutSeconds by salaryRepo.getBiometricTimeoutSeconds().collectAsState(initial = 0L)
             var isAuthenticated by remember { mutableStateOf(!isBiometricEnabled) }
 
-            // Trigger biometric prompt on launch if lock is enabled
+            // Evaluate background-to-foreground timeout
+            LaunchedEffect(requiresReauth) {
+                if (requiresReauth) {
+                    val elapsedSeconds = (System.currentTimeMillis() - lastPauseTimestamp) / 1000L
+                    if (isBiometricEnabled && elapsedSeconds >= timeoutSeconds) {
+                        isAuthenticated = false
+                        showBiometricPrompt { success ->
+                            isAuthenticated = success
+                        }
+                    }
+                    requiresReauth = false
+                }
+            }
+
+            // Trigger biometric prompt on initial launch if lock is enabled
             LaunchedEffect(isBiometricEnabled) {
                 if (isBiometricEnabled && !isAuthenticated) {
                     showBiometricPrompt { success ->
                         isAuthenticated = success
                     }
-                } else {
+                } else if (!isBiometricEnabled) {
                     isAuthenticated = true
                 }
             }

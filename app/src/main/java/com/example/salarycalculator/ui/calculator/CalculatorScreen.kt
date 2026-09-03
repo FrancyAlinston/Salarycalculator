@@ -6,6 +6,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +34,7 @@ import com.example.salarycalculator.theme.*
 import kotlinx.coroutines.launch
 
 import com.example.salarycalculator.ui.settings.ProfileManagerDialog
+import com.example.salarycalculator.ui.settings.CurrencySettingsDialog
 
 @Composable
 fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modifier) {
@@ -50,7 +52,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     val hasMarriageAllowance by salaryRepository.getHasMarriageAllowance().collectAsState(initial = false)
     val hasBlindPersonsAllowance by salaryRepository.getHasBlindPersonsAllowance().collectAsState(initial = false)
     val profiles by salaryRepository.getEmployerProfiles().collectAsState(initial = emptyList())
-    val activeProfileId by salaryRepository.getActiveProfileId().collectAsState(initial = "primary_default")
+    val activeProfileId by salaryRepository.getActiveProfileId().collectAsState(initial = null)
+    val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
+    val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
 
     var selectedFrequency by remember { mutableStateOf(PayFrequency.MONTHLY) }
     var selectedOvertimeMultiplier by remember(defaultOvertimeMultiplier) { mutableStateOf(defaultOvertimeMultiplier) }
@@ -69,6 +73,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showChildBenefitDialog by remember { mutableStateOf(false) }
     var showTaxExplainerDialog by remember { mutableStateOf(false) }
     var showShiftCalendarDialog by remember { mutableStateOf(false) }
+    var showCurrencySettingsDialog by remember { mutableStateOf(false) }
+    var showTaxTrapDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -190,7 +196,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                                 hoursPerDayInput = hours
                             },
                             onChildBenefitClick = { showChildBenefitDialog = true },
-                            onCalendarClick = { showShiftCalendarDialog = true }
+                            onCalendarClick = { showShiftCalendarDialog = true },
+                            onTaxTrapClick = { showTaxTrapDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -229,7 +236,10 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             selectedFrequency = selectedFrequency,
                             report = report,
                             displayedNetAmount = displayedNetAmount,
-                            grossPay = grossPay
+                            grossPay = grossPay,
+                            eurRate = customEurRate,
+                            usdRate = customUsdRate,
+                            onCurrencyClick = { showCurrencySettingsDialog = true }
                         )
                         DetailedPayslipCard(
                             daysWorked = daysWorked,
@@ -309,7 +319,10 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             selectedFrequency = selectedFrequency,
                             report = report,
                             displayedNetAmount = displayedNetAmount,
-                            grossPay = grossPay
+                            grossPay = grossPay,
+                            eurRate = customEurRate,
+                            usdRate = customUsdRate,
+                            onCurrencyClick = { showCurrencySettingsDialog = true }
                         )
                         ShiftStopwatchCard(
                             salaryRepository = salaryRepository,
@@ -326,7 +339,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                                 hoursPerDayInput = hours
                             },
                             onChildBenefitClick = { showChildBenefitDialog = true },
-                            onCalendarClick = { showShiftCalendarDialog = true }
+                            onCalendarClick = { showShiftCalendarDialog = true },
+                            onTaxTrapClick = { showTaxTrapDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -540,6 +554,20 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showShiftCalendarDialog = false }
             )
         }
+        // Currency Settings Dialog
+        if (showCurrencySettingsDialog) {
+            CurrencySettingsDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showCurrencySettingsDialog = false }
+            )
+        }
+        // Marginal 60% Tax Trap Dialog
+        if (showTaxTrapDialog) {
+            MarginalTaxTrapDialog(
+                initialAnnualIncome = report.annualGross,
+                onDismiss = { showTaxTrapDialog = false }
+            )
+        }
     }
 }
 
@@ -623,7 +651,10 @@ private fun HeroNetPayCard(
     selectedFrequency: PayFrequency,
     report: SalaryReport,
     displayedNetAmount: Double,
-    grossPay: Double
+    grossPay: Double,
+    eurRate: Double = ConvertedCurrencies.DEFAULT_EUR_RATE,
+    usdRate: Double = ConvertedCurrencies.DEFAULT_USD_RATE,
+    onCurrencyClick: () -> Unit = {}
 ) {
     ElevatedCard(
         modifier = Modifier.fillMaxWidth(),
@@ -673,7 +704,7 @@ private fun HeroNetPayCard(
                 },
                 label = "NetAmountAnimation"
             ) { amount ->
-                val converted = CurrencyConverter.convert(amount)
+                val converted = CurrencyConverter.convert(amount, eurRate, usdRate)
                 Column {
                     Text(
                         text = "£${"%.2f".format(amount)}",
@@ -681,11 +712,26 @@ private fun HeroNetPayCard(
                         fontWeight = FontWeight.ExtraBold,
                         color = Emerald60
                     )
-                    Text(
-                        text = "≈ €${"%.2f".format(converted.eurAmount)} · $${"%.2f".format(converted.usdAmount)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable(onClick = onCurrencyClick)
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "≈ €${"%.2f".format(converted.eurAmount)} · $${"%.2f".format(converted.usdAmount)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Icon(
+                            Icons.Default.CurrencyExchange,
+                            contentDescription = "Edit FX Rates",
+                            modifier = Modifier.size(12.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
 
@@ -755,7 +801,8 @@ private fun SchedulePresetsSection(
     hoursPerDayInput: String,
     onSelect: (String, String) -> Unit,
     onChildBenefitClick: () -> Unit = {},
-    onCalendarClick: () -> Unit = {}
+    onCalendarClick: () -> Unit = {},
+    onTaxTrapClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
@@ -768,7 +815,10 @@ private fun SchedulePresetsSection(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 AssistChip(
                     onClick = onCalendarClick,
                     label = { Text("Shift Heatmap", style = MaterialTheme.typography.labelSmall) },
@@ -779,6 +829,12 @@ private fun SchedulePresetsSection(
                     onClick = onChildBenefitClick,
                     label = { Text("Child Benefit", style = MaterialTheme.typography.labelSmall) },
                     leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                    shape = RoundedCornerShape(10.dp)
+                )
+                AssistChip(
+                    onClick = onTaxTrapClick,
+                    label = { Text("60% Tax Trap", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = { Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(14.dp), tint = Rose60) },
                     shape = RoundedCornerShape(10.dp)
                 )
             }

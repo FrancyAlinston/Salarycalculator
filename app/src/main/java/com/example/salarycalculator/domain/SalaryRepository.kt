@@ -38,11 +38,71 @@ class SalaryRepository(private val context: Context) {
     private val ACTIVE_SHIFT_KEY = stringPreferencesKey("active_shift_state_json")
     private val CUSTOM_CLOUD_ENDPOINT_KEY = stringPreferencesKey("custom_cloud_endpoint")
     private val CUSTOM_CLOUD_TOKEN_KEY = stringPreferencesKey("custom_cloud_token")
+    private val AUTO_CLOUD_SYNC_KEY = booleanPreferencesKey("auto_cloud_sync_enabled")
+    private val CUSTOM_EUR_RATE_KEY = doublePreferencesKey("custom_eur_rate")
+    private val CUSTOM_USD_RATE_KEY = doublePreferencesKey("custom_usd_rate")
+    private val BIOMETRIC_TIMEOUT_KEY = longPreferencesKey("biometric_timeout_seconds")
 
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
         encodeDefaults = true
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getAutoCloudSyncEnabled(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[AUTO_CLOUD_SYNC_KEY] ?: false
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setAutoCloudSyncEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[AUTO_CLOUD_SYNC_KEY] = enabled
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getCustomEurRate(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[CUSTOM_EUR_RATE_KEY] ?: ConvertedCurrencies.DEFAULT_EUR_RATE
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setCustomEurRate(rate: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[CUSTOM_EUR_RATE_KEY] = rate
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getCustomUsdRate(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[CUSTOM_USD_RATE_KEY] ?: ConvertedCurrencies.DEFAULT_USD_RATE
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setCustomUsdRate(rate: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[CUSTOM_USD_RATE_KEY] = rate
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getBiometricTimeoutSeconds(): Flow<Long> {
+        return context.dataStore.data.map { preferences ->
+            preferences[BIOMETRIC_TIMEOUT_KEY] ?: 0L // 0L = Immediate
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setBiometricTimeoutSeconds(seconds: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[BIOMETRIC_TIMEOUT_KEY] = seconds
+        }
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE

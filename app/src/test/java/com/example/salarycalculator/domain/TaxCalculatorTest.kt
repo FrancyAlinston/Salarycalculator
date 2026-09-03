@@ -325,5 +325,43 @@ class TaxCalculatorTest {
         assertEquals(2400.0, converted.eurAmount, 0.01)
         assertEquals(2600.0, converted.usdAmount, 0.01)
     }
+
+    @Test
+    fun icsCalendarExporter_generatesValidRfc5545Calendar() {
+        val dayShifts = mapOf(
+            1 to 8.0,
+            2 to 10.0,
+            3 to 0.0
+        )
+        val ics = IcsCalendarExporter.generateIcsContent(
+            year = 2026,
+            month = 9,
+            dayShifts = dayShifts,
+            jobTitle = "Primary Employment"
+        )
+
+        assertTrue(ics.startsWith("BEGIN:VCALENDAR"))
+        assertTrue(ics.contains("VERSION:2.0"))
+        assertTrue(ics.contains("BEGIN:VEVENT"))
+        assertTrue(ics.contains("SUMMARY:Primary Employment (8h Shift)"))
+        assertTrue(ics.contains("SUMMARY:Primary Employment (Overtime: 10h)"))
+        assertTrue(ics.endsWith("END:VCALENDAR\n") || ics.endsWith("END:VCALENDAR\r\n"))
+    }
+
+    @Test
+    fun marginalTaxTrap_personalAllowanceTaper_at110k_loses5kAllowance() {
+        val income = 110000.0
+        val excessOver100k = income - 100000.0
+        val allowanceLost = minOf(12570.0, excessOver100k / 2.0)
+        val remainingAllowance = 12570.0 - allowanceLost
+
+        assertEquals(5000.0, allowanceLost, 0.01)
+        assertEquals(7570.0, remainingAllowance, 0.01)
+
+        // At £130,000, allowance is fully wiped
+        val incomeHigh = 130000.0
+        val allowanceLostHigh = minOf(12570.0, (incomeHigh - 100000.0) / 2.0)
+        assertEquals(12570.0, allowanceLostHigh, 0.01)
+    }
 }
 

@@ -8,8 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] Direct biometric authentication timeout customization in Preferences.
-- [ ] Automatic cloud sync background worker (WorkManager) for scheduled periodic sync.
+- [ ] End-of-year tax refund & rebate estimator for mid-year tax code corrections.
+- [ ] Direct export of annual payroll summaries to HMRC self-assessment SA100 format.
+
+---
+
+## [7.0] - 2026-09-03 (VersionCode: 13)
+### Added
+- **Scheduled Background Cloud Auto-Sync (`CloudSyncWorker.kt` & Android `WorkManager`)**: Background periodic 24-hour backup push to custom private domain endpoints with network connection and battery-not-low constraints.
+- **Export Shift Calendar to iCalendar (.ics) (`IcsCalendarExporter.kt`)**: 1-tap export of logged monthly shift calendars and overtime shifts to RFC 5545 compliant `.ics` calendar files importable directly into Google Calendar, Apple Calendar, and Microsoft Outlook.
+- **60% Marginal Tax Trap & Pension Sacrifice Visualizer (`MarginalTaxTrapDialog.kt`)**: Dynamic visual tool analyzing personal allowance tapering between £100,000 and £125,140 with interactive pension salary sacrifice remedy modeling.
+- **Custom Foreign Exchange Rates Engine (`CurrencySettingsDialog.kt`)**: Configurable EUR (€) and USD ($) conversion rates with 1-tap "Market High" and "Default" preset buttons.
+- **Biometric Auto-Lock Delay Customization (`MainActivity.kt` & `SettingsScreen.kt`)**: Configurable auto-lock delay (Immediate, 1 min, 5 min, 15 min) allowing seamless app switching without triggering immediate re-authentication.
+- **Comprehensive v7.0 Verification Battery (`TaxCalculatorTest.kt`)**: Added automated test coverage for RFC 5545 `.ics` formatting, £100k+ personal allowance tapering mathematics, and custom FX conversion calculations.
+
+### Bugs Found & Fixed
+- **Unresolved Navigation & Icon Imports**: Fixed missing `LocalContext`, `Share` icon, and `clickable` imports in `ShiftCalendarDialog` and `CalculatorScreen`.
+- **TaxYear Enum Reference**: Corrected outdated `TaxYear.CURRENT_2024_2025` reference to `TaxYear.YEAR_2024_2025`.
+
+### What Needs to Be Fixed / Pending
+- Advanced multi-year tax comparison chart across 2023/2024, 2024/2025, and 2025/2026 statutory regimes.
 
 ---
 

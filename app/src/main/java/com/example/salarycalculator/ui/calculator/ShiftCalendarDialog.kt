@@ -11,19 +11,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.salarycalculator.domain.IcsCalendarExporter
 import com.example.salarycalculator.theme.Amber60
 import com.example.salarycalculator.theme.Emerald60
 import com.example.salarycalculator.theme.Teal60
+import java.util.Calendar
 
 @Composable
 fun ShiftCalendarDialog(
@@ -32,6 +36,7 @@ fun ShiftCalendarDialog(
     onApply: (days: Double, hoursPerDay: Double, overtimeHours: Double) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
     // 30-day month model for shift logging
     val dayShifts = remember {
         mutableStateMapOf<Int, Double>().apply {
@@ -44,19 +49,38 @@ fun ShiftCalendarDialog(
 
     val totalDaysWorked = dayShifts.values.count { it > 0 }
     val totalHoursLogged = dayShifts.values.sum()
-    val standardHours = dayShifts.values.sumOf { minOf(it, 8.0) }
+    val standardHours = dayShifts.values.sumOf { minOf(8.0, it) }
     val overtimeHours = dayShifts.values.sumOf { maxOf(0.0, it - 8.0) }
-    val avgHoursPerDay = if (totalDaysWorked > 0) standardHours / totalDaysWorked else 8.0
+    val avgHoursPerDay = if (totalDaysWorked > 0) totalHoursLogged / totalDaysWorked else 8.0
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Text("Monthly Shift Heatmap", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("Shift Heatmap", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                IconButton(
+                    onClick = {
+                        val cal = Calendar.getInstance()
+                        val ics = IcsCalendarExporter.generateIcsContent(
+                            year = cal.get(Calendar.YEAR),
+                            month = cal.get(Calendar.MONTH) + 1,
+                            dayShifts = dayShifts.toMap()
+                        )
+                        IcsCalendarExporter.shareIcsFile(context, ics)
+                    }
+                ) {
+                    Icon(Icons.Default.Share, contentDescription = "Export .ICS Calendar", tint = MaterialTheme.colorScheme.primary)
+                }
             }
         },
         text = {
