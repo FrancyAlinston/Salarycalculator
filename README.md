@@ -51,7 +51,9 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 ## Installation
 
 1. Go to the **Releases** section on this GitHub page.
-2. Download the latest `Salarycalculator-debug.apk` file.
+2. Download either:
+   - **Stable Version (Recommended)**: `Salarycalculator.apk` (Production signed standalone build).
+   - **Debug Version**: `Salarycalculator-debug.apk` (Development build).
 3. Transfer the APK to your Android device.
 4. Tap the APK file to install (make sure you allow "Install from Unknown Sources" if prompted).
 
@@ -59,14 +61,17 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ## Development & Building
 
-### Build Debug APK
+### Build Stable (Release) and Debug APKs
 ```bash
+# Build Debug APK
 ./gradlew assembleDebug
+
+# Build Stable Release APK
+./gradlew assembleRelease
 ```
-The APK is generated at:
-```
-app/build/outputs/apk/debug/Salarycalculator-debug.apk
-```
+The APKs are generated at:
+- Stable APK: `app/build/outputs/apk/release/Salarycalculator-release.apk` (or `Salarycalculator.apk`)
+- Debug APK: `app/build/outputs/apk/debug/Salarycalculator-debug.apk`
 
 ### Run Unit Tests
 ```bash

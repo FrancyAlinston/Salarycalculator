@@ -78,7 +78,10 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - Maintain signing config referencing [`app/debug.keystore`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/debug.keystore) to ensure compatibility with automated release workflows.
 - **Automated CI/CD**:
   - Releases are automatically generated via GitHub Actions ([`.github/workflows/release.yml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.github/workflows/release.yml)) on push to `main` with semantic tags `v*`.
-  - Artifact path rule: APK must always be output to `app/build/outputs/apk/debug/Salarycalculator-debug.apk`.
+  - Artifact path rules:
+    - **Stable / Production APK**: `Salarycalculator.apk` (packaged from `app/build/outputs/apk/release/`).
+    - **Debug / Development APK**: `Salarycalculator-debug.apk` (packaged from `app/build/outputs/apk/debug/`).
+    - In installed environments, the app launcher display name MUST remain strictly the project name (`Salary Calculator`).
 
 ---
 

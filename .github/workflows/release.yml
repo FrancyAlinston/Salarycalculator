@@ -27,14 +27,25 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      - name: Build Debug and Release APKs
+        run: |
+          ./gradlew assembleDebug assembleRelease
+          cp app/build/outputs/apk/release/Salarycalculator-release.apk app/build/outputs/apk/release/Salarycalculator.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: "Salary Calculator ${{ github.ref_name }}"
-          body: "Release build for ${{ github.ref_name }} with auto-generated debug APK."
-          files: app/build/outputs/apk/debug/Salarycalculator-debug.apk
+          body: |
+            ## Downloads & Assets 📦
+
+            - **Stable Release (Production)**: [`Salarycalculator.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/${{ github.ref_name }}/Salarycalculator.apk)
+            - **Debug Version (Development)**: [`Salarycalculator-debug.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/${{ github.ref_name }}/Salarycalculator-debug.apk)
+
+            ---
+            *Signed with keystore and optimized for standalone installation.*
+          files: |
+            app/build/outputs/apk/release/Salarycalculator.apk
+            app/build/outputs/apk/debug/Salarycalculator-debug.apk
           generate_release_notes: true
