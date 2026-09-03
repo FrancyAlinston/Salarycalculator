@@ -454,6 +454,30 @@ fun PayslipImportDialog(
                             shape = RoundedCornerShape(12.dp)
                         )
                     }
+
+                    FilledTonalButton(
+                        onClick = {
+                            val g = grossInput.toDoubleOrNull() ?: 0.0
+                            val p = pensionInput.toDoubleOrNull() ?: 0.0
+                            if (g > 0) {
+                                val calc = TaxCalculator.calculateTax(
+                                    grossPay = g,
+                                    taxCode = taxCodeInput.ifBlank { "1257L" },
+                                    isMonthly = true,
+                                    pensionRatePercent = if (g > 0 && p > 0) (p / g) * 100.0 else 0.0
+                                )
+                                netInput = "%.2f".format(calc.netPay)
+                                taxInput = "%.2f".format(calc.incomeTax)
+                                niInput = "%.2f".format(calc.nationalInsurance)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Re-calculate with HMRC Formula", style = MaterialTheme.typography.labelMedium)
+                    }
                 }
             }
         },

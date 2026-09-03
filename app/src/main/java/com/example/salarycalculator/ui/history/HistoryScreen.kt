@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.CompareArrows
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -46,6 +47,16 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
     var showCloudDriveDialog by remember { mutableStateOf(false) }
     var showPayslipImportDialog by remember { mutableStateOf(false) }
     var showYtdProjectionDialog by remember { mutableStateOf(false) }
+    var showSalaryForecastDialog by remember { mutableStateOf(false) }
+
+    val biometricHistoryLockEnabled by salaryRepository.getBiometricHistoryLockEnabled().collectAsState(initial = false)
+    var isHistoryUnlocked by remember(biometricHistoryLockEnabled) { mutableStateOf(!biometricHistoryLockEnabled) }
+
+    val hourlyRate by salaryRepository.getDefaultHourlyRate().collectAsState(initial = 12.71)
+    val taxCode by salaryRepository.getTaxCode().collectAsState(initial = "1257L")
+    val taxRegion by salaryRepository.getTaxRegion().collectAsState(initial = TaxRegion.UK_STANDARD)
+    val studentLoanPlan by salaryRepository.getStudentLoanPlan().collectAsState(initial = StudentLoanPlan.NONE)
+    val pensionRate by salaryRepository.getPensionRate().collectAsState(initial = 5.0)
 
     // Multi-currency state
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
@@ -152,9 +163,17 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalIconButton(onClick = { showSalaryForecastDialog = true }) {
+                                    Icon(
+                                        Icons.Default.Insights,
+                                        contentDescription = "ML Salary & Year-End Tax Forecast",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
                                 FilledTonalIconButton(onClick = { showYtdProjectionDialog = true }) {
                                     Icon(
-                                        Icons.Default.TrendingUp,
+                                        Icons.AutoMirrored.Filled.TrendingUp,
                                         contentDescription = "Year-to-Date Projections & Pension Optimization",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
@@ -494,6 +513,20 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
             com.example.salarycalculator.ui.calculator.YtdProjectionDialog(
                 historyRecords = historyList,
                 onDismiss = { showYtdProjectionDialog = false }
+            )
+        }
+
+        // ML Salary & Tax Forecast Dialog
+        if (showSalaryForecastDialog) {
+            SalaryForecastDialog(
+                history = historyList,
+                hourlyRate = hourlyRate,
+                hoursPerWeek = 37.5,
+                taxCode = taxCode,
+                taxRegion = taxRegion,
+                studentLoanPlan = studentLoanPlan,
+                pensionRate = pensionRate,
+                onDismiss = { showSalaryForecastDialog = false }
             )
         }
     }

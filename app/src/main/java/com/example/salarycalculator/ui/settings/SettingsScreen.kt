@@ -31,6 +31,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val taxCode by salaryRepository.getTaxCode().collectAsState(initial = "1257L")
     val hourlyRate by salaryRepository.getDefaultHourlyRate().collectAsState(initial = 12.71)
     val currentThemeMode by salaryRepository.getThemeMode().collectAsState(initial = ThemeMode.SYSTEM)
+    val currentThemePalette by salaryRepository.getThemePalette().collectAsState(initial = ThemePalette.OCEAN)
     val taxRegion by salaryRepository.getTaxRegion().collectAsState(initial = TaxRegion.UK_STANDARD)
     val taxYear by salaryRepository.getTaxYear().collectAsState(initial = TaxYear.YEAR_2024_2025)
     val pensionRate by salaryRepository.getPensionRate().collectAsState(initial = 5.0)
@@ -43,6 +44,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val profiles by salaryRepository.getEmployerProfiles().collectAsState(initial = emptyList())
     val activeProfileId by salaryRepository.getActiveProfileId().collectAsState(initial = "primary_default")
     val biometricLockEnabled by salaryRepository.getBiometricLockEnabled().collectAsState(initial = false)
+    val biometricHistoryLockEnabled by salaryRepository.getBiometricHistoryLockEnabled().collectAsState(initial = false)
     val biometricTimeoutSeconds by salaryRepository.getBiometricTimeoutSeconds().collectAsState(initial = 0L)
     val autoCloudSyncEnabled by salaryRepository.getAutoCloudSyncEnabled().collectAsState(initial = false)
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
@@ -52,6 +54,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
     var inputPensionRate by remember(pensionRate) { mutableStateOf(pensionRate.toString()) }
     var selectedThemeMode by remember(currentThemeMode) { mutableStateOf(currentThemeMode) }
+    var selectedThemePalette by remember(currentThemePalette) { mutableStateOf(currentThemePalette) }
     var selectedTaxRegion by remember(taxRegion) { mutableStateOf(taxRegion) }
     var selectedTaxYear by remember(taxYear) { mutableStateOf(taxYear) }
     var selectedStudentLoan by remember(studentLoanPlan) { mutableStateOf(studentLoanPlan) }
@@ -61,6 +64,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var switchMarriageAllowance by remember(hasMarriageAllowance) { mutableStateOf(hasMarriageAllowance) }
     var switchBlindAllowance by remember(hasBlindPersonsAllowance) { mutableStateOf(hasBlindPersonsAllowance) }
     var switchBiometricLock by remember(biometricLockEnabled) { mutableStateOf(biometricLockEnabled) }
+    var switchBiometricHistoryLock by remember(biometricHistoryLockEnabled) { mutableStateOf(biometricHistoryLockEnabled) }
     var selectedBiometricTimeout by remember(biometricTimeoutSeconds) { mutableStateOf(biometricTimeoutSeconds) }
     var switchAutoCloudSync by remember(autoCloudSyncEnabled) { mutableStateOf(autoCloudSyncEnabled) }
 
@@ -231,6 +235,34 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                 icon = {}
                             ) {
                                 Text("Dark", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                            }
+                        }
+
+                        // Theme Palette Selection
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Material 3 Theme Palette", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    ThemePalette.OCEAN to "Ocean Sapphire",
+                                    ThemePalette.EMERALD to "Emerald Green",
+                                    ThemePalette.VIOLET to "Midnight Violet",
+                                    ThemePalette.AMBER to "Sunset Amber"
+                                ).forEach { (palette, label) ->
+                                    FilterChip(
+                                        selected = selectedThemePalette == palette,
+                                        onClick = {
+                                            selectedThemePalette = palette
+                                            scope.launch { salaryRepository.setThemePalette(palette) }
+                                        },
+                                        label = { Text(label) },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -620,6 +652,26 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             )
                         }
 
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Salary History Biometric Gate", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text("Require biometric unlock specifically when opening History ledger & Tax Packs", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(
+                                checked = switchBiometricHistoryLock,
+                                onCheckedChange = {
+                                    switchBiometricHistoryLock = it
+                                    scope.launch { salaryRepository.setBiometricHistoryLockEnabled(it) }
+                                }
+                            )
+                        }
+
                         if (switchBiometricLock) {
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("Auto-Lock Delay", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium)
@@ -836,7 +888,9 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             salaryRepository.setHasMarriageAllowance(switchMarriageAllowance)
                             salaryRepository.setHasBlindPersonsAllowance(switchBlindAllowance)
                             salaryRepository.setBiometricLockEnabled(switchBiometricLock)
+                            salaryRepository.setBiometricHistoryLockEnabled(switchBiometricHistoryLock)
                             salaryRepository.setBiometricTimeoutSeconds(selectedBiometricTimeout)
+                            salaryRepository.setThemePalette(selectedThemePalette)
                             salaryRepository.setAutoCloudSyncEnabled(switchAutoCloudSync)
                             CloudSyncWorker.scheduleAutoSync(context, switchAutoCloudSync)
                             inputHourlyRate.toDoubleOrNull()?.let {

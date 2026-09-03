@@ -6,7 +6,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ## Features
 
-- **Payslip Image & PDF OCR Scanner (`PayslipParserEngine.kt` & `PayslipImportDialog.kt`):** On-device machine learning OCR text recognition using Google ML Kit and `PdfRenderer` for automatic parsing of physical photo and digital PDF payslips with statutory anomaly audits, 1-tap "Save to History", and calculator auto-fill.
+- **Android 13+ Material You Monochrome Adaptive Icon:** Dynamic wallpaper-matching themed icon layer (`ic_launcher_monochrome.xml`) conforming to Android 13+ Monet design specifications.
+- **ML-Powered Salary & Year-End Tax Forecast Engine (`SalaryForecastEngine.kt` & `SalaryForecastDialog.kt`):** Ordinary Least Squares (OLS) multi-month linear regression and seasonal time-series projection modeling annual gross earnings, R² confidence scoring, trend velocity (+/- £/mo), projected full-year PAYE tax liability vs actual deductions, and automatic detection of HMRC year-end tax rebates or underpayment shortfalls.
+- **Selective Biometric Privacy Lock on History Ledger:** Dedicated biometric fingerprint/face authentication gate protecting confidential salary history cards, SA100 returns, and annual tax pack exports while keeping the main calculator instantly accessible.
+- **Customizable Material 3 Color Theme Palettes:** 4 curated Material 3 themes (**Ocean Sapphire**, **Emerald Green**, **Midnight Violet**, **Sunset Amber**) with real-time UI switching and DataStore persistence.
+- **Interactive Payslip OCR Correction & Re-Calculation Editor:** Visual field-level verification with 1-tap statutory re-calculation helpers before saving scanned physical or PDF payslips into the history ledger.
 - **Company Director Dividend vs Salary Optimizer (`DirectorDividendOptimizer.kt` & `DirectorDividendDialog.kt`):** Interactive corporate and personal tax planning engine modeling Corporation Tax (19%–25% + Marginal relief), personal dividend tax bands (8.75%–39.35%), and 4-way comparison matrix displaying annual tax savings and net cash retention.
 - **Cloud Drive Direct Export Engine (`CloudDriveExporter.kt` & `CloudDriveExportDialog.kt`):** Upload Annual Tax Pack ZIP bundles, official P60 certificates, HMRC SA100 returns, and CSV payroll files directly to WebDAV, Nextcloud, ownCloud, and REST cloud storage endpoints.
 - **Multi-Currency History Ledger Toggle:** Interactive currency selector chips (`GBP £`, `EUR €`, `USD $`) converting all historical records and cumulative statistics in real-time.

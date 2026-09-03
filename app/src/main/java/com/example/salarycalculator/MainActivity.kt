@@ -48,6 +48,7 @@ class MainActivity : FragmentActivity() {
         enableEdgeToEdge()
         setContent {
             val themeMode by salaryRepo.getThemeMode().collectAsState(initial = ThemeMode.SYSTEM)
+            val themePalette by salaryRepo.getThemePalette().collectAsState(initial = com.example.salarycalculator.domain.ThemePalette.OCEAN)
             val isBiometricEnabled by salaryRepo.getBiometricLockEnabled().collectAsState(initial = false)
             val timeoutSeconds by salaryRepo.getBiometricTimeoutSeconds().collectAsState(initial = 0L)
             var isAuthenticated by remember { mutableStateOf(!isBiometricEnabled) }
@@ -77,7 +78,7 @@ class MainActivity : FragmentActivity() {
                 }
             }
 
-            SalaryCalculatorTheme(themeMode = themeMode) {
+            SalaryCalculatorTheme(themeMode = themeMode, themePalette = themePalette) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     if (isBiometricEnabled && !isAuthenticated) {
                         // Lock screen overlay

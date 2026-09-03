@@ -15,6 +15,13 @@ enum class ThemeMode {
     DARK
 }
 
+enum class ThemePalette {
+    OCEAN,
+    EMERALD,
+    VIOLET,
+    AMBER
+}
+
 // CRITICAL: DATASTORE_PERSISTENCE
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -23,6 +30,7 @@ class SalaryRepository(private val context: Context) {
     private val TAX_CODE_KEY = stringPreferencesKey("tax_code")
     private val DEFAULT_HOURLY_RATE_KEY = doublePreferencesKey("default_hourly_rate")
     private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
+    private val THEME_PALETTE_KEY = stringPreferencesKey("theme_palette")
     private val TAX_REGION_KEY = stringPreferencesKey("tax_region")
     private val TAX_YEAR_KEY = stringPreferencesKey("tax_year")
     private val PENSION_RATE_KEY = doublePreferencesKey("pension_rate")
@@ -35,6 +43,7 @@ class SalaryRepository(private val context: Context) {
     private val CUSTOM_DEDUCTIONS_KEY = stringPreferencesKey("custom_deductions_json")
     private val SALARY_HISTORY_KEY = stringPreferencesKey("salary_history_json")
     private val BIOMETRIC_LOCK_KEY = booleanPreferencesKey("biometric_lock_enabled")
+    private val BIOMETRIC_HISTORY_LOCK_KEY = booleanPreferencesKey("biometric_history_lock_enabled")
     private val ACTIVE_SHIFT_KEY = stringPreferencesKey("active_shift_state_json")
     private val CUSTOM_CLOUD_ENDPOINT_KEY = stringPreferencesKey("custom_cloud_endpoint")
     private val CUSTOM_CLOUD_TOKEN_KEY = stringPreferencesKey("custom_cloud_token")
@@ -217,6 +226,39 @@ class SalaryRepository(private val context: Context) {
     suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { preferences ->
             preferences[THEME_MODE_KEY] = mode.name
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getThemePalette(): Flow<ThemePalette> {
+        return context.dataStore.data.map { preferences ->
+            val paletteStr = preferences[THEME_PALETTE_KEY] ?: ThemePalette.OCEAN.name
+            try {
+                ThemePalette.valueOf(paletteStr)
+            } catch (_: Exception) {
+                ThemePalette.OCEAN
+            }
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setThemePalette(palette: ThemePalette) {
+        context.dataStore.edit { preferences ->
+            preferences[THEME_PALETTE_KEY] = palette.name
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getBiometricHistoryLockEnabled(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[BIOMETRIC_HISTORY_LOCK_KEY] ?: false
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setBiometricHistoryLockEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[BIOMETRIC_HISTORY_LOCK_KEY] = enabled
         }
     }
 

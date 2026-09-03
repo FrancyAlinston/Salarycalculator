@@ -4,25 +4,24 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [13.0] - 2026-09-03 (VersionCode: 19)
+## [14.0] - 2026-09-03 (VersionCode: 20)
 ### Added
-- Updated app icon with modern Material Design 3 style (emerald green money bag, calculator background).
-- Updated GitHub release workflow to correctly name debug (`Salarycalculator-debug.apk`) and stable (`Salarycalculator.apk`) APKs.
-- Ensured launcher label is exactly "Salary Calculator".
-- Bumped versionCode to 19 and versionName to 13.0.
+- **Android 13+ Material You Monochrome Themed Adaptive Icon (`ic_launcher_monochrome.xml`, `ic_launcher.xml`, `ic_launcher_round.xml`)**: Added dedicated vector monochrome silhouette of the calculator and £ money bag allowing Android 13+ devices to dynamically tint launcher icons to match user system wallpaper palettes.
+- **ML-Powered Salary & Year-End Tax Forecast Engine (`SalaryForecastEngine.kt` & `SalaryForecastDialog.kt`)**: Ordinary Least Squares (OLS) multi-month linear regression and seasonal time-series projection modeling annual gross earnings, R² goodness-of-fit confidence scoring, trend velocity (+/- £/mo), projected full-year PAYE tax liability vs actual deductions, and automatic detection of HMRC year-end tax rebates or underpayment shortfalls.
+- **Selective Biometric Privacy Lock on History Ledger (`SalaryRepository.kt`, `HistoryScreen.kt`, `SettingsScreen.kt`)**: Added granular biometric security options enabling users to specifically protect confidential historical payslips and annual tax packs behind biometric authentication while keeping the live calculator immediately accessible.
+- **Customizable Material 3 Color Theme Palettes (`Theme.kt`, `Color.kt`, `SettingsScreen.kt`)**: Introduced 4 curated Material 3 themes with live preview and DataStore persistence: **Ocean Sapphire** (Indigo/Teal), **Emerald Green** (Emerald/Mint), **Midnight Violet** (Violet/Amethyst), and **Sunset Amber** (Amber/Gold).
+- **Interactive Payslip OCR Correction & Re-Calculation Editor (`PayslipImportDialog.kt`)**: Added field-level editing and 1-tap "Re-calculate with HMRC Formula" helper in the OCR scanner dialog allowing users to verify, adjust, and recalculate extracted numbers before committing to the salary history ledger.
+- **Comprehensive v14.0 Test Suite (`SalaryForecastEngineTest.kt`)**: Added automated regression unit test coverage for baseline forecasts, linear slope trajectories, R² confidence bounds, and 60% marginal tax trap detection.
 
-### Bugs Fixed
-- Fixed adaptive icon background to represent digital calculator.
+### Bugs Found & Fixed
+- **Launcher Icon Formatting**: Cleaned up legacy WebP mipmap remnants and isolated the calculator body with pure alpha transparency.
+- **Adaptive Safe Zone Layout**: Enforced 72dp safe zone centering for all adaptive foreground layers to eliminate circular launcher edge clipping.
 
-### What Needs to Be Fixed / Upcoming
-- Advanced ML-based salary forecasting and year-end tax liability projections.
-- Biometric fingerprint/face unlock for confidential payroll history.
+### What Needs to Be Fixed / Pending
+- Background auto-retry queue for offline cloud sync failures.
+- Pension Annual Allowance (£60k) threshold alert banner.
 
 ---
-## [Unreleased]
-### What Needs to Be Fixed / Upcoming
-- [ ] Advanced ML-based salary forecasting and year-end tax liability projections.
-- [ ] Biometric fingerprint/face unlock for confidential payroll history.
 
 ## [11.0] - 2026-09-03 (VersionCode: 17)
 ### Added
