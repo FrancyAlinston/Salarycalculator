@@ -1,6 +1,6 @@
 # Salary Calculator - Agent Working Rules & Standards
 
-These rules define the mandatory behavioral constraints, development workflows, domain accuracy requirements, version tracking rules, gap analysis standards, and reporting standards for AI agents operating within the **Salary Calculator** repository.
+These rules define the mandatory behavioral constraints, development workflows, domain accuracy requirements, version tracking rules, gap analysis standards, execution ID tagging rules, and verification standards for AI agents operating within the **Salary Calculator** repository.
 
 ---
 
@@ -19,18 +19,22 @@ These rules define the mandatory behavioral constraints, development workflows, 
 
 - **Calculation Sequence Strictness**:
   When computing payslips or modifying [`TaxCalculator.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/domain/TaxCalculator.kt), you must strictly follow this execution order:
-  $$\text{Hours \& Overtime} \longrightarrow \text{Gross Pay} \longrightarrow \text{Tax-Free Allowance Parsing} \longrightarrow \text{Taxable Income} \longrightarrow \text{PAYE Income Tax Bands} \longrightarrow \text{Class 1 National Insurance} \longrightarrow \text{Net Pay}$$
+  $$\text{Hours \& Overtime} \longrightarrow \text{Gross Pay} \longrightarrow \text{Pre-Tax Deductions / Sacrifice} \longrightarrow \text{Pension Relief} \longrightarrow \text{Tax-Free Allowances} \longrightarrow \text{Taxable Income} \longrightarrow \text{PAYE Tax} \longrightarrow \text{Class 1 NI} \longrightarrow \text{Student Loan} \longrightarrow \text{Post-Tax Deductions} \longrightarrow \text{Net Pay}$$
 
-- **Mandatory Tax & NI Rules (UK Standard 2024/2025)**:
+- **Mandatory Tax & NI Rules (UK Standard 2024/2025 & 2025/2026)**:
   - **Tax Code Parsing**: Standard codes (e.g., `1257L`) parse numeric values multiplied by 10 (e.g., £12,570/yr, £1,047.50/mo). If no valid tax code is provided, default to standard `1257L`.
-  - **Income Tax Bands**:
+  - **Income Tax Bands (UK Standard)**:
     - Basic Rate (20%): £0 to £37,700/yr (£3,141.67/mo) taxable income.
     - Higher Rate (40%): £37,700 to £125,140/yr (£3,141.67 to £10,428.33/mo) taxable income.
     - Additional Rate (45%): Taxable income exceeding £125,140/yr (£10,428.33/mo).
+  - **Scottish 6-Tier Bands**: Starter 19%, Basic 20%, Intermediate 21%, Higher 42%, Advanced 45%, Top 48%.
   - **National Insurance (Class 1 Primary)**:
     - Below Primary Threshold (£1,048/mo / £12,576/yr): 0% NI.
     - Between Primary Threshold and Upper Earnings Limit (£4,189/mo / £50,268/yr): 8% main rate.
     - Above Upper Earnings Limit (> £4,189/mo): 2% additional rate.
+  - **Statutory Reliefs**:
+    - Marriage Allowance: £1,260 transferred personal allowance (£21/month tax reduction).
+    - Blind Person's Allowance: £3,070 statutory tax-free personal allowance.
   - **Zero / Negative Bounds Protection**: Taxable pay and deductions must never result in negative tax amounts or negative net pay calculations. Always clamp minimums with `max(0.0, ...)`.
 
 - **Critical Code Annotations**:
@@ -46,12 +50,13 @@ These rules define the mandatory behavioral constraints, development workflows, 
 - **Navigation Architecture**:
   - Use **AndroidX Navigation 3** with serializable `NavKey` definitions in [`NavigationKeys.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/NavigationKeys.kt).
   - Manage navigation state via `rememberNavBackStack` and `NavDisplay` within [`Navigation.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/Navigation.kt).
+  - Support **Book-Style Foldable Dual-Screen Layout** (`maxWidth >= 720dp`) with Left Pane = Fullscreen Main Calculator and Right Pane = Fullscreen History/Settings companion workspace.
 - **Jetpack Compose Guidelines**:
   - Always support **Edge-to-Edge** rendering (`enableEdgeToEdge()` in `MainActivity.kt`) and observe `Scaffold` inner padding across all screen composables.
   - Use Material 3 theming tokens ([`theme/Theme.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/theme/Theme.kt)) and avoid hardcoded colors. Support dynamic colors on Android 12+.
   - State hoisting: Screens should collect state using `collectAsState()` or `collectAsStateWithLifecycle()` from repository flows or ViewModels.
 - **Data Persistence**:
-  - Always persist user settings (custom tax code, default hourly rate, theme mode) using Jetpack DataStore Preferences via [`SalaryRepository.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/domain/SalaryRepository.kt).
+  - Always persist user settings (custom tax code, default hourly rate, theme mode, employer profiles, statutory reliefs) using Jetpack DataStore Preferences via [`SalaryRepository.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/domain/SalaryRepository.kt).
 
 ---
 
@@ -72,18 +77,19 @@ These rules define the mandatory behavioral constraints, development workflows, 
 - **Keystore & Signing Integrity**:
   - Maintain signing config referencing [`app/debug.keystore`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/debug.keystore) to ensure compatibility with automated release workflows.
 - **Automated CI/CD**:
-  - Releases are automatically generated via GitHub Actions ([`.github/workflows/release.yml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.github/workflows/release.yml)) on push to `main`.
+  - Releases are automatically generated via GitHub Actions ([`.github/workflows/release.yml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.github/workflows/release.yml)) on push to `main` with semantic tags `v*`.
   - Artifact path rule: APK must always be output to `app/build/outputs/apk/debug/Salarycalculator-debug.apk`.
 
 ---
 
-## 5. Testing & Verification Standards
+## 5. Testing & Verification Standards (`@rules:mandatory_post_implementation_testing_and_full_verification`)
 
-- **Unit Testing**:
-  - Every calculation rule change in [`TaxCalculator.kt`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/src/main/java/com/example/salarycalculator/domain/TaxCalculator.kt) MUST be validated by unit tests in `app/src/test/`.
-  - Ensure tests cover basic allowance, higher rate thresholds, additional rate thresholds, overtime calculations, and zero/negative income bounds.
-- **UI & Instrumented Testing**:
-  - Instrumented Compose tests in `app/src/androidTest/` must reflect valid screen signatures and current Navigation3 destinations.
+- **Post-Implementation Functional Testing**:
+  - Upon finishing any new implementation, bugfix, or refactoring, the agent MUST always test that the changes work exactly as intended across all screen orientations and states.
+- **Periodic Full-Battery Tax Engine Verification**:
+  - The agent MUST periodically run a comprehensive test suite across varying income brackets, wage amounts, overtime multipliers (`1.0x`, `1.5x`, `2.0x`), pension rates (`0%` to `15%`), salary sacrifice schemes, student loan plans (Plans 1, 2, 4, Postgraduate), and statutory allowances (Standard, Marriage Allowance, Blind Person's Allowance) to assert zero arithmetic drift and exact penny accuracy.
+- **Automated Unit & Build Verification**:
+  - Always verify with `./gradlew test assembleDebug` before committing releases.
 
 ---
 
@@ -99,5 +105,15 @@ On **EVERY** change or task completed, the agent MUST generate a structured **En
 6. **Alerts**: Breaking changes, required manual configurations, or signing notes.
 7. **Comprehensive Gap Analysis & Roadmap**:
    - **Areas That Needed Work**: Technical debt, missing test coverage, code structure improvements, performance bottlenecks, or limitations identified in the existing codebase.
-   - **New Features & Improvements That Can Be Implemented**: Concrete, high-value opportunities and upcoming feature suggestions (e.g., pension relief, student loan tiers, Scottish tax bands, overtime multipliers, frequency toggles, PDF/CSV export).
+   - **New Features & Improvements That Can Be Implemented**: Concrete, high-value opportunities and upcoming feature suggestions.
    - **Unworked / Pending Areas**: Features, screens, domain modules, or integrations that have not yet been touched or remain in a baseline state.
+
+---
+
+## 7. Action & Execution ID Tagging Standard (`@rules:task_execution_id_tagging`)
+
+To enable seamless user triggering and 1-message delegation, the agent MUST adhere to the following tagging standard on **EVERY** End-of-Task report:
+
+- **Master Execution ID**: Every report MUST define a top-level **Action ID / Execution ID** (e.g., `EOT-EXEC-V4.1`, `EOT-EXEC-V5.0`) at the beginning and in the Roadmap section.
+- **Feature Action IDs**: Every recommended feature, unworked area, and improvement item in the report MUST be assigned a unique sub-ID (e.g., `[ACTION: FEAT-501]`, `[ACTION: FEAT-502]`, `[ACTION: FIX-501]`).
+- **1-Message Trigger Support**: When the user references any Execution ID or Feature Action ID (e.g., *"implement EOT-EXEC-V5.0"* or *"work on FEAT-501"*), the agent MUST immediately parse the corresponding scope, construct the implementation plan, and execute all listed items without requiring manual re-prompting.

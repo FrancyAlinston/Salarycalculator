@@ -169,6 +169,21 @@ class TaxCalculatorTest {
     }
 
     @Test
+    fun taxCalculator_fullCheck_acrossVaryingRatesAndTiers() {
+        // Full battery verification across multiple income points and rate combinations
+        val testIncomes = listOf(1000.0, 1500.0, 2500.0, 3500.0, 5000.0, 8000.0, 12000.0)
+        for (gross in testIncomes) {
+            val repUk = TaxCalculator.calculateTax(gross, "1257L", isMonthly = true, pensionRatePercent = 5.0)
+            assertTrue("Gross >= Net at £$gross", repUk.grossPay >= repUk.netPay)
+            assertTrue("Deductions >= 0 at £$gross", repUk.totalDeductions >= 0.0)
+            assertEquals("Net + Deductions == Gross", gross, repUk.netPay + repUk.totalDeductions, 0.01)
+
+            val repScot = TaxCalculator.calculateTax(gross, "1257L", isMonthly = true, region = TaxRegion.SCOTLAND, pensionRatePercent = 5.0)
+            assertTrue("Scottish Net + Deductions == Gross", gross == (repScot.netPay + repScot.totalDeductions) || Math.abs(gross - (repScot.netPay + repScot.totalDeductions)) < 0.01)
+        }
+    }
+
+    @Test
     fun employerProfile_serialization_isLossless() {
         val profile = EmployerProfile(
             name = "Tech Freelance",
