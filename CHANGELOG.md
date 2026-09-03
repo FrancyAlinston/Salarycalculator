@@ -8,8 +8,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] Direct export of annual tax packs to cloud drives (Google Drive / OneDrive / Nextcloud).
-- [ ] OCR Scanner for payslip camera uploads.
+- [ ] Advanced ML-based salary forecasting and year-end tax liability projections.
+- [ ] Biometric fingerprint/face unlock for confidential payroll history.
+
+---
+
+## [11.0] - 2026-09-03 (VersionCode: 17)
+### Added
+- **Payslip Image & PDF OCR Scanner with Statutory Discrepancy Diagnostics (`PayslipParserEngine.kt`, `PayslipOcrAnalyzer.kt`, `PayslipImportDialog.kt`)**: On-device machine learning text extraction using Google ML Kit Latin recognizer and Android `PdfRenderer` for direct import of physical payslip photos and PDF digital payslips. Includes regex and heuristic field parsing (gross pay, net pay, PAYE tax, NI, pension, student loan, tax code, pay period, and employer name), verification analysis asserting exact statutory alignment against HMRC formulas, and 1-tap "Save to History Ledger" and "Apply to Live Calculator".
+- **Company Director Dividend vs Salary Tax Optimizer (`DirectorDividendOptimizer.kt` & `DirectorDividendDialog.kt`)**: Interactive tax planning engine for Ltd company owner-directors modeling Corporation Tax (19% small profits rate $\le$ £50k, 25% main rate $\ge$ £250k, and marginal relief between £50k–£250k), personal dividend tax rates (8.75% Basic, 33.75% Higher, 39.35% Additional), £500 statutory dividend allowance, and 4-way comparative scenarios (£12,570 optimal salary + dividends, £9,100 primary NI threshold + dividends, 100% PAYE salary, and 100% dividends) displaying exact net cash in pocket and annual tax savings.
+- **Cloud Drive Direct Export Engine (`CloudDriveExporter.kt` & `CloudDriveExportDialog.kt`)**: Direct network upload module supporting WebDAV, Nextcloud, ownCloud, Bearer Token REST, and Basic Auth endpoints for uploading Annual Tax Pack ZIP archives, official P60 PDFs, HMRC SA100 return PDFs, and CSV payroll files with persistent server credentials.
+- **Multi-Currency History Ledger Toggle (`HistoryScreen.kt`)**: Real-time currency selector chips (`GBP £`, `EUR €`, `USD $`) on the salary history overview and individual record cards, dynamically converting gross pay, tax, NI, pension, deductions, and take-home amounts using live synced or custom exchange rates.
+- **Comprehensive v11.0 Unit Test Suite (`TaxCalculatorTest.kt`)**: Automated test coverage for payslip OCR regex extraction, emergency tax code detection, Corporation Tax bracket modeling, and Director Dividend optimization comparisons.
+
+### Bugs Found & Fixed
+- **Method Signature & Property Mapping**: Standardized `MonthlySalaryRecord` note constructor parameter and resolved ML Kit `Tasks.await` coroutine integration.
+- **Dynamic Calculation Interop**: Cleaned parameter passing to `TaxCalculator.calculateTax` inside `DirectorDividendOptimizer` and `PayslipParserEngine`.
+
+### What Needs to Be Fixed / Pending
+- Advanced ML-based salary forecasting and year-end tax liability projections.
+- Biometric fingerprint/face unlock for confidential payroll history.
 
 ---
 

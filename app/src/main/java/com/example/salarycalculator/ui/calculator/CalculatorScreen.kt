@@ -82,6 +82,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showCompanyCarDialog by remember { mutableStateOf(false) }
     var showStatutoryLeaveDialog by remember { mutableStateOf(false) }
     var showMortgageDialog by remember { mutableStateOf(false) }
+    var showPayslipImportDialog by remember { mutableStateOf(false) }
+    var showDirectorDividendDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -210,7 +212,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onTaxRefundClick = { showTaxRefundDialog = true },
                             onCompanyCarClick = { showCompanyCarDialog = true },
                             onStatutoryLeaveClick = { showStatutoryLeaveDialog = true },
-                            onMortgageClick = { showMortgageDialog = true }
+                            onMortgageClick = { showMortgageDialog = true },
+                            onPayslipOcrClick = { showPayslipImportDialog = true },
+                            onDirectorTaxClick = { showDirectorDividendDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -359,7 +363,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onTaxRefundClick = { showTaxRefundDialog = true },
                             onCompanyCarClick = { showCompanyCarDialog = true },
                             onStatutoryLeaveClick = { showStatutoryLeaveDialog = true },
-                            onMortgageClick = { showMortgageDialog = true }
+                            onMortgageClick = { showMortgageDialog = true },
+                            onPayslipOcrClick = { showPayslipImportDialog = true },
+                            onDirectorTaxClick = { showDirectorDividendDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -645,6 +651,28 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showMortgageDialog = false }
             )
         }
+        // Payslip ML OCR Scanner & Statutory Auditor Dialog
+        if (showPayslipImportDialog) {
+            PayslipImportDialog(
+                salaryRepository = salaryRepository,
+                onApplyToCalculator = { importedGross, importedTaxCode, importedPension ->
+                    if (importedGross > 0) {
+                        daysWorkedInput = "20"
+                        hoursPerDayInput = "8.0"
+                    }
+                    if (importedPension > 0 && report.grossPay > 0) {
+                        selectedPensionPercent = (importedPension / report.grossPay) * 100.0
+                    }
+                },
+                onDismiss = { showPayslipImportDialog = false }
+            )
+        }
+        // Company Director Dividend vs Salary Optimizer Dialog
+        if (showDirectorDividendDialog) {
+            DirectorDividendDialog(
+                onDismiss = { showDirectorDividendDialog = false }
+            )
+        }
     }
 }
 
@@ -885,7 +913,9 @@ private fun SchedulePresetsSection(
     onTaxRefundClick: () -> Unit = {},
     onCompanyCarClick: () -> Unit = {},
     onStatutoryLeaveClick: () -> Unit = {},
-    onMortgageClick: () -> Unit = {}
+    onMortgageClick: () -> Unit = {},
+    onPayslipOcrClick: () -> Unit = {},
+    onDirectorTaxClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -899,6 +929,18 @@ private fun SchedulePresetsSection(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            AssistChip(
+                onClick = onPayslipOcrClick,
+                label = { Text("Payslip OCR Scanner", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.DocumentScanner, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onDirectorTaxClick,
+                label = { Text("Director Dividends", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.BusinessCenter, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
+                shape = RoundedCornerShape(10.dp)
+            )
             AssistChip(
                 onClick = onTaxComparisonClick,
                 label = { Text("Multi-Year Tax", style = MaterialTheme.typography.labelSmall) },

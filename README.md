@@ -6,6 +6,10 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ## Features
 
+- **Payslip Image & PDF OCR Scanner (`PayslipParserEngine.kt` & `PayslipImportDialog.kt`):** On-device machine learning OCR text recognition using Google ML Kit and `PdfRenderer` for automatic parsing of physical photo and digital PDF payslips with statutory anomaly audits, 1-tap "Save to History", and calculator auto-fill.
+- **Company Director Dividend vs Salary Optimizer (`DirectorDividendOptimizer.kt` & `DirectorDividendDialog.kt`):** Interactive corporate and personal tax planning engine modeling Corporation Tax (19%–25% + Marginal relief), personal dividend tax bands (8.75%–39.35%), and 4-way comparison matrix displaying annual tax savings and net cash retention.
+- **Cloud Drive Direct Export Engine (`CloudDriveExporter.kt` & `CloudDriveExportDialog.kt`):** Upload Annual Tax Pack ZIP bundles, official P60 certificates, HMRC SA100 returns, and CSV payroll files directly to WebDAV, Nextcloud, ownCloud, and REST cloud storage endpoints.
+- **Multi-Currency History Ledger Toggle:** Interactive currency selector chips (`GBP £`, `EUR €`, `USD $`) converting all historical records and cumulative statistics in real-time.
 - **Expanded Overtime & Standard 1.0x Rate Multipliers:** Full support for standard single rate (`1.0x`), `1.25x`, `1.5x`, `1.75x`, `2.0x`, `2.25x`, `2.5x`, and `3.0x` across Weekday, Weekend, and Bank Holiday overtime.
 - **Dynamic HMRC Statutory Tax Rate Config (`HmrcRateSyncManager.kt` & `HmrcRateSyncDialog.kt`):** Live remote JSON synchronization engine supporting dynamic statutory personal allowance updates, tax bands, NI thresholds, and UK National Living Wage rates (£12.21 21+, £10.00 18-20, £7.55 Apprentice).
 - **Live Foreign Exchange Cloud Sync Engine (`LiveFxSyncEngine.kt`):** Automated real-time synchronization of open exchange rates for GBP $\rightarrow$ EUR and GBP $\rightarrow$ USD with offline fallback caches.

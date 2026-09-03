@@ -3,6 +3,7 @@ package com.example.salarycalculator.domain
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -685,7 +686,58 @@ class TaxCalculatorTest {
         val tripleGross = overtimeHours * (hourlyRate * 3.0)
         assertEquals(600.0, tripleGross, 0.01)
     }
+
+    @Test
+    fun payslipParserEngine_extractsFieldsAndAuditsStatutoryDiscrepancy() {
+        val samplePayslip = """
+            EMPLOYER: ACME TECHNOLOGIES LTD
+            PAY DATE: 31 January 2025
+            TAX CODE: 1257L
+            
+            PAYMENTS:
+            Basic Salary: £3,500.00
+            Total Gross: £3,500.00
+            
+            DEDUCTIONS:
+            PAYE Tax: £460.50
+            National Insurance: £179.44
+            Employee Pension: £175.00
+            Student Loan Plan 2: £55.00
+            
+            NET PAY: £2,630.06
+        """.trimIndent()
+
+        val parsed = PayslipParserEngine.parsePayslipText(samplePayslip)
+        assertEquals("ACME TECHNOLOGIES LTD", parsed.employerName)
+        assertEquals("1257L", parsed.taxCode)
+        assertEquals("January 2025", parsed.payPeriod)
+        assertEquals(3500.0, parsed.grossPay, 0.01)
+        assertEquals(2630.06, parsed.netPay, 0.01)
+        assertEquals(460.50, parsed.incomeTax, 0.01)
+        assertEquals(179.44, parsed.nationalInsurance, 0.01)
+        assertEquals(175.00, parsed.employeePension, 0.01)
+        assertEquals(55.00, parsed.studentLoan, 0.01)
+        assertNotNull(parsed.verificationAnalysis)
+    }
+
+    @Test
+    fun directorDividendOptimizer_calculatesCorporationTaxAndOptimalSavings() {
+        // Test £40,000 profit (19% rate)
+        val corpTax40k = DirectorDividendOptimizer.calculateCorporationTax(40000.0)
+        assertEquals(7600.0, corpTax40k, 0.01)
+
+        // Test £300,000 profit (25% main rate)
+        val corpTax300k = DirectorDividendOptimizer.calculateCorporationTax(300000.0)
+        assertEquals(75000.0, corpTax300k, 0.01)
+
+        // Test £60,000 optimization report
+        val report = DirectorDividendOptimizer.generateOptimizationReport(60000.0)
+        assertEquals(4, report.scenarios.size)
+        assertTrue(report.annualTaxSavingsVsPureSalary > 0.0)
+        assertTrue(report.optimalScenario.netCashInPocket > report.scenarios.find { it.name.contains("100% PAYE") }!!.netCashInPocket)
+    }
 }
+
 
 
 

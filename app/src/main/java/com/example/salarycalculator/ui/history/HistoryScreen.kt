@@ -43,6 +43,21 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
     var showSa100Dialog by remember { mutableStateOf(false) }
     var showReconciliationDialog by remember { mutableStateOf(false) }
     var showTaxPackDialog by remember { mutableStateOf(false) }
+    var showCloudDriveDialog by remember { mutableStateOf(false) }
+    var showPayslipImportDialog by remember { mutableStateOf(false) }
+
+    // Multi-currency state
+    val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
+    val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
+    var selectedCurrency by remember { mutableStateOf("GBP") } // "GBP", "EUR", "USD"
+
+    fun formatMoney(amount: Double): String {
+        return when (selectedCurrency) {
+            "EUR" -> "€${"%,.2f".format(amount * customEurRate)}"
+            "USD" -> "$${"%,.2f".format(amount * customUsdRate)}"
+            else -> "£${"%,.2f".format(amount)}"
+        }
+    }
 
     // Cumulative stats
     val totalNet = remember(historyList) { historyList.sumOf { it.netPay } }
@@ -136,6 +151,22 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalIconButton(onClick = { showPayslipImportDialog = true }) {
+                                    Icon(
+                                        Icons.Outlined.DocumentScanner,
+                                        contentDescription = "Import Payslip via OCR",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                FilledTonalIconButton(onClick = { showCloudDriveDialog = true }) {
+                                    Icon(
+                                        Icons.Default.CloudUpload,
+                                        contentDescription = "Upload to Cloud Drive",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
                                 FilledTonalIconButton(onClick = { showReconciliationDialog = true }) {
                                     Icon(
                                         Icons.Default.AccountBalance,
@@ -223,12 +254,31 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                                     .padding(20.dp),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                Text(
-                                    text = "Cumulative Earnings Overview",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Cumulative Earnings Overview",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    // Multi-Currency Chips
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        listOf("GBP" to "£", "EUR" to "€", "USD" to "$").forEach { (curr, sym) ->
+                                            FilterChip(
+                                                selected = selectedCurrency == curr,
+                                                onClick = { selectedCurrency = curr },
+                                                label = { Text(sym, fontWeight = FontWeight.Bold) },
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.height(28.dp)
+                                            )
+                                        }
+                                    }
+                                }
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -241,7 +291,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            text = "£${"%,.2f".format(totalNet)}",
+                                            text = formatMoney(totalNet),
                                             style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp),
                                             fontWeight = FontWeight.ExtraBold,
                                             color = Emerald60,
@@ -259,7 +309,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
-                                            text = "£${"%,.2f".format(avgNet)}",
+                                            text = formatMoney(avgNet),
                                             style = MaterialTheme.typography.headlineMedium.copy(fontSize = 24.sp),
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary,
@@ -274,9 +324,9 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    StatItem(label = "Total Gross", value = "£${"%,.0f".format(totalGross)}")
-                                    StatItem(label = "Total Tax Paid", value = "£${"%,.0f".format(totalTax)}", valueColor = Rose60)
-                                    StatItem(label = "Total NI Paid", value = "£${"%,.0f".format(totalNI)}", valueColor = Amber60)
+                                    StatItem(label = "Total Gross", value = formatMoney(totalGross))
+                                    StatItem(label = "Total Tax Paid", value = formatMoney(totalTax), valueColor = Rose60)
+                                    StatItem(label = "Total NI Paid", value = formatMoney(totalNI), valueColor = Amber60)
                                 }
                             }
                         }
@@ -286,6 +336,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                     items(historyList, key = { it.id }) { record ->
                         HistoryRecordCard(
                             record = record,
+                            currencyFormatter = { formatMoney(it) },
                             onExportPdf = {
                                 val pdfFile = PdfPayslipGenerator.generatePayslipPdf(context, record)
                                 PdfPayslipGenerator.sharePdf(context, pdfFile)
@@ -411,12 +462,30 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                 onDismiss = { showTaxPackDialog = false }
             )
         }
+
+        // Cloud Drive Direct Upload Dialog
+        if (showCloudDriveDialog) {
+            CloudDriveExportDialog(
+                historyRecords = historyList,
+                taxYearLabel = "2024/2025",
+                onDismiss = { showCloudDriveDialog = false }
+            )
+        }
+
+        // Payslip ML OCR Scanner Dialog
+        if (showPayslipImportDialog) {
+            com.example.salarycalculator.ui.calculator.PayslipImportDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showPayslipImportDialog = false }
+            )
+        }
     }
 }
 
 @Composable
 private fun HistoryRecordCard(
     record: MonthlySalaryRecord,
+    currencyFormatter: (Double) -> String = { "£${"%.2f".format(it)}" },
     onExportPdf: () -> Unit,
     onDelete: () -> Unit,
     onShare: () -> Unit
@@ -451,7 +520,7 @@ private fun HistoryRecordCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "Gross: £${"%.2f".format(record.grossPay)} · ${record.daysWorked}d",
+                        text = "Gross: ${currencyFormatter(record.grossPay)} · ${record.daysWorked}d",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1
@@ -465,7 +534,7 @@ private fun HistoryRecordCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "£${"%.2f".format(record.netPay)}",
+                        text = currencyFormatter(record.netPay),
                         style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp),
                         fontWeight = FontWeight.ExtraBold,
                         color = Emerald60,
@@ -528,35 +597,35 @@ private fun HistoryRecordCard(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                    HistoryDetailRow(label = "Gross Total Pay", value = "£${"%.2f".format(record.grossPay)}", isBold = true)
+                    HistoryDetailRow(label = "Gross Total Pay", value = currencyFormatter(record.grossPay), isBold = true)
                     if (record.salarySacrifice > 0) {
                         HistoryDetailRow(
                             label = "Salary Sacrifice Schemes",
-                            value = "-£${"%.2f".format(record.salarySacrifice)}",
+                            value = "-${currencyFormatter(record.salarySacrifice)}",
                             valueColor = Rose60
                         )
                     }
                     if (record.pensionContribution > 0) {
                         HistoryDetailRow(
                             label = "Employee Pension (${record.pensionRate}%)",
-                            value = "-£${"%.2f".format(record.pensionContribution)}",
+                            value = "-${currencyFormatter(record.pensionContribution)}",
                             valueColor = Teal60
                         )
                     }
                     HistoryDetailRow(
                         label = "PAYE Income Tax (${if (record.taxRegion == TaxRegion.SCOTLAND) "Scotland" else "UK"})",
-                        value = "-£${"%.2f".format(record.incomeTax)}",
+                        value = "-${currencyFormatter(record.incomeTax)}",
                         valueColor = Rose60
                     )
                     HistoryDetailRow(
                         label = "Class 1 National Insurance",
-                        value = "-£${"%.2f".format(record.nationalInsurance)}",
+                        value = "-${currencyFormatter(record.nationalInsurance)}",
                         valueColor = Amber60
                     )
                     if (record.studentLoanDeduction > 0) {
                         HistoryDetailRow(
                             label = "Student Loan (${record.studentLoanPlan.name.replace("_", " ")})",
-                            value = "-£${"%.2f".format(record.studentLoanDeduction)}",
+                            value = "-${currencyFormatter(record.studentLoanDeduction)}",
                             valueColor = Violet60
                         )
                     }
