@@ -81,6 +81,11 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - Never allow intermediate workflow artifact upload steps (`actions/upload-artifact`) to block or fail release publishing (`softprops/action-gh-release`), because GitHub Releases utilize independent, uncapped release asset storage.
   - If a storage quota or recalculation window (6-12 hours) prevents immediate artifact staging, the agent MUST bypass ephemeral workflow artifact uploads and attach production and debug APKs directly to the GitHub Release.
   - The agent MUST backtrack across past versions (from the last successful GitHub release up to the current active version) to verify all intervening releases are properly tagged, built, and published.
+- **Local Versioned APK Archive Directory (`@rules:local_versioned_apks_folder`)**:
+  - The repository maintains a local folder named `APKs` at the workspace root.
+  - This folder MUST be included in `.gitignore` and used strictly for storing built `.apk` binaries across all app versions.
+  - On every build or version release, the agent MUST automatically copy the newly generated release and debug APKs into `APKs/` named with their semantic version: e.g. `Salarycalculator-v<versionName>.apk` and `Salarycalculator-v<versionName>-debug.apk`.
+  - Only `.apk` files with version names are permitted in this folder.
 - **Automated CI/CD**:
   - Releases are automatically generated via GitHub Actions ([`.github/workflows/release.yml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.github/workflows/release.yml)) on push to `main` with semantic tags `v*`.
   - Artifact path rules:
