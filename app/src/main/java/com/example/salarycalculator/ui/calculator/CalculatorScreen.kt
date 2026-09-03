@@ -61,10 +61,14 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var daysWorkedInput by remember { mutableStateOf("20") }
     var hoursPerDayInput by remember { mutableStateOf("8.0") }
     var overtimeHoursInput by remember { mutableStateOf("") }
+    var bonusInput by remember { mutableStateOf("") }
+    var commissionInput by remember { mutableStateOf("") }
 
     var showSaveDialog by remember { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
     var showChildBenefitDialog by remember { mutableStateOf(false) }
+    var showTaxExplainerDialog by remember { mutableStateOf(false) }
+    var showShiftCalendarDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -76,6 +80,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     val daysWorked = remember(daysWorkedInput) { daysWorkedInput.toDoubleOrNull() ?: 0.0 }
     val hoursPerDay = remember(hoursPerDayInput) { hoursPerDayInput.toDoubleOrNull() ?: 8.0 }
     val overtimeHours = remember(overtimeHoursInput) { overtimeHoursInput.toDoubleOrNull() ?: 0.0 }
+    val bonusAmount = remember(bonusInput) { bonusInput.toDoubleOrNull() ?: 0.0 }
+    val commissionAmount = remember(commissionInput) { commissionInput.toDoubleOrNull() ?: 0.0 }
     val salarySacrificeAmount = remember(salarySacrificeInput) { salarySacrificeInput.toDoubleOrNull() ?: 0.0 }
 
     // Memoize standard and overtime pay
@@ -85,7 +91,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     val overtimePay = remember(overtimeHours, defaultHourlyRate, selectedOvertimeMultiplier) {
         overtimeHours * (defaultHourlyRate * selectedOvertimeMultiplier)
     }
-    val grossPay = remember(standardPay, overtimePay) { standardPay + overtimePay }
+    val grossPay = remember(standardPay, overtimePay, bonusAmount, commissionAmount) {
+        standardPay + overtimePay + bonusAmount + commissionAmount
+    }
 
     // Full Salary Report
     val report: SalaryReport = remember(
@@ -93,6 +101,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
         taxCode,
         taxRegion,
         taxYear,
+        bonusAmount,
+        commissionAmount,
         selectedPensionPercent,
         selectedStudentLoan,
         salarySacrificeAmount,
@@ -100,11 +110,13 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
         hasBlindPersonsAllowance
     ) {
         TaxCalculator.calculateTax(
-            grossPay = grossPay,
+            grossPay = standardPay + overtimePay,
             taxCode = taxCode,
             isMonthly = true,
             region = taxRegion,
             taxYear = taxYear,
+            bonusPay = bonusAmount,
+            commissionPay = commissionAmount,
             pensionRatePercent = selectedPensionPercent,
             studentLoanPlan = selectedStudentLoan,
             salarySacrificeAmount = salarySacrificeAmount,
@@ -160,7 +172,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             defaultHourlyRate = defaultHourlyRate,
                             standardPay = standardPay,
                             activeProfileName = activeProfile?.name,
-                            onProfileClick = { showProfileDialog = true }
+                            onProfileClick = { showProfileDialog = true },
+                            onTaxCodeClick = { showTaxExplainerDialog = true }
                         )
                         ShiftStopwatchCard(
                             salaryRepository = salaryRepository,
@@ -176,7 +189,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                                 daysWorkedInput = days
                                 hoursPerDayInput = hours
                             },
-                            onChildBenefitClick = { showChildBenefitDialog = true }
+                            onChildBenefitClick = { showChildBenefitDialog = true },
+                            onCalendarClick = { showShiftCalendarDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -186,7 +200,11 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             overtimeHoursInput = overtimeHoursInput,
                             onOvertimeHoursChange = { overtimeHoursInput = it },
                             selectedOvertimeMultiplier = selectedOvertimeMultiplier,
-                            onOvertimeMultiplierChange = { selectedOvertimeMultiplier = it }
+                            onOvertimeMultiplierChange = { selectedOvertimeMultiplier = it },
+                            bonusInput = bonusInput,
+                            onBonusChange = { bonusInput = it },
+                            commissionInput = commissionInput,
+                            onCommissionChange = { commissionInput = it }
                         )
                         DeductionsAdjustmentsCard(
                             selectedPensionPercent = selectedPensionPercent,
@@ -283,7 +301,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             defaultHourlyRate = defaultHourlyRate,
                             standardPay = standardPay,
                             activeProfileName = activeProfile?.name,
-                            onProfileClick = { showProfileDialog = true }
+                            onProfileClick = { showProfileDialog = true },
+                            onTaxCodeClick = { showTaxExplainerDialog = true }
                         )
                         FrequencySelectorRow(selectedFrequency = selectedFrequency, onSelect = { selectedFrequency = it })
                         HeroNetPayCard(
@@ -306,7 +325,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                                 daysWorkedInput = days
                                 hoursPerDayInput = hours
                             },
-                            onChildBenefitClick = { showChildBenefitDialog = true }
+                            onChildBenefitClick = { showChildBenefitDialog = true },
+                            onCalendarClick = { showShiftCalendarDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -316,7 +336,11 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             overtimeHoursInput = overtimeHoursInput,
                             onOvertimeHoursChange = { overtimeHoursInput = it },
                             selectedOvertimeMultiplier = selectedOvertimeMultiplier,
-                            onOvertimeMultiplierChange = { selectedOvertimeMultiplier = it }
+                            onOvertimeMultiplierChange = { selectedOvertimeMultiplier = it },
+                            bonusInput = bonusInput,
+                            onBonusChange = { bonusInput = it },
+                            commissionInput = commissionInput,
+                            onCommissionChange = { commissionInput = it }
                         )
                         DeductionsAdjustmentsCard(
                             selectedPensionPercent = selectedPensionPercent,
@@ -494,6 +518,28 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showChildBenefitDialog = false }
             )
         }
+        // Tax Code Explainer Dialog
+        if (showTaxExplainerDialog) {
+            TaxCodeExplainerDialog(
+                currentTaxCode = taxCode,
+                onDismiss = { showTaxExplainerDialog = false }
+            )
+        }
+        // Shift Calendar Heatmap Dialog
+        if (showShiftCalendarDialog) {
+            ShiftCalendarDialog(
+                initialDaysWorked = daysWorked,
+                initialHoursPerDay = hoursPerDay,
+                onApply = { days, hours, otHours ->
+                    daysWorkedInput = if (days > 0) "%.0f".format(days) else "0"
+                    hoursPerDayInput = "%.1f".format(hours)
+                    if (otHours > 0) {
+                        overtimeHoursInput = "%.1f".format(otHours)
+                    }
+                },
+                onDismiss = { showShiftCalendarDialog = false }
+            )
+        }
     }
 }
 
@@ -506,7 +552,8 @@ private fun AppHeaderSection(
     defaultHourlyRate: Double,
     standardPay: Double,
     activeProfileName: String? = null,
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    onTaxCodeClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -537,8 +584,9 @@ private fun AppHeaderSection(
                 shape = RoundedCornerShape(10.dp)
             )
             AssistChip(
-                onClick = {},
+                onClick = onTaxCodeClick,
                 label = { Text(taxCode, style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.Info, contentDescription = "Explain Tax Code", modifier = Modifier.size(14.dp)) },
                 shape = RoundedCornerShape(10.dp)
             )
         }
@@ -625,12 +673,20 @@ private fun HeroNetPayCard(
                 },
                 label = "NetAmountAnimation"
             ) { amount ->
-                Text(
-                    text = "£${"%.2f".format(amount)}",
-                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 36.sp),
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Emerald60
-                )
+                val converted = CurrencyConverter.convert(amount)
+                Column {
+                    Text(
+                        text = "£${"%.2f".format(amount)}",
+                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 36.sp),
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Emerald60
+                    )
+                    Text(
+                        text = "≈ €${"%.2f".format(converted.eurAmount)} · $${"%.2f".format(converted.usdAmount)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             if (grossPay > 0) {
@@ -698,7 +754,8 @@ private fun SchedulePresetsSection(
     daysWorkedInput: String,
     hoursPerDayInput: String,
     onSelect: (String, String) -> Unit,
-    onChildBenefitClick: () -> Unit = {}
+    onChildBenefitClick: () -> Unit = {},
+    onCalendarClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
@@ -711,12 +768,20 @@ private fun SchedulePresetsSection(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
-            AssistChip(
-                onClick = onChildBenefitClick,
-                label = { Text("Child Benefit", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp)) },
-                shape = RoundedCornerShape(10.dp)
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                AssistChip(
+                    onClick = onCalendarClick,
+                    label = { Text("Shift Heatmap", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                    shape = RoundedCornerShape(10.dp)
+                )
+                AssistChip(
+                    onClick = onChildBenefitClick,
+                    label = { Text("Child Benefit", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                    shape = RoundedCornerShape(10.dp)
+                )
+            }
         }
         Row(
             modifier = Modifier
@@ -755,7 +820,11 @@ private fun WorkingHoursCard(
     overtimeHoursInput: String,
     onOvertimeHoursChange: (String) -> Unit,
     selectedOvertimeMultiplier: Double,
-    onOvertimeMultiplierChange: (Double) -> Unit
+    onOvertimeMultiplierChange: (Double) -> Unit,
+    bonusInput: String = "",
+    onBonusChange: (String) -> Unit = {},
+    commissionInput: String = "",
+    onCommissionChange: (String) -> Unit = {}
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -768,7 +837,7 @@ private fun WorkingHoursCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "Working Hours & Overtime Rate",
+                text = "Working Hours & Variable Earnings",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary
@@ -830,6 +899,35 @@ private fun WorkingHoursCard(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = bonusInput,
+                    onValueChange = onBonusChange,
+                    label = { Text("Bonus Pay (£)") },
+                    placeholder = { Text("e.g. 250") },
+                    prefix = { Text("£ ") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = commissionInput,
+                    onValueChange = onCommissionChange,
+                    label = { Text("Commission (£)") },
+                    placeholder = { Text("e.g. 150") },
+                    prefix = { Text("£ ") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(

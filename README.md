@@ -6,6 +6,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ## Features
 
+- **Private Domain / Custom Cloud Save & Sync:** Connect to your self-hosted server, private domain (e.g. Nextcloud, WebDAV, or custom REST API) with optional Bearer Token / API Key auth for 1-tap backup push & restore.
+- **Interactive Shift Calendar & Overtime Heatmap:** Visual 30-day interactive calendar modal with color-coded shift heatmaps (Day Off, 8h Regular, 10h Overtime) and 1-tap calculator sync.
+- **UK Tax Code Allowance Explainer:** Interactive education modal breaking down personal allowance calculation rules for standard UK (`1257L`), secondary job (`BR`, `0T`, `D0`, `D1`), and Marriage allowance (`M`, `N`) codes.
+- **Bonus & Commission Variable Earnings Engine:** Dedicated bonus and commission input fields in the Live Calculator calculating variable gross and marginal PAYE/NI tax rates.
+- **Real-Time Multi-Currency Converter:** Live estimated take-home conversions in EUR (€) and USD ($) rendered directly in the net pay hero card.
 - **Full Ledger JSON Backup & Restore:** 1-tap backup export and restore of all recorded payslips, employer profiles, custom deductions, and settings via Android Sharesheet and JSON data import.
 - **Direct Shift Timesheet Stopwatch & Punch Clock:** Real-time punch-in / punch-out stopwatch that records shift timestamps and automatically transfers accumulated days and hours into the salary calculator.
 - **Biometric & Device PIN Privacy App Lock:** Hardware-backed fingerprint, face unlock, and device credential security protecting confidential financial records.

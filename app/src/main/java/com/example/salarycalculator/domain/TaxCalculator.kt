@@ -29,6 +29,9 @@ enum class PayFrequency(val displayName: String) {
 
 data class SalaryReport(
     val grossPay: Double,
+    val bonusPay: Double = 0.0,
+    val commissionPay: Double = 0.0,
+    val baseGrossPay: Double = grossPay,
     val salarySacrifice: Double = 0.0,
     val adjustedGrossPay: Double = grossPay,
     val pensionContribution: Double,
@@ -98,6 +101,8 @@ object TaxCalculator {
         isMonthly: Boolean = true,
         region: TaxRegion = TaxRegion.UK_STANDARD,
         taxYear: TaxYear = TaxYear.YEAR_2024_2025,
+        bonusPay: Double = 0.0,
+        commissionPay: Double = 0.0,
         pensionRatePercent: Double = 0.0,
         studentLoanPlan: StudentLoanPlan = StudentLoanPlan.NONE,
         salarySacrificeAmount: Double = 0.0,
@@ -107,7 +112,10 @@ object TaxCalculator {
         standardHoursPerWeek: Double = 37.5
     ): SalaryReport {
         // Zero / Negative bounds protection
-        val safeGross = max(0.0, grossPay)
+        val safeBaseGross = max(0.0, grossPay)
+        val safeBonus = max(0.0, bonusPay)
+        val safeCommission = max(0.0, commissionPay)
+        val safeGross = safeBaseGross + safeBonus + safeCommission
 
         // Custom Pre-Tax & Post-Tax Deductions
         val preTaxCustom = customDeductions.filter { it.isPreTax }.sumOf { it.amount }
@@ -236,6 +244,9 @@ object TaxCalculator {
 
         return SalaryReport(
             grossPay = safeGross,
+            bonusPay = safeBonus,
+            commissionPay = safeCommission,
+            baseGrossPay = safeBaseGross,
             salarySacrifice = safeSacrifice,
             adjustedGrossPay = adjustedGross,
             pensionContribution = employeePension,

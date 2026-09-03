@@ -54,6 +54,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
 
     var showProfileDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
+    var showCustomCloudSyncDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
 
     val activeProfile = remember(profiles, activeProfileId) {
@@ -582,19 +583,34 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                         }
 
                         Text(
-                            text = "Export and restore your entire salary history, employer profiles, and preferences via JSON bundle.",
+                            text = "Export and restore your entire salary history, employer profiles, and preferences via JSON bundle, Google Drive, or your own private domain endpoint.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
-                        FilledTonalButton(
-                            onClick = { showBackupDialog = true },
+                        Row(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Manage Cloud & JSON Backups")
+                            FilledTonalButton(
+                                onClick = { showBackupDialog = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("JSON Backup", style = MaterialTheme.typography.labelMedium)
+                            }
+
+                            FilledTonalButton(
+                                onClick = { showCustomCloudSyncDialog = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Outlined.Dns, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Private Domain", style = MaterialTheme.typography.labelMedium)
+                            }
                         }
                     }
                 }
@@ -653,6 +669,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
             )
         }
 
+        // Custom Cloud / Private Domain Sync Modal
+        if (showCustomCloudSyncDialog) {
+            CustomCloudSyncDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showCustomCloudSyncDialog = false }
+            )
+        }
+
         // Employer Profiles Modal
         if (showProfileDialog) {
             ProfileManagerDialog(
@@ -667,7 +691,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 onDismissRequest = { showChangelogDialog = false },
                 title = {
                     Text(
-                        text = "Salary Calculator v5.0 Release Notes 🚀",
+                        text = "Salary Calculator v6.0 Release Notes 🚀",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -677,11 +701,11 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                         modifier = Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("• Full Ledger Backup & Restore: Cloud JSON export & import.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Shift Timesheet Stopwatch: Real-time punch clock timer.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• High Income Child Benefit Charge Calculator: UK £60k–£80k taper analysis.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Biometric & Device PIN Privacy Lock.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Annual P60 End-of-Year Certificate Generator.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Private Domain Cloud Sync: Connect to self-hosted Nextcloud, WebDAV, or custom REST APIs.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Shift Calendar & Overtime Heatmap: Visual monthly calendar with day heatmaps.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Tax Code Explainer: Interactive breakdown of standard UK and Scottish tax codes.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Bonus & Commission Input: Separate discretionary variable earnings calculation.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Multi-Currency Converter: Live take-home preview in EUR (€) and USD ($).", style = MaterialTheme.typography.bodyMedium)
                     }
                 },
                 confirmButton = {

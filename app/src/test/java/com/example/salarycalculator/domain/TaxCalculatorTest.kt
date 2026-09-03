@@ -293,4 +293,37 @@ class TaxCalculatorTest {
         assertEquals(6.0, decoded.pensionRate, 0.01)
         assertEquals(14.50, decoded.hourlyRate, 0.01)
     }
+
+    @Test
+    fun taxCalculator_bonusAndCommission_includedInGrossAndDeductions() {
+        val baseGross = 2000.0
+        val bonus = 500.0
+        val commission = 250.0
+        val report = TaxCalculator.calculateTax(
+            grossPay = baseGross,
+            taxCode = "1257L",
+            isMonthly = true,
+            bonusPay = bonus,
+            commissionPay = commission,
+            pensionRatePercent = 5.0
+        )
+
+        assertEquals(2750.0, report.grossPay, 0.01)
+        assertEquals(500.0, report.bonusPay, 0.01)
+        assertEquals(250.0, report.commissionPay, 0.01)
+        assertEquals(2000.0, report.baseGrossPay, 0.01)
+
+        // Arithmetic invariant: Net + Deductions = Gross
+        assertEquals(report.grossPay, report.netPay + report.totalDeductions, 0.01)
+    }
+
+    @Test
+    fun currencyConverter_convertsGbpToEurAndUsdAccurately() {
+        val gbpAmount = 2000.0
+        val converted = CurrencyConverter.convert(gbpAmount = gbpAmount, eurRate = 1.20, usdRate = 1.30)
+        assertEquals(2000.0, converted.gbpAmount, 0.01)
+        assertEquals(2400.0, converted.eurAmount, 0.01)
+        assertEquals(2600.0, converted.usdAmount, 0.01)
+    }
 }
+

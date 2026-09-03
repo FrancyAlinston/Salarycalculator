@@ -36,11 +36,41 @@ class SalaryRepository(private val context: Context) {
     private val SALARY_HISTORY_KEY = stringPreferencesKey("salary_history_json")
     private val BIOMETRIC_LOCK_KEY = booleanPreferencesKey("biometric_lock_enabled")
     private val ACTIVE_SHIFT_KEY = stringPreferencesKey("active_shift_state_json")
+    private val CUSTOM_CLOUD_ENDPOINT_KEY = stringPreferencesKey("custom_cloud_endpoint")
+    private val CUSTOM_CLOUD_TOKEN_KEY = stringPreferencesKey("custom_cloud_token")
 
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
         encodeDefaults = true
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getCustomCloudEndpoint(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[CUSTOM_CLOUD_ENDPOINT_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setCustomCloudEndpoint(url: String) {
+        context.dataStore.edit { preferences ->
+            preferences[CUSTOM_CLOUD_ENDPOINT_KEY] = url
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getCustomCloudToken(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[CUSTOM_CLOUD_TOKEN_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setCustomCloudToken(token: String) {
+        context.dataStore.edit { preferences ->
+            preferences[CUSTOM_CLOUD_TOKEN_KEY] = token
+        }
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
