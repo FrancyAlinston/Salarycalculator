@@ -31,27 +31,35 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run Unit Tests & Build APKs
-        run: ./gradlew test assembleDebug assembleRelease
+        run: ./gradlew test assembleDebug assembleRelease --stacktrace
 
       - name: Prepare Release Artifacts
         run: |
           mkdir -p release-artifacts
           
-          # Copy Release APK
-          if [ -f app/build/outputs/apk/release/Salarycalculator-release.apk ]; then
-            cp app/build/outputs/apk/release/Salarycalculator-release.apk release-artifacts/Salarycalculator.apk
-          elif [ -f app/build/outputs/apk/release/app-release.apk ]; then
-            cp app/build/outputs/apk/release/app-release.apk release-artifacts/Salarycalculator.apk
+          # Search and copy Release APK
+          RELEASE_APK=$(find app/build/outputs/apk/release/ -name "*.apk" -not -name "*unaligned*" | head -n 1)
+          if [ -n "$RELEASE_APK" ] && [ -f "$RELEASE_APK" ]; then
+            echo "Found Release APK: $RELEASE_APK"
+            cp "$RELEASE_APK" release-artifacts/Salarycalculator.apk
+          else
+            echo "::error::Release APK not found in app/build/outputs/apk/release/"
+            find app/build/outputs/apk/ -type f || true
+            exit 1
           fi
 
-          # Copy Debug APK
-          if [ -f app/build/outputs/apk/debug/Salarycalculator-debug.apk ]; then
-            cp app/build/outputs/apk/debug/Salarycalculator-debug.apk release-artifacts/Salarycalculator-debug.apk
-          elif [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
-            cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/Salarycalculator-debug.apk
+          # Search and copy Debug APK
+          DEBUG_APK=$(find app/build/outputs/apk/debug/ -name "*.apk" -not -name "*unaligned*" | head -n 1)
+          if [ -n "$DEBUG_APK" ] && [ -f "$DEBUG_APK" ]; then
+            echo "Found Debug APK: $DEBUG_APK"
+            cp "$DEBUG_APK" release-artifacts/Salarycalculator-debug.apk
+          else
+            echo "::error::Debug APK not found in app/build/outputs/apk/debug/"
+            find app/build/outputs/apk/ -type f || true
+            exit 1
           fi
 
-          echo "Prepared Release Artifacts:"
+          echo "Successfully prepared artifacts:"
           ls -lh release-artifacts/
 
       - name: Extract Semantic Tag & Version
@@ -64,7 +72,7 @@ jobs:
             TAG="v${VERSION_NAME}"
           fi
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Building release for tag: ${TAG}"
+          echo "Release target tag: ${TAG}"
 
       - name: Upload Workflow Artifacts
         uses: actions/upload-artifact@v4
@@ -72,6 +80,7 @@ jobs:
           name: Salarycalculator-APKs
           path: release-artifacts/*.apk
           retention-days: 30
+          if-no-files-found: error
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
@@ -91,3 +100,5 @@ jobs:
             release-artifacts/Salarycalculator-debug.apk
           generate_release_notes: true
           make_latest: true
+          prerelease: false
+          fail_on_unmatched_files: false
