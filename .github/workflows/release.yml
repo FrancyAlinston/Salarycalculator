@@ -1,9 +1,11 @@
-name: Auto Release APK
+name: Release APK
 
 on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 
 jobs:
   build-and-release:
@@ -31,7 +33,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "build-${{ github.sha }}"
-          name: "Latest Build (${{ github.sha }})"
-          body: "Auto-generated debug APK for commit ${{ github.sha }}."
+          tag_name: ${{ github.ref_name }}
+          name: "Salary Calculator ${{ github.ref_name }}"
+          body: "Release build for ${{ github.ref_name }} with auto-generated debug APK."
           files: app/build/outputs/apk/debug/Salarycalculator-debug.apk
+          generate_release_notes: true

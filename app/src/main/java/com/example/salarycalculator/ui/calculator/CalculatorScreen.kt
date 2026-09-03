@@ -114,7 +114,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            val isWideScreen = maxWidth >= 600.dp
+            val isWideScreen = maxWidth >= 900.dp
 
             if (isWideScreen) {
                 // Adaptive 2-Column Dual-Pane Layout for Foldables & Tablets

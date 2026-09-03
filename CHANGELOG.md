@@ -14,6 +14,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ---
 
+## [2.3] - 2026-09-03 (VersionCode: 8)
+### Added
+- **Book-Style Foldable Dual-Screen Layout**: Implemented native dual-pane layout architecture (`maxWidth >= 720dp`) designed for unfolded book-style foldables (Galaxy Z Fold, Pixel Fold) and tablets. Left pane renders fullscreen Main Calculator; right pane renders fullscreen companion workspace (Salary History / Settings) with top segmented switcher.
+- **Physical Hinge Divider**: Added subtle Material 3 vertical fold divider mirroring the phone's physical crease.
+- **Adaptive Single/Dual Screen Switching**: Seamlessly adapts between single-screen bottom navigation on folded cover screens and dual-screen workspace when unfolded.
+- **Automated GitHub Release Tagging**: Updated `.github/workflows/release.yml` with semantic version tag triggers (`v*`) and automatic release notes generation.
+
+### Bugs Found & Fixed
+- **Large Screen Real Estate Underutilization**: Replaced stretched single-column layouts on wide foldables with side-by-side productive dual-screen layout.
+
+### What Needs to Be Fixed / Pending
+- Direct PDF vector generation (currently supports native text-based payslip sharing).
+
+---
+
 ## [2.2] - 2026-09-03 (VersionCode: 7)
 ### Added
 - **Adaptive Dual-Pane Layout for Foldables & Tablets**: Automatic transformation into a 2-column wide layout (`maxWidth >= 600dp`) separating input controls and real-time calculation output panes.
