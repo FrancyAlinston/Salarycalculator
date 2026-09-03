@@ -87,6 +87,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showDirectorDividendDialog by remember { mutableStateOf(false) }
     var showYtdProjectionDialog by remember { mutableStateOf(false) }
     var showSalaryBenchmarkDialog by remember { mutableStateOf(false) }
+    var showPensionAllowanceDialog by remember { mutableStateOf(false) }
+    var showStudentLoanPayoffDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -372,7 +374,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onPayslipOcrClick = { showPayslipImportDialog = true },
                             onDirectorTaxClick = { showDirectorDividendDialog = true },
                             onYtdProjectionClick = { showYtdProjectionDialog = true },
-                            onSalaryBenchmarkClick = { showSalaryBenchmarkDialog = true }
+                            onSalaryBenchmarkClick = { showSalaryBenchmarkDialog = true },
+                            onPensionAllowanceClick = { showPensionAllowanceDialog = true },
+                            onStudentLoanPayoffClick = { showStudentLoanPayoffDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -698,6 +702,23 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showSalaryBenchmarkDialog = false }
             )
         }
+        // Pension Annual Allowance & Tapering Dialog
+        if (showPensionAllowanceDialog) {
+            PensionAllowanceDialog(
+                initialAnnualGross = report.annualGross,
+                initialPensionRate = selectedPensionPercent,
+                taxRegion = taxRegion,
+                onDismiss = { showPensionAllowanceDialog = false }
+            )
+        }
+        // Student Loan Payoff Horizon Dialog
+        if (showStudentLoanPayoffDialog) {
+            StudentLoanPayoffDialog(
+                initialPlan = selectedStudentLoan,
+                initialSalary = report.annualGross,
+                onDismiss = { showStudentLoanPayoffDialog = false }
+            )
+        }
     }
 }
 
@@ -942,7 +963,9 @@ private fun SchedulePresetsSection(
     onPayslipOcrClick: () -> Unit = {},
     onDirectorTaxClick: () -> Unit = {},
     onYtdProjectionClick: () -> Unit = {},
-    onSalaryBenchmarkClick: () -> Unit = {}
+    onSalaryBenchmarkClick: () -> Unit = {},
+    onPensionAllowanceClick: () -> Unit = {},
+    onStudentLoanPayoffClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -966,6 +989,18 @@ private fun SchedulePresetsSection(
                 onClick = onSalaryBenchmarkClick,
                 label = { Text("Salary Benchmarking", style = MaterialTheme.typography.labelSmall) },
                 leadingIcon = { Icon(Icons.Default.Insights, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onPensionAllowanceClick,
+                label = { Text("Pension Allowance (£60k)", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(14.dp), tint = Teal60) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onStudentLoanPayoffClick,
+                label = { Text("Student Loan Payoff", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(14.dp), tint = Violet60) },
                 shape = RoundedCornerShape(10.dp)
             )
             AssistChip(

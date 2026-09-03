@@ -44,6 +44,7 @@ class SalaryRepository(private val context: Context) {
     private val SALARY_HISTORY_KEY = stringPreferencesKey("salary_history_json")
     private val BIOMETRIC_LOCK_KEY = booleanPreferencesKey("biometric_lock_enabled")
     private val BIOMETRIC_HISTORY_LOCK_KEY = booleanPreferencesKey("biometric_history_lock_enabled")
+    private val AUTO_BACKUP_FREQUENCY_KEY = stringPreferencesKey("auto_backup_frequency")
     private val ACTIVE_SHIFT_KEY = stringPreferencesKey("active_shift_state_json")
     private val CUSTOM_CLOUD_ENDPOINT_KEY = stringPreferencesKey("custom_cloud_endpoint")
     private val CUSTOM_CLOUD_TOKEN_KEY = stringPreferencesKey("custom_cloud_token")
@@ -259,6 +260,25 @@ class SalaryRepository(private val context: Context) {
     suspend fun setBiometricHistoryLockEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[BIOMETRIC_HISTORY_LOCK_KEY] = enabled
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getAutoBackupFrequency(): Flow<AutoBackupFrequency> {
+        return context.dataStore.data.map { preferences ->
+            val freqStr = preferences[AUTO_BACKUP_FREQUENCY_KEY] ?: AutoBackupFrequency.DISABLED.name
+            try {
+                AutoBackupFrequency.valueOf(freqStr)
+            } catch (_: Exception) {
+                AutoBackupFrequency.DISABLED
+            }
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setAutoBackupFrequency(frequency: AutoBackupFrequency) {
+        context.dataStore.edit { preferences ->
+            preferences[AUTO_BACKUP_FREQUENCY_KEY] = frequency.name
         }
     }
 

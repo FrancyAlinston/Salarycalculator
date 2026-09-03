@@ -47,6 +47,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val biometricHistoryLockEnabled by salaryRepository.getBiometricHistoryLockEnabled().collectAsState(initial = false)
     val biometricTimeoutSeconds by salaryRepository.getBiometricTimeoutSeconds().collectAsState(initial = 0L)
     val autoCloudSyncEnabled by salaryRepository.getAutoCloudSyncEnabled().collectAsState(initial = false)
+    val autoBackupFrequency by salaryRepository.getAutoBackupFrequency().collectAsState(initial = AutoBackupFrequency.DISABLED)
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
     val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
 
@@ -67,6 +68,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var switchBiometricHistoryLock by remember(biometricHistoryLockEnabled) { mutableStateOf(biometricHistoryLockEnabled) }
     var selectedBiometricTimeout by remember(biometricTimeoutSeconds) { mutableStateOf(biometricTimeoutSeconds) }
     var switchAutoCloudSync by remember(autoCloudSyncEnabled) { mutableStateOf(autoCloudSyncEnabled) }
+    var selectedAutoBackupFrequency by remember(autoBackupFrequency) { mutableStateOf(autoBackupFrequency) }
 
     var showProfileDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
@@ -847,6 +849,37 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             )
                         }
 
+                        // Scheduled Periodic ZIP Tax Bundle Archive
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Scheduled Automatic Archive", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text("Automatically generate and archive encrypted Annual Tax Pack ZIP bundles in the background", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    AutoBackupFrequency.DISABLED to "Disabled",
+                                    AutoBackupFrequency.WEEKLY to "Weekly (7d)",
+                                    AutoBackupFrequency.MONTHLY to "Monthly (30d)"
+                                ).forEach { (freq, label) ->
+                                    FilterChip(
+                                        selected = selectedAutoBackupFrequency == freq,
+                                        onClick = {
+                                            selectedAutoBackupFrequency = freq
+                                            scope.launch {
+                                                salaryRepository.setAutoBackupFrequency(freq)
+                                                ScheduledBackupWorker.scheduleBackup(context, freq)
+                                            }
+                                        },
+                                        label = { Text(label) },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                            }
+                        }
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -892,7 +925,9 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             salaryRepository.setBiometricTimeoutSeconds(selectedBiometricTimeout)
                             salaryRepository.setThemePalette(selectedThemePalette)
                             salaryRepository.setAutoCloudSyncEnabled(switchAutoCloudSync)
+                            salaryRepository.setAutoBackupFrequency(selectedAutoBackupFrequency)
                             CloudSyncWorker.scheduleAutoSync(context, switchAutoCloudSync)
+                            ScheduledBackupWorker.scheduleBackup(context, selectedAutoBackupFrequency)
                             inputHourlyRate.toDoubleOrNull()?.let {
                                 salaryRepository.setDefaultHourlyRate(it)
                             }

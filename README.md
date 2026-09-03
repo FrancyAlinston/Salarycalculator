@@ -6,6 +6,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ## Features
 
+- **Pension Annual Allowance (£60,000) & Tapering Optimizer (`PensionAllowanceOptimizer.kt` & `PensionAllowanceDialog.kt`):** Statutory UK pension allowance calculations covering £60k annual limit, high-earner tapering (£260k–£360k), Money Purchase Annual Allowance (MPAA £10k), 3-year carry-forward additions, and marginal rate tax charge estimations.
+- **Month-over-Month Payslip Variance Heatmap & Diff (`PayslipVarianceDialog.kt`):** Chronological multi-period comparison highlighting month-on-month percentage and pound deltas for gross pay, net pay, PAYE tax, NI, pension, and overtime hours.
+- **Student Loan Repayment Horizon & Early Payoff Calculator (`StudentLoanPayoffEngine.kt` & `StudentLoanPayoffDialog.kt`):** Mathematical payoff horizon modeling across Plan 1, Plan 2, Plan 4, and Postgraduate, statutory interest rates, 30-year statutory write-off dates, and voluntary overpayment interest savings.
+- **Offline Background Cloud Sync Retry Queue (`SyncQueueManager.kt`):** Persistent queue with automated exponential backoff retry via `WorkManager` for WebDAV, Nextcloud, and private cloud storage uploads.
+- **Automated Scheduled ZIP Tax Bundle Archiving (`ScheduledBackupWorker.kt`):** Periodic background worker automatically compiling and archiving encrypted Annual Tax Pack ZIP bundles and payroll records.
 - **Android 13+ Material You Monochrome Adaptive Icon:** Dynamic wallpaper-matching themed icon layer (`ic_launcher_monochrome.xml`) conforming to Android 13+ Monet design specifications.
 - **ML-Powered Salary & Year-End Tax Forecast Engine (`SalaryForecastEngine.kt` & `SalaryForecastDialog.kt`):** Ordinary Least Squares (OLS) multi-month linear regression and seasonal time-series projection modeling annual gross earnings, R² confidence scoring, trend velocity (+/- £/mo), projected full-year PAYE tax liability vs actual deductions, and automatic detection of HMRC year-end tax rebates or underpayment shortfalls.
 - **Selective Biometric Privacy Lock on History Ledger:** Dedicated biometric fingerprint/face authentication gate protecting confidential salary history cards, SA100 returns, and annual tax pack exports while keeping the main calculator instantly accessible.

@@ -4,6 +4,23 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [15.0] - 2026-09-03 (VersionCode: 21)
+### Added
+- **Pension Annual Allowance (£60,000) & Tapered Allowance Optimizer (`PensionAllowanceOptimizer.kt` & `PensionAllowanceDialog.kt`)**: Implemented statutory UK pension allowance calculations covering £60k standard annual allowance, high-earner tapered allowance (£260k–£360k adjusted income tapering £1 for every £2 down to £10k floor), Money Purchase Annual Allowance (MPAA £10k) restriction, 3-year unused carry-forward calculations (2021/22–2023/24), and marginal rate tax charge estimations on excess contributions.
+- **Offline Background Cloud Sync Retry Queue (`SyncQueueManager.kt` & `SyncQueueWorker.kt`)**: Built persistent JSON/SQLite sync request queue with automatic exponential backoff retry via `WorkManager` when device connects to unmetered network.
+- **Month-over-Month Payslip Variance Heatmap & Diff (`PayslipVarianceDialog.kt`)**: Added interactive multi-period comparison matrix calculating chronological month-on-month percentage and pound deltas for gross pay, net pay, PAYE tax, NI, pension, and overtime hours with color-coded trend badges.
+- **Student Loan Repayment Horizon & Early Payoff Calculator (`StudentLoanPayoffEngine.kt` & `StudentLoanPayoffDialog.kt`)**: Full mathematical simulation for Plan 1, Plan 2, Plan 4, and Postgraduate repayment thresholds, statutory interest rates (RPI + variable up to 7.7%), 30-year statutory write-off dates, and voluntary overpayment interest savings.
+- **Automated Scheduled ZIP Tax Bundle Archiving (`ScheduledBackupWorker.kt`)**: Periodic background worker automatically compiling and archiving encrypted Annual Tax Pack ZIP bundles and payroll records on a weekly (7d) or monthly (30d) cadence.
+- **Comprehensive v15.0 Unit Test Suite (`PensionAndStudentLoanTest.kt`)**: Automated unit test coverage for pension tapering formulas, MPAA triggers, carry-forward addition, student loan write-offs, and early payoff interest savings.
+
+### Bugs Found & Fixed
+- **Compose Icon Deprecation Cleanup**: Fully migrated all `TrendingUp`, `TrendingDown`, and `CompareArrows` icons to `Icons.AutoMirrored.Filled.*` across all calculator and history dialogs.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [14.0] - 2026-09-03 (VersionCode: 20)
 ### Added
 - **Android 13+ Material You Monochrome Themed Adaptive Icon (`ic_launcher_monochrome.xml`, `ic_launcher.xml`, `ic_launcher_round.xml`)**: Added dedicated vector monochrome silhouette of the calculator and £ money bag allowing Android 13+ devices to dynamically tint launcher icons to match user system wallpaper palettes.

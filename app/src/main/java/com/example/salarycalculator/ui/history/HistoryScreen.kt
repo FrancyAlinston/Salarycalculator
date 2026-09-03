@@ -48,6 +48,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
     var showPayslipImportDialog by remember { mutableStateOf(false) }
     var showYtdProjectionDialog by remember { mutableStateOf(false) }
     var showSalaryForecastDialog by remember { mutableStateOf(false) }
+    var showVarianceDialog by remember { mutableStateOf(false) }
 
     val biometricHistoryLockEnabled by salaryRepository.getBiometricHistoryLockEnabled().collectAsState(initial = false)
     var isHistoryUnlocked by remember(biometricHistoryLockEnabled) { mutableStateOf(!biometricHistoryLockEnabled) }
@@ -163,6 +164,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalIconButton(onClick = { showVarianceDialog = true }) {
+                                    Icon(
+                                        Icons.Default.QueryStats,
+                                        contentDescription = "Month-over-Month Variance Heatmap",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
                                 FilledTonalIconButton(onClick = { showSalaryForecastDialog = true }) {
                                     Icon(
                                         Icons.Default.Insights,
@@ -527,6 +536,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                 studentLoanPlan = studentLoanPlan,
                 pensionRate = pensionRate,
                 onDismiss = { showSalaryForecastDialog = false }
+            )
+        }
+
+        // Month-over-Month Payslip Variance Dialog
+        if (showVarianceDialog) {
+            PayslipVarianceDialog(
+                history = historyList,
+                onDismiss = { showVarianceDialog = false }
             )
         }
     }
