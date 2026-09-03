@@ -77,33 +77,56 @@ fun CurrencySettingsDialog(
                     shape = RoundedCornerShape(12.dp)
                 )
 
+                var isSyncingLive by remember { mutableStateOf(false) }
+                var syncFeedback by remember { mutableStateOf<String?>(null) }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(
+                    FilledTonalButton(
                         onClick = {
-                            eurInput = "%.4f".format(ConvertedCurrencies.DEFAULT_EUR_RATE)
-                            usdInput = "%.4f".format(ConvertedCurrencies.DEFAULT_USD_RATE)
+                            coroutineScope.launch {
+                                isSyncingLive = true
+                                val result = com.example.salarycalculator.domain.LiveFxSyncEngine.fetchLiveRates()
+                                isSyncingLive = false
+                                eurInput = "%.4f".format(result.eurRate)
+                                usdInput = "%.4f".format(result.usdRate)
+                                syncFeedback = result.message
+                            }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        enabled = !isSyncingLive
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        if (isSyncingLive) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                        }
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Reset Default", style = MaterialTheme.typography.labelSmall)
+                        Text("Sync Live FX", style = MaterialTheme.typography.labelSmall)
                     }
 
                     OutlinedButton(
                         onClick = {
-                            eurInput = "1.2050"
-                            usdInput = "1.3250"
+                            eurInput = "%.4f".format(ConvertedCurrencies.DEFAULT_EUR_RATE)
+                            usdInput = "%.4f".format(ConvertedCurrencies.DEFAULT_USD_RATE)
+                            syncFeedback = "Reset to baseline rates."
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Market High", style = MaterialTheme.typography.labelSmall)
+                        Text("Reset Default", style = MaterialTheme.typography.labelSmall)
                     }
+                }
+
+                if (syncFeedback != null) {
+                    Text(
+                        text = syncFeedback!!,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         },

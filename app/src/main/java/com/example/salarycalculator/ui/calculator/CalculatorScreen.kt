@@ -1112,30 +1112,23 @@ private fun WorkingHoursCard(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    FilterChip(
-                        selected = selectedOvertimeMultiplier == 1.0,
-                        onClick = { onOvertimeMultiplierChange(1.0) },
-                        label = { Text("1.0x (Standard)") },
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    FilterChip(
-                        selected = selectedOvertimeMultiplier == 1.5,
-                        onClick = { onOvertimeMultiplierChange(1.5) },
-                        label = { Text("1.5x (Weekday)") },
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    FilterChip(
-                        selected = selectedOvertimeMultiplier == 2.0,
-                        onClick = { onOvertimeMultiplierChange(2.0) },
-                        label = { Text("2.0x (Weekend)") },
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    FilterChip(
-                        selected = selectedOvertimeMultiplier == 2.5,
-                        onClick = { onOvertimeMultiplierChange(2.5) },
-                        label = { Text("2.5x (Bank Hol)") },
-                        shape = RoundedCornerShape(10.dp)
-                    )
+                    listOf(
+                        1.0 to "1.0x (Standard)",
+                        1.25 to "1.25x",
+                        1.5 to "1.5x (Weekday)",
+                        1.75 to "1.75x",
+                        2.0 to "2.0x (Weekend)",
+                        2.25 to "2.25x",
+                        2.5 to "2.5x (Bank Hol)",
+                        3.0 to "3.0x (Triple)"
+                    ).forEach { (rate, label) ->
+                        FilterChip(
+                            selected = selectedOvertimeMultiplier == rate,
+                            onClick = { onOvertimeMultiplierChange(rate) },
+                            label = { Text(label) },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
                 }
             }
         }

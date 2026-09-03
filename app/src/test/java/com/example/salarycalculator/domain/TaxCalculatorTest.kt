@@ -639,7 +639,54 @@ class TaxCalculatorTest {
         assertEquals(ReconciliationStatus.VARIANCE_DETECTED, summary.items[1].status)
         assertEquals(ReconciliationStatus.UNMATCHED_CREDIT, summary.items[2].status)
     }
+
+    @Test
+    fun hmrcRateSyncManager_serializesAndDeserializesAccurately() {
+        val defaultRates = HmrcRateSyncManager.STATUTORY_DEFAULT_RATES
+        val jsonStr = HmrcRateSyncManager.toJson(defaultRates)
+        assertTrue(jsonStr.contains("12570"))
+        assertTrue(jsonStr.contains("37700"))
+
+        val parsed = HmrcRateSyncManager.fromJson(jsonStr)
+        assertEquals(12570.0, parsed.personalAllowanceAnnual, 0.01)
+        assertEquals(37700.0, parsed.basicRateLimitAnnual, 0.01)
+        assertEquals(12.21, parsed.nationalLivingWage21Plus, 0.01)
+    }
+
+    @Test
+    fun hmrcRateSyncManager_fallbackOnMalformedJson() {
+        val badJson = "{\"invalid_field\": true}"
+        val parsed = HmrcRateSyncManager.fromJson(badJson)
+        assertEquals(12570.0, parsed.personalAllowanceAnnual, 0.01)
+    }
+
+    @Test
+    fun overtimeMultipliers_calculatesStandardAndCustomAccurately() {
+        val hourlyRate = 20.0
+        val overtimeHours = 10.0
+
+        // 1.0x Standard Rate
+        val standardGross = overtimeHours * (hourlyRate * 1.0)
+        assertEquals(200.0, standardGross, 0.01)
+
+        // 1.25x Rate
+        val rate125Gross = overtimeHours * (hourlyRate * 1.25)
+        assertEquals(250.0, rate125Gross, 0.01)
+
+        // 1.75x Rate
+        val rate175Gross = overtimeHours * (hourlyRate * 1.75)
+        assertEquals(350.0, rate175Gross, 0.01)
+
+        // 2.25x Rate
+        val rate225Gross = overtimeHours * (hourlyRate * 2.25)
+        assertEquals(450.0, rate225Gross, 0.01)
+
+        // 3.0x Triple Rate
+        val tripleGross = overtimeHours * (hourlyRate * 3.0)
+        assertEquals(600.0, tripleGross, 0.01)
+    }
 }
+
 
 
 

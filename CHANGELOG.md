@@ -8,8 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] Real-time HMRC live tax rate updates via remote JSON configuration.
 - [ ] Direct export of annual tax packs to cloud drives (Google Drive / OneDrive / Nextcloud).
+- [ ] OCR Scanner for payslip camera uploads.
+
+---
+
+## [10.0] - 2026-09-03 (VersionCode: 16)
+### Added
+- **Expanded Overtime & Standard 1.0x Rates (`SettingsScreen.kt` & `CalculatorScreen.kt`)**: Added standard single rate (`1.0x`), `1.25x`, `1.5x`, `1.75x`, `2.0x`, `2.25x`, `2.5x`, and `3.0x` multipliers for Weekday, Weekend, and Bank Holiday overtime calculations across both Preferences and the Live Calculator.
+- **Dynamic HMRC Statutory Tax Rate Config (`HmrcRateSyncManager.kt` & `HmrcRateSyncDialog.kt`)**: Remote JSON synchronization engine allowing real-time updates for Personal Allowances, basic/higher tax bands, Class 1 NI primary thresholds, Scottish tax rates, and UK National Living Wage rates (£12.21 21+, £10.00 18-20, £7.55 Apprentice) with 1-tap "Restore Statutory Baseline".
+- **Live Foreign Exchange Cloud Sync Engine (`LiveFxSyncEngine.kt` & `CurrencySettingsDialog.kt`)**: Automated real-time synchronization of open currency exchange rates for GBP $\rightarrow$ EUR and GBP $\rightarrow$ USD with offline fallback caches and instant "Sync Live FX" action button.
+- **Annual Tax Pack One-Click ZIP Bundle (`TaxPackZipExporter.kt` & `TaxPackExportDialog.kt`)**: 1-tap compiler bundling all statutory tax records into a single `.zip` archive containing the official P60 PDF certificate, HMRC SA100 return PDF, 12-month shift `.ics` calendar, raw `.csv` payroll ledger, printable annual shift poster PDF, and audit summary `README_Tax_Pack.txt`.
+- **12-Month Shift Year-at-a-Glance Printable PDF Poster (`AnnualShiftPdfGenerator.kt` & `ShiftCalendarDialog.kt`)**: Vector A4 printable 12-month calendar poster with color-coded day grids (Worked, Overtime, Off), monthly worked days and overtime volume, and annual gross payroll summaries.
+- **Comprehensive v10.0 Test Battery (`TaxCalculatorTest.kt`)**: Automated unit test coverage for dynamic HMRC JSON serialization/deserialization, live FX fallback resiliency, and expanded 1.0x–3.0x overtime multiplier calculations.
+
+### Bugs Found & Fixed
+- **AutoMirrored Notes Icon**: Migrated deprecated `Icons.Default.Notes` to `Icons.AutoMirrored.Filled.Notes`.
+- **Clean Method Signatures**: Standardized `P60Generator.generateP60Pdf` and `Sa100Generator.generatePdf` invocations in `TaxPackZipExporter.kt`.
+
+### What Needs to Be Fixed / Pending
+- Direct export of annual tax packs to cloud storage endpoints.
+- OCR camera scanner for printed paper payslips.
 
 ---
 

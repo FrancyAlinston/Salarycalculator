@@ -6,6 +6,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ## Features
 
+- **Expanded Overtime & Standard 1.0x Rate Multipliers:** Full support for standard single rate (`1.0x`), `1.25x`, `1.5x`, `1.75x`, `2.0x`, `2.25x`, `2.5x`, and `3.0x` across Weekday, Weekend, and Bank Holiday overtime.
+- **Dynamic HMRC Statutory Tax Rate Config (`HmrcRateSyncManager.kt` & `HmrcRateSyncDialog.kt`):** Live remote JSON synchronization engine supporting dynamic statutory personal allowance updates, tax bands, NI thresholds, and UK National Living Wage rates (£12.21 21+, £10.00 18-20, £7.55 Apprentice).
+- **Live Foreign Exchange Cloud Sync Engine (`LiveFxSyncEngine.kt`):** Automated real-time synchronization of open exchange rates for GBP $\rightarrow$ EUR and GBP $\rightarrow$ USD with offline fallback caches.
+- **Annual Tax Pack One-Click ZIP Bundle (`TaxPackZipExporter.kt` & `TaxPackExportDialog.kt`):** 1-tap package compiler bundling P60 PDF, HMRC SA100 return PDF, 12-month shift `.ics` calendar, `.csv` payroll ledger, and printable shift calendar poster into a single `.zip` archive.
+- **12-Month Shift Year-at-a-Glance Printable PDF Poster (`AnnualShiftPdfGenerator.kt`):** Vector A4 printable 12-month calendar poster with color-coded day grids (Worked, Overtime, Off), monthly worked days and overtime volume, and annual gross payroll summaries.
 - **Company Car Benefit-in-Kind (BiK) & Fuel Tax Calculator:** Interactive calculation engine modeling UK HMRC BiK percentages (2% Pure EV, 2%–14% PHEV, 15%–37% ICE, +4% diesel surcharge), £27,800 private fuel benefit statutory charge, and exact net monthly take-home reduction across 20% Basic, 40% Higher, and 45% Additional tax bands.
 - **Statutory Sick Pay (SSP) & Parental Leave (SMP / SPP) Modeling:** Detailed simulation of UK statutory wage entitlements including SSP (£116.75/wk with 3-day waiting rule), SMP (6 weeks at 90% AWE + 33 weeks standard £184.03/wk), SPP, and net take-home comparisons against regular working pay.
 - **Mortgage & Loan Borrowing Capacity Estimator:** Lender borrowing power modeling using 4.0x–5.0x salary multiples, cash deposit sizing, existing debts, stress-tested monthly loan amortization formula ($M = P \frac{r(1+r)^n}{(1+r)^n - 1}$), LTV %, and net disposable affordability health rating.

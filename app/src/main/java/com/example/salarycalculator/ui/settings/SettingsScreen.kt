@@ -68,6 +68,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var showBackupDialog by remember { mutableStateOf(false) }
     var showCustomCloudSyncDialog by remember { mutableStateOf(false) }
     var showCurrencySettingsDialog by remember { mutableStateOf(false) }
+    var showHmrcSyncDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
 
     val activeProfile = remember(profiles, activeProfileId) {
@@ -501,14 +502,21 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
 
                         // Default Weekday Overtime Multiplier
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Weekday Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Weekday Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                Text("${"%.2f".format(selectedOvertimeMultiplier)}x", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                listOf(1.0 to "1.0x (Standard)", 1.25 to "1.25x", 1.5 to "1.5x (Time & Half)", 2.0 to "2.0x (Double)").forEach { (rate, label) ->
+                                listOf(1.0 to "1.0x (Standard)", 1.25 to "1.25x", 1.5 to "1.5x (Time & Half)", 1.75 to "1.75x", 2.0 to "2.0x (Double)").forEach { (rate, label) ->
                                     FilterChip(
                                         selected = selectedOvertimeMultiplier == rate,
                                         onClick = { selectedOvertimeMultiplier = rate },
@@ -521,14 +529,21 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
 
                         // Default Weekend Overtime Multiplier
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Weekend Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Weekend Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                Text("${"%.2f".format(selectedWeekendOvertime)}x", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                listOf(1.5 to "1.5x", 1.75 to "1.75x", 2.0 to "2.0x (Double)", 2.25 to "2.25x").forEach { (rate, label) ->
+                                listOf(1.0 to "1.0x (Standard)", 1.25 to "1.25x", 1.5 to "1.5x (Time & Half)", 1.75 to "1.75x", 2.0 to "2.0x (Double)", 2.25 to "2.25x", 2.5 to "2.5x").forEach { (rate, label) ->
                                     FilterChip(
                                         selected = selectedWeekendOvertime == rate,
                                         onClick = { selectedWeekendOvertime = rate },
@@ -541,14 +556,21 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
 
                         // Bank Holiday Overtime Multiplier
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Bank Holiday Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Bank Holiday Overtime Multiplier", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                Text("${"%.2f".format(selectedBankHolidayOvertime)}x", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .horizontalScroll(rememberScrollState()),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                listOf(2.0 to "2.0x (Double)", 2.5 to "2.5x (Double & Half)", 3.0 to "3.0x (Triple)").forEach { (rate, label) ->
+                                listOf(1.0 to "1.0x (Standard)", 1.5 to "1.5x (Time & Half)", 2.0 to "2.0x (Double)", 2.5 to "2.5x (Double & Half)", 3.0 to "3.0x (Triple)").forEach { (rate, label) ->
                                     FilterChip(
                                         selected = selectedBankHolidayOvertime == rate,
                                         onClick = { selectedBankHolidayOvertime = rate },
@@ -685,7 +707,43 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                     }
                 }
 
-                // 8. Cloud & Data Backup Card
+                // 8. Live HMRC Statutory Tax Rates Sync Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Text("HMRC Tax Rate Sync", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            }
+                            TextButton(onClick = { showHmrcSyncDialog = true }) {
+                                Text("Check Rates", fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Text(
+                            text = "Inspect and update live statutory UK tax thresholds, National Insurance bands, and National Living Wage rates via remote configuration.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // 9. Cloud & Data Backup Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
@@ -836,6 +894,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
             CurrencySettingsDialog(
                 salaryRepository = salaryRepository,
                 onDismiss = { showCurrencySettingsDialog = false }
+            )
+        }
+
+        // HMRC Dynamic Rates Sync Modal
+        if (showHmrcSyncDialog) {
+            HmrcRateSyncDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showHmrcSyncDialog = false }
             )
         }
 

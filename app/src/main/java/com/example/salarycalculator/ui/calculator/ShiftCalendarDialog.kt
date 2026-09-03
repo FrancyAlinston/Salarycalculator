@@ -158,18 +158,35 @@ fun ShiftCalendarDialog(
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text("Annual Shift Heatmap", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
-                IconButton(
-                    onClick = {
-                        val fullSchedule = annualShifts.mapValues { it.value.toMap() }
-                        val ics = IcsCalendarExporter.generateAnnualIcsContent(
-                            year = selectedYear,
-                            monthlyShifts = fullSchedule,
-                            jobTitle = "Work Shift"
-                        )
-                        IcsCalendarExporter.shareIcsFile(context, ics, "Annual_Shift_Schedule_${selectedYear}.ics")
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    IconButton(
+                        onClick = {
+                            val fullSchedule = annualShifts.mapValues { it.value.toMap() }
+                            val pdf = com.example.salarycalculator.domain.AnnualShiftPdfGenerator.generateAnnualShiftPdf(
+                                context = context,
+                                year = selectedYear,
+                                annualShifts = fullSchedule,
+                                hourlyRate = hourlyRate
+                            )
+                            com.example.salarycalculator.domain.AnnualShiftPdfGenerator.sharePdf(context, pdf)
+                        }
+                    ) {
+                        Icon(Icons.Default.PictureAsPdf, contentDescription = "Export 12-Month Printable PDF", tint = MaterialTheme.colorScheme.primary)
                     }
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = "Export 12-Month .ICS Calendar", tint = MaterialTheme.colorScheme.primary)
+
+                    IconButton(
+                        onClick = {
+                            val fullSchedule = annualShifts.mapValues { it.value.toMap() }
+                            val ics = IcsCalendarExporter.generateAnnualIcsContent(
+                                year = selectedYear,
+                                monthlyShifts = fullSchedule,
+                                jobTitle = "Work Shift"
+                            )
+                            IcsCalendarExporter.shareIcsFile(context, ics, "Annual_Shift_Schedule_${selectedYear}.ics")
+                        }
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Export 12-Month .ICS Calendar", tint = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
         },

@@ -42,6 +42,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
     var showP60Dialog by remember { mutableStateOf(false) }
     var showSa100Dialog by remember { mutableStateOf(false) }
     var showReconciliationDialog by remember { mutableStateOf(false) }
+    var showTaxPackDialog by remember { mutableStateOf(false) }
 
     // Cumulative stats
     val totalNet = remember(historyList) { historyList.sumOf { it.netPay } }
@@ -147,6 +148,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                                     Icon(
                                         Icons.AutoMirrored.Filled.Assignment,
                                         contentDescription = "HMRC SA100 Self-Assessment",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                FilledTonalIconButton(onClick = { showTaxPackDialog = true }) {
+                                    Icon(
+                                        Icons.Default.FolderZip,
+                                        contentDescription = "Annual Tax Pack ZIP Bundle",
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -391,6 +400,15 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
             BankReconciliationDialog(
                 historyRecords = historyList,
                 onDismiss = { showReconciliationDialog = false }
+            )
+        }
+
+        // Annual Tax Pack ZIP Bundle Dialog
+        if (showTaxPackDialog) {
+            TaxPackExportDialog(
+                historyRecords = historyList,
+                taxYearLabel = "2024/2025",
+                onDismiss = { showTaxPackDialog = false }
             )
         }
     }
