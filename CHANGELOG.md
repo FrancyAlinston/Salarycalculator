@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Comprehensive v14.0 Test Suite (`SalaryForecastEngineTest.kt`)**: Added automated regression unit test coverage for baseline forecasts, linear slope trajectories, R² confidence bounds, and 60% marginal tax trap detection.
 
 ### Bugs Found & Fixed
+- **CI/CD Release Workflow Repair (`release.yml`)**: Fixed fatal build failure caused by attempting to copy non-existent `app-debug.apk` when `base.archivesName` is set to `Salarycalculator`. Added dynamic APK path detection, artifact extraction into `release-artifacts/`, automatic semantic version tagging (`v${versionName}`), and GitHub Actions artifact uploads (`actions/upload-artifact@v4`).
 - **Launcher Icon Formatting**: Cleaned up legacy WebP mipmap remnants and isolated the calculator body with pure alpha transparency.
 - **Adaptive Safe Zone Layout**: Enforced 72dp safe zone centering for all adaptive foreground layers to eliminate circular launcher edge clipping.
 
