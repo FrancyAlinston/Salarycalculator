@@ -1,44 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!-- Base Background Gradient: Deep Slate to Royal Indigo -->
-    <path android:pathData="M0,0h108v108h-108z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:startX="0"
-                android:startY="0"
-                android:endX="108"
-                android:endY="108"
-                android:type="linear">
-                <item android:offset="0.0" android:color="#FF4338CA" />
-                <item android:offset="0.5" android:color="#FF312E81" />
-                <item android:offset="1.0" android:color="#FF0F172A" />
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- Ambient Subtle Top Glow -->
-    <path android:pathData="M0,0h108v60z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:startX="54"
-                android:startY="0"
-                android:endX="54"
-                android:endY="60"
-                android:type="linear">
-                <item android:offset="0.0" android:color="#40818CF8" />
-                <item android:offset="1.0" android:color="#00818CF8" />
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- Subtle Material 3 Geometric Wave Accent -->
-    <path
-        android:pathData="M-10,90 Q30,65 70,85 T120,75 L120,120 L-10,120 Z"
-        android:fillColor="#15FFFFFF" />
+    <!-- Simple calculator shape: rectangle with display and buttons -->
+    <path android:fillColor="#FF000000"
+        android:pathData="M20,20 h68 v68 h-68 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M30,30 h48 v20 h-48 z" />
+    <!-- Buttons grid -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M30,55 h12 v12 h-12 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M48,55 h12 v12 h-12 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M66,55 h12 v12 h-12 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M30,73 h12 v12 h-12 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M48,73 h12 v12 h-12 z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M66,73 h12 v12 h-12 z" />
 </vector>

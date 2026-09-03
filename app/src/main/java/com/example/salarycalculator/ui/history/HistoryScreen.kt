@@ -45,6 +45,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
     var showTaxPackDialog by remember { mutableStateOf(false) }
     var showCloudDriveDialog by remember { mutableStateOf(false) }
     var showPayslipImportDialog by remember { mutableStateOf(false) }
+    var showYtdProjectionDialog by remember { mutableStateOf(false) }
 
     // Multi-currency state
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
@@ -151,6 +152,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalIconButton(onClick = { showYtdProjectionDialog = true }) {
+                                    Icon(
+                                        Icons.Default.TrendingUp,
+                                        contentDescription = "Year-to-Date Projections & Pension Optimization",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
                                 FilledTonalIconButton(onClick = { showPayslipImportDialog = true }) {
                                     Icon(
                                         Icons.Outlined.DocumentScanner,
@@ -477,6 +486,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
             com.example.salarycalculator.ui.calculator.PayslipImportDialog(
                 salaryRepository = salaryRepository,
                 onDismiss = { showPayslipImportDialog = false }
+            )
+        }
+
+        // Year-to-Date (YTD) Projections Dialog
+        if (showYtdProjectionDialog) {
+            com.example.salarycalculator.ui.calculator.YtdProjectionDialog(
+                historyRecords = historyList,
+                onDismiss = { showYtdProjectionDialog = false }
             )
         }
     }

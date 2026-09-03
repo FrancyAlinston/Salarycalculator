@@ -320,4 +320,64 @@ object PayslipOcrAnalyzer {
             )
         }
     }
+
+    /**
+     * Renders each individual page of a PDF and returns a list of parsed payslips (1 per page).
+     */
+    suspend fun analyzePdfAllPages(context: Context, pdfUri: Uri): List<ParsedPayslipData> = withContext(Dispatchers.IO) {
+        val results = mutableListOf<ParsedPayslipData>()
+        try {
+            val pfd: ParcelFileDescriptor? = context.contentResolver.openFileDescriptor(pdfUri, "r")
+            if (pfd == null) return@withContext emptyList()
+
+            val renderer = PdfRenderer(pfd)
+            val count = minOf(12, renderer.pageCount) // Up to 12 monthly payslips
+
+            for (i in 0 until count) {
+                val page = renderer.openPage(i)
+                val width = page.width * 2
+                val height = page.height * 2
+                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                page.close()
+
+                val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+                val image = InputImage.fromBitmap(bitmap, 0)
+                val visionText = com.google.android.gms.tasks.Tasks.await(recognizer.process(image))
+                val parsed = PayslipParserEngine.parsePayslipText(visionText.text)
+                if (parsed.grossPay > 0 || parsed.netPay > 0) {
+                    results.add(parsed)
+                }
+                bitmap.recycle()
+            }
+
+            renderer.close()
+            pfd.close()
+        } catch (e: Exception) {
+            // Return whatever was successfully parsed
+        }
+        results
+    }
+
+    /**
+     * Analyzes multiple bitmap images in batch and returns parsed payslip results.
+     */
+    suspend fun analyzeMultipleImages(bitmaps: List<Bitmap>): List<ParsedPayslipData> = withContext(Dispatchers.IO) {
+        val results = mutableListOf<ParsedPayslipData>()
+        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        for (bmp in bitmaps) {
+            try {
+                val image = InputImage.fromBitmap(bmp, 0)
+                val textResult = com.google.android.gms.tasks.Tasks.await(recognizer.process(image))
+                val parsed = PayslipParserEngine.parsePayslipText(textResult.text)
+                if (parsed.grossPay > 0 || parsed.netPay > 0) {
+                    results.add(parsed)
+                }
+            } catch (e: Exception) {
+                // Ignore failed individual page
+            }
+        }
+        results
+    }
 }
+

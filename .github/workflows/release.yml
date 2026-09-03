@@ -31,6 +31,7 @@ jobs:
         run: |
           ./gradlew assembleDebug assembleRelease
           cp app/build/outputs/apk/release/Salarycalculator-release.apk app/build/outputs/apk/release/Salarycalculator.apk
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Salarycalculator-debug.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

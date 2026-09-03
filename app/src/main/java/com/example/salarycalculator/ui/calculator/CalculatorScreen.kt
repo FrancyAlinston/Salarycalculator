@@ -84,6 +84,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showMortgageDialog by remember { mutableStateOf(false) }
     var showPayslipImportDialog by remember { mutableStateOf(false) }
     var showDirectorDividendDialog by remember { mutableStateOf(false) }
+    var showYtdProjectionDialog by remember { mutableStateOf(false) }
+    var showSalaryBenchmarkDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -214,7 +216,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onStatutoryLeaveClick = { showStatutoryLeaveDialog = true },
                             onMortgageClick = { showMortgageDialog = true },
                             onPayslipOcrClick = { showPayslipImportDialog = true },
-                            onDirectorTaxClick = { showDirectorDividendDialog = true }
+                            onDirectorTaxClick = { showDirectorDividendDialog = true },
+                            onYtdProjectionClick = { showYtdProjectionDialog = true },
+                            onSalaryBenchmarkClick = { showSalaryBenchmarkDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -365,7 +369,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onStatutoryLeaveClick = { showStatutoryLeaveDialog = true },
                             onMortgageClick = { showMortgageDialog = true },
                             onPayslipOcrClick = { showPayslipImportDialog = true },
-                            onDirectorTaxClick = { showDirectorDividendDialog = true }
+                            onDirectorTaxClick = { showDirectorDividendDialog = true },
+                            onYtdProjectionClick = { showYtdProjectionDialog = true },
+                            onSalaryBenchmarkClick = { showSalaryBenchmarkDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -673,6 +679,24 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showDirectorDividendDialog = false }
             )
         }
+        // Year-to-Date (YTD) Tax Forecasting & Pension Top-Up Dialog
+        if (showYtdProjectionDialog) {
+            val historyList by salaryRepository.getSalaryHistory().collectAsState(initial = emptyList())
+            YtdProjectionDialog(
+                historyRecords = historyList,
+                currentMonthlyGross = report.grossPay,
+                taxCode = taxCode,
+                taxRegion = taxRegion,
+                onDismiss = { showYtdProjectionDialog = false }
+            )
+        }
+        // Salary Benchmarking & Regional Market Wage Dialog
+        if (showSalaryBenchmarkDialog) {
+            SalaryBenchmarkDialog(
+                currentAnnualGross = report.annualGross,
+                onDismiss = { showSalaryBenchmarkDialog = false }
+            )
+        }
     }
 }
 
@@ -915,7 +939,9 @@ private fun SchedulePresetsSection(
     onStatutoryLeaveClick: () -> Unit = {},
     onMortgageClick: () -> Unit = {},
     onPayslipOcrClick: () -> Unit = {},
-    onDirectorTaxClick: () -> Unit = {}
+    onDirectorTaxClick: () -> Unit = {},
+    onYtdProjectionClick: () -> Unit = {},
+    onSalaryBenchmarkClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -929,6 +955,18 @@ private fun SchedulePresetsSection(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            AssistChip(
+                onClick = onYtdProjectionClick,
+                label = { Text("YTD Projections", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onSalaryBenchmarkClick,
+                label = { Text("Salary Benchmarking", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.Insights, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                shape = RoundedCornerShape(10.dp)
+            )
             AssistChip(
                 onClick = onPayslipOcrClick,
                 label = { Text("Payslip OCR Scanner", style = MaterialTheme.typography.labelSmall) },

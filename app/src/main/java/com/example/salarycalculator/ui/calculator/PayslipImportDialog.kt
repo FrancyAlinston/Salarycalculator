@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,6 +44,8 @@ fun PayslipImportDialog(
 
     var isProcessing by remember { mutableStateOf(false) }
     var parsedData by remember { mutableStateOf<ParsedPayslipData?>(null) }
+    var batchResults by remember { mutableStateOf<List<ParsedPayslipData>>(emptyList()) }
+    var selectedBatchIndex by remember { mutableStateOf(0) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var saveSuccessMessage by remember { mutableStateOf<String?>(null) }
 
@@ -57,7 +60,20 @@ fun PayslipImportDialog(
     var pensionInput by remember { mutableStateOf("") }
     var studentLoanInput by remember { mutableStateOf("") }
 
-    // Image Picker
+    fun populateFields(data: ParsedPayslipData) {
+        parsedData = data
+        periodInput = data.payPeriod
+        employerInput = data.employerName ?: "Primary Employment"
+        taxCodeInput = data.taxCode
+        grossInput = "%.2f".format(data.grossPay)
+        netInput = "%.2f".format(data.netPay)
+        taxInput = "%.2f".format(data.incomeTax)
+        niInput = "%.2f".format(data.nationalInsurance)
+        pensionInput = "%.2f".format(data.employeePension)
+        studentLoanInput = "%.2f".format(data.studentLoan)
+    }
+
+    // Single Image Picker
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -72,16 +88,9 @@ fun PayslipImportDialog(
                     inputStream?.close()
                     if (bitmap != null) {
                         val result = PayslipOcrAnalyzer.analyzeImage(bitmap)
-                        parsedData = result
-                        periodInput = result.payPeriod
-                        employerInput = result.employerName ?: "Primary Employment"
-                        taxCodeInput = result.taxCode
-                        grossInput = "%.2f".format(result.grossPay)
-                        netInput = "%.2f".format(result.netPay)
-                        taxInput = "%.2f".format(result.incomeTax)
-                        niInput = "%.2f".format(result.nationalInsurance)
-                        pensionInput = "%.2f".format(result.employeePension)
-                        studentLoanInput = "%.2f".format(result.studentLoan)
+                        batchResults = listOf(result)
+                        selectedBatchIndex = 0
+                        populateFields(result)
                     } else {
                         errorMessage = "Could not decode selected image."
                     }
@@ -94,7 +103,37 @@ fun PayslipImportDialog(
         }
     }
 
-    // PDF Picker
+    // Multiple Images Picker
+    val multiImagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            scope.launch {
+                isProcessing = true
+                errorMessage = null
+                saveSuccessMessage = null
+                try {
+                    val bitmaps = uris.mapNotNull { u ->
+                        context.contentResolver.openInputStream(u)?.use { BitmapFactory.decodeStream(it) }
+                    }
+                    val results = PayslipOcrAnalyzer.analyzeMultipleImages(bitmaps)
+                    if (results.isNotEmpty()) {
+                        batchResults = results
+                        selectedBatchIndex = 0
+                        populateFields(results.first())
+                    } else {
+                        errorMessage = "No valid payroll fields detected in selected images."
+                    }
+                } catch (e: Exception) {
+                    errorMessage = "Batch image error: ${e.localizedMessage}"
+                } finally {
+                    isProcessing = false
+                }
+            }
+        }
+    }
+
+    // PDF Multi-Page Picker
     val pdfPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -104,17 +143,17 @@ fun PayslipImportDialog(
                 errorMessage = null
                 saveSuccessMessage = null
                 try {
-                    val result = PayslipOcrAnalyzer.analyzePdf(context, uri)
-                    parsedData = result
-                    periodInput = result.payPeriod
-                    employerInput = result.employerName ?: "Primary Employment"
-                    taxCodeInput = result.taxCode
-                    grossInput = "%.2f".format(result.grossPay)
-                    netInput = "%.2f".format(result.netPay)
-                    taxInput = "%.2f".format(result.incomeTax)
-                    niInput = "%.2f".format(result.nationalInsurance)
-                    pensionInput = "%.2f".format(result.employeePension)
-                    studentLoanInput = "%.2f".format(result.studentLoan)
+                    val allPages = PayslipOcrAnalyzer.analyzePdfAllPages(context, uri)
+                    if (allPages.isNotEmpty()) {
+                        batchResults = allPages
+                        selectedBatchIndex = 0
+                        populateFields(allPages.first())
+                    } else {
+                        val singleResult = PayslipOcrAnalyzer.analyzePdf(context, uri)
+                        batchResults = listOf(singleResult)
+                        selectedBatchIndex = 0
+                        populateFields(singleResult)
+                    }
                 } catch (e: Exception) {
                     errorMessage = "Error reading PDF: ${e.localizedMessage}"
                 } finally {
@@ -164,28 +203,72 @@ fun PayslipImportDialog(
                 // Pickers Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     FilledTonalButton(
                         onClick = { imagePickerLauncher.launch("image/*") },
                         modifier = Modifier.weight(1f),
                         enabled = !isProcessing,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Photo / Image", style = MaterialTheme.typography.labelSmall)
+                        Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text("1 Photo", style = MaterialTheme.typography.labelSmall)
+                    }
+
+                    FilledTonalButton(
+                        onClick = { multiImagePickerLauncher.launch("image/*") },
+                        modifier = Modifier.weight(1f),
+                        enabled = !isProcessing,
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Collections, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text("Batch Photos", style = MaterialTheme.typography.labelSmall)
                     }
 
                     FilledTonalButton(
                         onClick = { pdfPickerLauncher.launch("application/pdf") },
                         modifier = Modifier.weight(1f),
                         enabled = !isProcessing,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("PDF Document", style = MaterialTheme.typography.labelSmall)
+                        Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Text("PDF", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+
+                // Batch Selection Chips (if multiple months parsed)
+                if (batchResults.size > 1) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Extracted ${batchResults.size} Payslips - Select to Inspect:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            batchResults.forEachIndexed { idx, item ->
+                                FilterChip(
+                                    selected = selectedBatchIndex == idx,
+                                    onClick = {
+                                        selectedBatchIndex = idx
+                                        populateFields(item)
+                                    },
+                                    label = { Text("${idx + 1}. ${item.payPeriod}") },
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -388,6 +471,51 @@ fun PayslipImportDialog(
                         Text("Apply to Calc")
                     }
 
+                    if (batchResults.size > 1) {
+                        FilledTonalButton(
+                            onClick = {
+                                scope.launch {
+                                    batchResults.forEach { item ->
+                                        val g = item.grossPay
+                                        val n = item.netPay
+                                        val t = item.incomeTax
+                                        val ni = item.nationalInsurance
+                                        val p = item.employeePension
+                                        val sl = item.studentLoan
+
+                                        val record = MonthlySalaryRecord(
+                                            monthYear = item.payPeriod,
+                                            daysWorked = 20.0,
+                                            hoursPerDay = 8.0,
+                                            overtimeHours = 0.0,
+                                            overtimeMultiplier = 1.5,
+                                            hourlyRate = if (g > 0) g / 160.0 else 15.0,
+                                            grossPay = g,
+                                            salarySacrifice = 0.0,
+                                            pensionRate = if (g > 0) (p / g) * 100.0 else 5.0,
+                                            pensionContribution = p,
+                                            employerPension = g * 0.03,
+                                            taxablePay = maxOf(0.0, g - (12570.0 / 12.0) - p),
+                                            incomeTax = t,
+                                            nationalInsurance = ni,
+                                            studentLoanPlan = if (sl > 0) StudentLoanPlan.PLAN_2 else StudentLoanPlan.NONE,
+                                            studentLoanDeduction = sl,
+                                            totalDeductions = t + ni + p + sl,
+                                            netPay = n,
+                                            taxCode = item.taxCode,
+                                            taxRegion = if (item.taxCode.startsWith("S", ignoreCase = true)) TaxRegion.SCOTLAND else TaxRegion.UK_STANDARD,
+                                            note = "Batch imported via Payslip OCR Scanner"
+                                        )
+                                        salaryRepository?.saveSalaryRecord(record)
+                                    }
+                                    saveSuccessMessage = "Successfully imported all ${batchResults.size} payslips to History Ledger!"
+                                }
+                            }
+                        ) {
+                            Text("Save All (${batchResults.size})")
+                        }
+                    }
+
                     Button(
                         onClick = {
                             val g = grossInput.toDoubleOrNull() ?: 0.0
@@ -427,7 +555,7 @@ fun PayslipImportDialog(
                             }
                         }
                     ) {
-                        Text("Save to History")
+                        Text(if (batchResults.size > 1) "Save Current" else "Save to History")
                     }
                 } else {
                     Button(onClick = onDismiss) {

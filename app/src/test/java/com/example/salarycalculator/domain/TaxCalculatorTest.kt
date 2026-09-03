@@ -736,7 +736,43 @@ class TaxCalculatorTest {
         assertTrue(report.annualTaxSavingsVsPureSalary > 0.0)
         assertTrue(report.optimalScenario.netCashInPocket > report.scenarios.find { it.name.contains("100% PAYE") }!!.netCashInPocket)
     }
+
+    @Test
+    fun ytdTaxProjector_calculatesCumulativeMetricsAndPensionOptimization() {
+        val sampleRecords = listOf(
+            MonthlySalaryRecord(monthYear = "April 2024", daysWorked = 20.0, hoursPerDay = 8.0, grossPay = 4000.0, incomeTax = 548.0, nationalInsurance = 219.0, netPay = 3233.0),
+            MonthlySalaryRecord(monthYear = "May 2024", daysWorked = 20.0, hoursPerDay = 8.0, grossPay = 4000.0, incomeTax = 548.0, nationalInsurance = 219.0, netPay = 3233.0),
+            MonthlySalaryRecord(monthYear = "June 2024", daysWorked = 20.0, hoursPerDay = 8.0, grossPay = 4000.0, incomeTax = 548.0, nationalInsurance = 219.0, netPay = 3233.0)
+        )
+
+        val ytd = YtdTaxProjector.computeYtdProjection(sampleRecords, currentMonthlyGross = 4000.0)
+        assertEquals(3, ytd.monthsLogged)
+        assertEquals(9, ytd.monthsRemaining)
+        assertEquals(12000.0, ytd.ytdGross, 0.01)
+        assertEquals(48000.0, ytd.projectedAnnualGross, 0.01)
+        assertTrue(ytd.projectedAnnualNet > 0.0)
+
+        // Test £110k 60% Tax Trap scenario
+        val trapYtd = YtdTaxProjector.computeYtdProjection(emptyList(), currentMonthlyGross = 9166.67) // £110k/yr
+        assertEquals(110000.0, trapYtd.projectedAnnualGross, 10.0)
+        assertEquals(60.0, trapYtd.pensionOptimization.taxReliefRatePercent, 0.01)
+        assertTrue(trapYtd.pensionOptimization.immediateTaxSavings > 0.0)
+    }
+
+    @Test
+    fun salaryBenchmarkEngine_interpolatesPercentilesAndRegionalWeighting() {
+        // National Tech SWE evaluation at £62,000 (Median)
+        val evalMedian = SalaryBenchmarkEngine.evaluateBenchmark(62000.0, "tech_swe", BenchmarkRegion.NATIONAL_AVERAGE)
+        assertEquals(50, evalMedian.percentileRank)
+        assertEquals(62000.0, evalMedian.adjustedP50, 0.01)
+
+        // London SWE evaluation (with 1.22x weighting)
+        val evalLondon = SalaryBenchmarkEngine.evaluateBenchmark(62000.0, "tech_swe", BenchmarkRegion.LONDON)
+        assertEquals(75640.0, evalLondon.adjustedP50, 0.01)
+        assertTrue(evalLondon.percentileRank < 50) // £62k is below median in London
+    }
 }
+
 
 
 

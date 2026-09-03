@@ -4,14 +4,25 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
----
+## [13.0] - 2026-09-03 (VersionCode: 19)
+### Added
+- Updated app icon with modern Material Design 3 style (emerald green money bag, calculator background).
+- Updated GitHub release workflow to correctly name debug (`Salarycalculator-debug.apk`) and stable (`Salarycalculator.apk`) APKs.
+- Ensured launcher label is exactly "Salary Calculator".
+- Bumped versionCode to 19 and versionName to 13.0.
 
+### Bugs Fixed
+- Fixed adaptive icon background to represent digital calculator.
+
+### What Needs to Be Fixed / Upcoming
+- Advanced ML-based salary forecasting and year-end tax liability projections.
+- Biometric fingerprint/face unlock for confidential payroll history.
+
+---
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
 - [ ] Advanced ML-based salary forecasting and year-end tax liability projections.
 - [ ] Biometric fingerprint/face unlock for confidential payroll history.
-
----
 
 ## [11.0] - 2026-09-03 (VersionCode: 17)
 ### Added
