@@ -41,6 +41,7 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
     var showCompareDialog by remember { mutableStateOf(false) }
     var showP60Dialog by remember { mutableStateOf(false) }
     var showSa100Dialog by remember { mutableStateOf(false) }
+    var showReconciliationDialog by remember { mutableStateOf(false) }
 
     // Cumulative stats
     val totalNet = remember(historyList) { historyList.sumOf { it.netPay } }
@@ -134,6 +135,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                FilledTonalIconButton(onClick = { showReconciliationDialog = true }) {
+                                    Icon(
+                                        Icons.Default.AccountBalance,
+                                        contentDescription = "Reconcile Bank Statement",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
                                 FilledTonalIconButton(onClick = { showSa100Dialog = true }) {
                                     Icon(
                                         Icons.AutoMirrored.Filled.Assignment,
@@ -374,6 +383,14 @@ fun HistoryScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modif
                 historyRecords = historyList,
                 taxYearLabel = "2024/2025",
                 onDismiss = { showSa100Dialog = false }
+            )
+        }
+
+        // Bank Statement CSV Reconciliation Dialog
+        if (showReconciliationDialog) {
+            BankReconciliationDialog(
+                historyRecords = historyList,
+                onDismiss = { showReconciliationDialog = false }
             )
         }
     }

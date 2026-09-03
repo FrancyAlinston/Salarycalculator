@@ -79,6 +79,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showTaxComparisonDialog by remember { mutableStateOf(false) }
     var showSa100Dialog by remember { mutableStateOf(false) }
     var showTaxRefundDialog by remember { mutableStateOf(false) }
+    var showCompanyCarDialog by remember { mutableStateOf(false) }
+    var showStatutoryLeaveDialog by remember { mutableStateOf(false) }
+    var showMortgageDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -204,7 +207,10 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onTaxTrapClick = { showTaxTrapDialog = true },
                             onTaxComparisonClick = { showTaxComparisonDialog = true },
                             onSa100Click = { showSa100Dialog = true },
-                            onTaxRefundClick = { showTaxRefundDialog = true }
+                            onTaxRefundClick = { showTaxRefundDialog = true },
+                            onCompanyCarClick = { showCompanyCarDialog = true },
+                            onStatutoryLeaveClick = { showStatutoryLeaveDialog = true },
+                            onMortgageClick = { showMortgageDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -350,7 +356,10 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onTaxTrapClick = { showTaxTrapDialog = true },
                             onTaxComparisonClick = { showTaxComparisonDialog = true },
                             onSa100Click = { showSa100Dialog = true },
-                            onTaxRefundClick = { showTaxRefundDialog = true }
+                            onTaxRefundClick = { showTaxRefundDialog = true },
+                            onCompanyCarClick = { showCompanyCarDialog = true },
+                            onStatutoryLeaveClick = { showStatutoryLeaveDialog = true },
+                            onMortgageClick = { showMortgageDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -554,6 +563,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
             ShiftCalendarDialog(
                 initialDaysWorked = daysWorked,
                 initialHoursPerDay = hoursPerDay,
+                salaryRepository = salaryRepository,
+                hourlyRate = activeProfile?.hourlyRate ?: defaultHourlyRate,
                 onApply = { days, hours, otHours ->
                     daysWorkedInput = if (days > 0) "%.0f".format(days) else "0"
                     hoursPerDayInput = "%.1f".format(hours)
@@ -605,6 +616,33 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 initialMonthlyGross = report.grossPay,
                 taxRegion = taxRegion,
                 onDismiss = { showTaxRefundDialog = false }
+            )
+        }
+        // Company Car BiK Dialog
+        if (showCompanyCarDialog) {
+            CompanyCarDialog(
+                onDismiss = { showCompanyCarDialog = false }
+            )
+        }
+        // Statutory Leave (SSP / SMP / SPP) Dialog
+        if (showStatutoryLeaveDialog) {
+            val weeklyGross = if (daysWorked > 0 && hoursPerDay > 0) {
+                (daysWorked / 4.3333) * hoursPerDay * (activeProfile?.hourlyRate ?: defaultHourlyRate)
+            } else {
+                report.grossPay / 4.3333
+            }
+            StatutoryLeaveDialog(
+                initialWeeklyGross = weeklyGross,
+                taxRegion = taxRegion,
+                onDismiss = { showStatutoryLeaveDialog = false }
+            )
+        }
+        // Mortgage Borrowing Capacity Dialog
+        if (showMortgageDialog) {
+            MortgageBorrowingDialog(
+                annualGross = report.annualGross,
+                monthlyNet = report.netPay,
+                onDismiss = { showMortgageDialog = false }
             )
         }
     }
@@ -844,7 +882,10 @@ private fun SchedulePresetsSection(
     onTaxTrapClick: () -> Unit = {},
     onTaxComparisonClick: () -> Unit = {},
     onSa100Click: () -> Unit = {},
-    onTaxRefundClick: () -> Unit = {}
+    onTaxRefundClick: () -> Unit = {},
+    onCompanyCarClick: () -> Unit = {},
+    onStatutoryLeaveClick: () -> Unit = {},
+    onMortgageClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -880,6 +921,24 @@ private fun SchedulePresetsSection(
                 onClick = onCalendarClick,
                 label = { Text("Shift Heatmap", style = MaterialTheme.typography.labelSmall) },
                 leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onCompanyCarClick,
+                label = { Text("Company Car", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.DirectionsCar, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onStatutoryLeaveClick,
+                label = { Text("Statutory Leave", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.Healing, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onMortgageClick,
+                label = { Text("Mortgage Power", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
                 shape = RoundedCornerShape(10.dp)
             )
             AssistChip(

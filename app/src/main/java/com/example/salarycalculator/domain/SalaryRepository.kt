@@ -44,6 +44,7 @@ class SalaryRepository(private val context: Context) {
     private val BIOMETRIC_TIMEOUT_KEY = longPreferencesKey("biometric_timeout_seconds")
     private val WEEKEND_OVERTIME_KEY = doublePreferencesKey("weekend_overtime_multiplier")
     private val BANK_HOLIDAY_OVERTIME_KEY = doublePreferencesKey("bank_holiday_overtime_multiplier")
+    private val ANNUAL_SHIFT_SCHEDULE_KEY = stringPreferencesKey("annual_shift_schedule_json")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -555,6 +556,20 @@ class SalaryRepository(private val context: Context) {
     suspend fun clearSalaryHistory() {
         context.dataStore.edit { preferences ->
             preferences.remove(SALARY_HISTORY_KEY)
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getAnnualShiftSchedule(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[ANNUAL_SHIFT_SCHEDULE_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setAnnualShiftSchedule(scheduleJson: String) {
+        context.dataStore.edit { preferences ->
+            preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = scheduleJson
         }
     }
 }

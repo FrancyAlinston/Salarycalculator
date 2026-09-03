@@ -8,8 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] Direct bank statement CSV import & automatic payslip matching.
 - [ ] Real-time HMRC live tax rate updates via remote JSON configuration.
+- [ ] Direct export of annual tax packs to cloud drives (Google Drive / OneDrive / Nextcloud).
+
+---
+
+## [9.0] - 2026-09-03 (VersionCode: 15)
+### Added
+- **Company Car Benefit-in-Kind (BiK) & Fuel Tax Calculator (`CompanyCarCalculator.kt` & `CompanyCarDialog.kt`)**: Interactive calculation engine modeling UK HMRC BiK percentages (2% Pure EV, 2%–14% PHEV based on zero-emission electric range, 15%–37% ICE based on CO2 g/km, +4% diesel surcharge), private fuel benefit statutory charge (£27,800 baseline), and exact net monthly take-home reduction across 20% Basic, 40% Higher, and 45% Additional tax bands.
+- **Statutory Sick Pay (SSP) & Parental Leave (SMP / SPP) Modeling (`StatutoryLeaveCalculator.kt` & `StatutoryLeaveDialog.kt`)**: Detailed simulation of UK statutory wage entitlements including SSP (£116.75/wk with 3-day waiting rule), SMP (6 weeks at 90% AWE followed by 33 weeks at standard statutory rate £184.03/wk), SPP (1–2 weeks paternity pay), estimated net take-home pay, and comparison against regular working income.
+- **Mortgage & Loan Borrowing Capacity Estimator (`MortgageBorrowingCalculator.kt` & `MortgageBorrowingDialog.kt`)**: Lender borrowing power modeling using 4.0x–5.0x salary multiples, cash deposit sizing, existing monthly debt commitments, stress-tested monthly loan amortization formula ($M = P \frac{r(1+r)^n}{(1+r)^n - 1}$), Loan-to-Value (LTV) %, and net disposable affordability health rating (Excellent, Moderate, Stretched, High Risk).
+- **Bank Statement CSV Payroll Reconciliation Engine (`BankReconciliationEngine.kt` & `BankReconciliationDialog.kt`)**: Automated import, parsing, and reconciliation of bank statement CSV deposits against recorded payslips with automatic credit identification, exact net match assertion, variance detection, and discrepancy reporting.
+- **Annual 12-Month Shift & Overtime Heatmap Planner (`ShiftCalendarDialog.kt` & `SalaryRepository.kt`)**: Full-year multi-month schedule management across all 12 months with persistent month-by-month working days and OT customization, annual aggregate summary metrics (total days, hours, overtime, and estimated annual gross), quick-fill presets ("Mon-Fri 8h", "4-on 4-off", "Copy to All 12 Months"), and full 12-month RFC 5545 `.ics` iCalendar calendar export.
+- **Comprehensive v9.0 Verification Battery (`TaxCalculatorTest.kt`)**: Added automated unit test coverage verifying EV and PHEV BiK percentages, SSP 3-day waiting period deductions, SMP higher-rate calculation periods, mortgage amortization formulas, and bank CSV statement reconciliation matching.
+
+### Bugs Found & Fixed
+- **Deprecated Divider Migration**: Migrated deprecated Material 3 `Divider` components to `HorizontalDivider` across all dialogs.
+- **Type-Safe Method Signatures**: Standardized `TaxCalculator.calculateTax` invocations and strengthened month integer parsing safety in `ShiftCalendarDialog`.
+
+### What Needs to Be Fixed / Pending
+- Real-time HMRC live tax rate updates via remote JSON configuration.
+- Direct export of annual tax packs to cloud storage endpoints.
 
 ---
 

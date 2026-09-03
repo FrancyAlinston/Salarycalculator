@@ -476,6 +476,170 @@ class TaxCalculatorTest {
         assertEquals(300.00, box5.amount, 0.01)
         assertEquals(90.00, box6.amount, 0.01)
     }
+
+    @Test
+    fun companyCarCalculator_pureEv_calculates2PercentBik() {
+        val result = CompanyCarCalculator.calculate(
+            p11dValue = 40000.0,
+            fuelType = VehicleFuelType.PURE_ELECTRIC,
+            co2GramsPerKm = 0
+        )
+        assertEquals(2.0, result.bikPercentage, 0.01)
+        assertEquals(800.0, result.annualCarTaxableBenefit, 0.01)
+        assertEquals(66.67, result.monthlyCarTaxableBenefit, 0.01)
+        // 20% basic rate tax cost
+        assertEquals(160.0, result.basicRateAnnualTaxCost, 0.01)
+        assertEquals(13.33, result.basicRateMonthlyTaxCost, 0.01)
+        // 40% higher rate tax cost
+        assertEquals(320.0, result.higherRateAnnualTaxCost, 0.01)
+        assertEquals(26.67, result.higherRateMonthlyTaxCost, 0.01)
+    }
+
+    @Test
+    fun companyCarCalculator_petrolWithFuel_calculatesAccurateBenefit() {
+        val result = CompanyCarCalculator.calculate(
+            p11dValue = 30000.0,
+            fuelType = VehicleFuelType.PETROL_RDE2_DIESEL,
+            co2GramsPerKm = 115,
+            providesFuel = true
+        )
+        // 115g/km is 15 + (115-50)/5 = 15 + 13 = 28%
+        assertEquals(28.0, result.bikPercentage, 0.01)
+        assertEquals(8400.0, result.annualCarTaxableBenefit, 0.01)
+        // Fuel benefit: 27800 * 0.28 = 7784.00
+        assertEquals(7784.00, result.annualFuelTaxableBenefit, 0.01)
+        assertEquals(16184.00, result.totalAnnualTaxableBenefit, 0.01)
+    }
+
+    @Test
+    fun statutoryLeaveCalculator_ssp_calculatesWaitingDaysCorrectly() {
+        val result = StatutoryLeaveCalculator.calculate(
+            leaveType = StatutoryLeaveType.SICK_PAY_SSP,
+            averageWeeklyEarnings = 600.0,
+            durationWeeks = 4
+        )
+        assertEquals(4, result.durationWeeks)
+        assertEquals(4, result.weeklyBreakdown.size)
+        // Week 1: 2/5th of £116.75 = £46.70
+        assertEquals(46.70, result.weeklyBreakdown[0].statutoryAmount, 0.01)
+        // Weeks 2-4: £116.75
+        assertEquals(116.75, result.weeklyBreakdown[1].statutoryAmount, 0.01)
+        // Total statutory: 46.70 + 3 * 116.75 = 396.95
+        assertEquals(396.95, result.totalStatutoryGross, 0.01)
+    }
+
+    @Test
+    fun statutoryLeaveCalculator_smp_calculatesSixWeeksHigherRate() {
+        val result = StatutoryLeaveCalculator.calculate(
+            leaveType = StatutoryLeaveType.MATERNITY_SMP,
+            averageWeeklyEarnings = 800.0,
+            durationWeeks = 10
+        )
+        assertEquals(10, result.weeklyBreakdown.size)
+        // First 6 weeks: 90% of £800 = £720/wk
+        for (w in 0..5) {
+            assertEquals(720.0, result.weeklyBreakdown[w].statutoryAmount, 0.01)
+        }
+        // Weeks 7-10: Statutory standard rate £184.03/wk
+        for (w in 6..9) {
+            assertEquals(184.03, result.weeklyBreakdown[w].statutoryAmount, 0.01)
+        }
+    }
+
+    @Test
+    fun mortgageBorrowingCalculator_standardMultiple_calculatesAccurateRepayment() {
+        val result = MortgageBorrowingCalculator.calculate(
+            annualGrossIncome = 50000.0,
+            monthlyNetTakeHome = 3200.0,
+            depositAmount = 25000.0,
+            monthlyDebtCommitments = 200.0,
+            selectedMultiplier = 4.5,
+            annualInterestRatePercent = 4.5,
+            termYears = 30
+        )
+
+        // 50k * 4.5 = £225,000 max borrowing
+        assertEquals(225000.0, result.maxBorrowingAmount, 0.01)
+        assertEquals(250000.0, result.estimatedPropertyPrice, 0.01)
+        assertEquals(90.0, result.loanToValuePercentage, 0.01)
+        assertEquals(3000.0, result.netMonthlyDisposable, 0.01)
+
+        // Monthly repayment on 225k at 4.5% 30yr is approx £1,140.04
+        assertEquals(1140.04, result.estimatedMonthlyRepayment, 1.0)
+        assertTrue(result.monthlyDisposableAfterMortgage > 1800.0)
+        assertEquals(AffordabilityHealth.MODERATE, result.affordabilityStatus)
+    }
+
+    @Test
+    fun bankReconciliationEngine_parsesAndMatchesDepositsAccurately() {
+        val sampleCsv = """
+            Date,Description,Amount
+            28/01/2025,"ACME CORP BACS SALARY",2305.06
+            28/02/2025,"ACME CORP BACS SALARY",2350.00
+            15/03/2025,"UNKNOWN DIRECT CREDIT",100.00
+        """.trimIndent()
+
+        val parsed = BankReconciliationEngine.parseCsv(sampleCsv)
+        assertEquals(3, parsed.size)
+        assertEquals(2305.06, parsed[0].amount, 0.01)
+
+        val records = listOf(
+            MonthlySalaryRecord(
+                monthYear = "January 2025",
+                daysWorked = 20.0,
+                hoursPerDay = 8.0,
+                overtimeHours = 0.0,
+                overtimeMultiplier = 1.5,
+                hourlyRate = 18.75,
+                grossPay = 3000.0,
+                salarySacrifice = 0.0,
+                pensionRate = 5.0,
+                pensionContribution = 150.0,
+                employerPension = 90.0,
+                taxablePay = 1802.50,
+                incomeTax = 360.50,
+                nationalInsurance = 139.44,
+                studentLoanPlan = StudentLoanPlan.PLAN_1,
+                studentLoanDeduction = 45.0,
+                totalDeductions = 694.94,
+                netPay = 2305.06,
+                taxCode = "1257L",
+                taxRegion = TaxRegion.UK_STANDARD
+            ),
+            MonthlySalaryRecord(
+                monthYear = "February 2025",
+                daysWorked = 20.0,
+                hoursPerDay = 8.0,
+                overtimeHours = 0.0,
+                overtimeMultiplier = 1.5,
+                hourlyRate = 18.75,
+                grossPay = 3000.0,
+                salarySacrifice = 0.0,
+                pensionRate = 5.0,
+                pensionContribution = 150.0,
+                employerPension = 90.0,
+                taxablePay = 1802.50,
+                incomeTax = 360.50,
+                nationalInsurance = 139.44,
+                studentLoanPlan = StudentLoanPlan.PLAN_1,
+                studentLoanDeduction = 45.0,
+                totalDeductions = 694.94,
+                netPay = 2305.06,
+                taxCode = "1257L",
+                taxRegion = TaxRegion.UK_STANDARD
+            )
+        )
+
+        val summary = BankReconciliationEngine.reconcile(parsed, records)
+        assertEquals(3, summary.totalCreditsFound)
+        assertEquals(1, summary.totalMatchedCount) // January exact match
+        assertEquals(1, summary.totalDiscrepanciesCount) // February variance (£44.94)
+
+        assertEquals(ReconciliationStatus.EXACT_MATCH, summary.items[0].status)
+        assertEquals(ReconciliationStatus.VARIANCE_DETECTED, summary.items[1].status)
+        assertEquals(ReconciliationStatus.UNMATCHED_CREDIT, summary.items[2].status)
+    }
 }
+
 
 
