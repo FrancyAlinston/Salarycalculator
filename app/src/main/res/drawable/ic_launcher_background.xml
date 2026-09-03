@@ -4,22 +4,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Simple calculator shape: rectangle with display and buttons -->
-    <path android:fillColor="#FF000000"
-        android:pathData="M20,20 h68 v68 h-68 z" />
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M30,30 h48 v20 h-48 z" />
-    <!-- Buttons grid -->
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M30,55 h12 v12 h-12 z" />
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M48,55 h12 v12 h-12 z" />
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M66,55 h12 v12 h-12 z" />
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M30,73 h12 v12 h-12 z" />
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M48,73 h12 v12 h-12 z" />
-    <path android:fillColor="#FFFFFFFF"
-        android:pathData="M66,73 h12 v12 h-12 z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M0,0h108v108h-108z" />
 </vector>

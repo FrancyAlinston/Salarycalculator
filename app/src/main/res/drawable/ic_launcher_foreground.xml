@@ -1,17 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <!-- Emerald green money bag shape (simplified) -->
-    <path
-        android:fillColor="#FF00C853"
-        android:pathData="M30,20 h48 v68 h-48 z" />
-    <!-- White pound sign centered -->
-    <group android:translateX="54" android:translateY="54" android:scaleX="0.4" android:scaleY="0.4">
-        <path
-            android:fillColor="#FFFFFFFF"
-            android:pathData="M-5,-10 v20 h10 v-8 h-6 v-4 h6 v-8 z" />
-    </group>
-</vector>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/ic_launcher_foreground_asset"
+    android:gravity="center" />
