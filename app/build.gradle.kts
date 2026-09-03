@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.salarycalculator"
         minSdk = 24
         targetSdk = 36
-        versionCode = 10
-        versionName = "4.0"
+        versionCode = 11
+        versionName = "5.0"
     }
 
     signingConfigs {
@@ -69,6 +69,7 @@ dependencies {
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)
+  implementation(libs.androidx.biometric)
 
   // Arch Components
   implementation(libs.androidx.lifecycle.runtime.compose)

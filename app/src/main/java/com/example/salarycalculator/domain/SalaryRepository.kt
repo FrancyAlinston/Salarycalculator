@@ -34,11 +34,50 @@ class SalaryRepository(private val context: Context) {
     private val ACTIVE_PROFILE_ID_KEY = stringPreferencesKey("active_profile_id")
     private val CUSTOM_DEDUCTIONS_KEY = stringPreferencesKey("custom_deductions_json")
     private val SALARY_HISTORY_KEY = stringPreferencesKey("salary_history_json")
+    private val BIOMETRIC_LOCK_KEY = booleanPreferencesKey("biometric_lock_enabled")
+    private val ACTIVE_SHIFT_KEY = stringPreferencesKey("active_shift_state_json")
 
     private val json = Json {
         ignoreUnknownKeys = true
         isLenient = true
         encodeDefaults = true
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getBiometricLockEnabled(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[BIOMETRIC_LOCK_KEY] ?: false
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setBiometricLockEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[BIOMETRIC_LOCK_KEY] = enabled
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getActiveShiftState(): Flow<ActiveShiftState> {
+        return context.dataStore.data.map { preferences ->
+            val jsonStr = preferences[ACTIVE_SHIFT_KEY] ?: ""
+            if (jsonStr.isBlank()) {
+                ActiveShiftState()
+            } else {
+                try {
+                    json.decodeFromString<ActiveShiftState>(jsonStr)
+                } catch (_: Exception) {
+                    ActiveShiftState()
+                }
+            }
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun saveActiveShiftState(state: ActiveShiftState) {
+        context.dataStore.edit { preferences ->
+            preferences[ACTIVE_SHIFT_KEY] = json.encodeToString(state)
+        }
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE

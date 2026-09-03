@@ -243,4 +243,54 @@ class TaxCalculatorTest {
         assertEquals(StudentLoanPlan.PLAN_2, first.studentLoanPlan)
         assertEquals("September paycheck", first.note)
     }
+
+    @Test
+    fun childBenefitCalculator_underThreshold_zeroClawback() {
+        val result = ChildBenefitCalculator.calculate(annualIncome = 50000.0, numChildren = 2)
+        assertEquals(2, result.numChildren)
+        assertEquals(0.0, result.clawbackPercentage, 0.01)
+        assertEquals(0.0, result.annualTaxCharge, 0.01)
+        assertEquals(result.annualBenefitEntitlement, result.netAnnualBenefit, 0.01)
+    }
+
+    @Test
+    fun childBenefitCalculator_middleTaper_partialClawback() {
+        // At £70,000, excess is £10,000 -> 50% clawback
+        val result = ChildBenefitCalculator.calculate(annualIncome = 70000.0, numChildren = 1)
+        assertEquals(50.0, result.clawbackPercentage, 0.01)
+        assertEquals(result.annualBenefitEntitlement * 0.50, result.annualTaxCharge, 0.01)
+        assertEquals(result.annualBenefitEntitlement * 0.50, result.netAnnualBenefit, 0.01)
+    }
+
+    @Test
+    fun childBenefitCalculator_aboveThreshold_fullClawback() {
+        val result = ChildBenefitCalculator.calculate(annualIncome = 85000.0, numChildren = 3)
+        assertEquals(100.0, result.clawbackPercentage, 0.01)
+        assertEquals(result.annualBenefitEntitlement, result.annualTaxCharge, 0.01)
+        assertEquals(0.0, result.netAnnualBenefit, 0.01)
+    }
+
+    @Test
+    fun shiftRecord_durationHours_correctComputation() {
+        val start = 1000000L
+        val end = start + (8 * 3600 * 1000L) // 8 hours
+        val shift = ShiftRecord(startTimestamp = start, endTimestamp = end, breakMinutes = 30)
+        assertEquals(7.5, shift.durationHours, 0.01)
+    }
+
+    @Test
+    fun backupBundle_serialization_isLossless() {
+        val bundle = BackupBundle(
+            version = 1,
+            taxCode = "1257L",
+            pensionRate = 6.0,
+            hourlyRate = 14.50
+        )
+        val encoded = json.encodeToString(bundle)
+        val decoded = json.decodeFromString<BackupBundle>(encoded)
+        assertEquals(1, decoded.version)
+        assertEquals("1257L", decoded.taxCode)
+        assertEquals(6.0, decoded.pensionRate, 0.01)
+        assertEquals(14.50, decoded.hourlyRate, 0.01)
+    }
 }

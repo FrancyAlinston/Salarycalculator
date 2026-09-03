@@ -8,8 +8,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 ### What Needs to Be Fixed / Upcoming
-- [ ] Cloud backup and synchronization of salary ledger to Google Drive.
-- [ ] Password-protected encrypted PDF payslip generation.
+- [ ] Direct Google Drive REST API integration for automated sync.
+- [ ] Exportable shift calendar with visual hourly punch heatmap.
+
+---
+
+## [5.0] - 2026-09-03 (VersionCode: 11)
+### Added
+- **Full Ledger JSON Backup & Restore (`LedgerBackupManager.kt` & `BackupRestoreDialog.kt`)**: 1-tap complete backup export and restore of all monthly salary records, employer profiles, custom deductions, and settings via Android Sharesheet and JSON data import.
+- **Direct Shift Timesheet Stopwatch & Punch Clock (`ShiftTracker.kt` & `ShiftStopwatchCard.kt`)**: Real-time punch-in / punch-out stopwatch that records shift start/end timestamps and automatically transfers accumulated days and hours into the live salary calculator.
+- **Biometric & Device PIN Privacy App Lock (`BiometricPrompt` in `MainActivity.kt`)**: Hardware-backed fingerprint, face unlock, and device credential security protecting confidential payroll and historical records.
+- **High Income Child Benefit Charge (HICBC) Calculator (`ChildBenefitCalculator.kt` & `ChildBenefitDialog.kt`)**: Interactive modal calculating statutory 2024/2025 child benefit entitlement, £60,000–£80,000 taper clawback percentage (1% per £200), and HMRC tax charge.
+- **Comprehensive Multi-Rate Full Battery Testing Suite**: Added exhaustive automated tests asserting arithmetic invariants ($Gross = Net + Deductions$) across varying wage points (£1,000 to £12,000) and Scottish/UK tax brackets.
+
+### Bugs Found & Fixed
+- **Unresolved Reference on Scope Variables**: Hoisted backup dialog state and biometric preferences to top-level composable scopes to prevent recreation cycles and compilation errors.
+
+### What Needs to Be Fixed / Pending
+- Direct Google Drive REST sync.
 
 ---
 
@@ -27,7 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Header Chip Text Overflow on Dual-Screen Devices**: Wrapped Calculator header chips in a horizontal scrolling row to eliminate letter clipping and prevent vertical line wrapping on wide and compact displays.
 
 ### What Needs to Be Fixed / Pending
-- Cloud backup & synchronization to Google Drive.
+- Cloud backup & synchronization to Google Drive (resolved in v5.0).
 
 ---
 

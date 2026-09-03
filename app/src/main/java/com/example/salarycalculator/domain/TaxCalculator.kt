@@ -47,7 +47,10 @@ data class SalaryReport(
     val weeklyNet: Double,
     val monthlyNet: Double,
     val annualNet: Double
-)
+) {
+    val annualGross: Double
+        get() = grossPay * 12.0
+}
 
 object TaxCalculator {
 

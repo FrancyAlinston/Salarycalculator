@@ -49,8 +49,11 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var selectedOvertimeMultiplier by remember(overtimeMultiplier) { mutableStateOf(overtimeMultiplier) }
     var switchMarriageAllowance by remember(hasMarriageAllowance) { mutableStateOf(hasMarriageAllowance) }
     var switchBlindAllowance by remember(hasBlindPersonsAllowance) { mutableStateOf(hasBlindPersonsAllowance) }
+    val biometricLockEnabled by salaryRepository.getBiometricLockEnabled().collectAsState(initial = false)
+    var switchBiometricLock by remember(biometricLockEnabled) { mutableStateOf(biometricLockEnabled) }
 
     var showProfileDialog by remember { mutableStateOf(false) }
+    var showBackupDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
 
     val activeProfile = remember(profiles, activeProfileId) {
@@ -514,6 +517,88 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                     }
                 }
 
+                // 6. Security & Privacy Card (Biometric Lock)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Outlined.Fingerprint, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text("Privacy & Security", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Biometric & PIN Lock", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text("Require Fingerprint / Face Unlock on app launch", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(
+                                checked = switchBiometricLock,
+                                onCheckedChange = {
+                                    switchBiometricLock = it
+                                    scope.launch { salaryRepository.setBiometricLockEnabled(it) }
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // 7. Cloud & Data Backup Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Outlined.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Text("Data Backup & Restore", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        Text(
+                            text = "Export and restore your entire salary history, employer profiles, and preferences via JSON bundle.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        FilledTonalButton(
+                            onClick = { showBackupDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Manage Cloud & JSON Backups")
+                        }
+                    }
+                }
+
                 // Save Settings Button
                 Button(
                     onClick = {
@@ -525,6 +610,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             salaryRepository.setOvertimeMultiplier(selectedOvertimeMultiplier)
                             salaryRepository.setHasMarriageAllowance(switchMarriageAllowance)
                             salaryRepository.setHasBlindPersonsAllowance(switchBlindAllowance)
+                            salaryRepository.setBiometricLockEnabled(switchBiometricLock)
                             inputHourlyRate.toDoubleOrNull()?.let {
                                 salaryRepository.setDefaultHourlyRate(it)
                             }
@@ -554,9 +640,17 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 ) {
                     Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("View Release Notes", style = MaterialTheme.typography.labelLarge)
+                    Text("View Version 5.0 Release Notes", style = MaterialTheme.typography.labelLarge)
                 }
             }
+        }
+
+        // Backup & Restore Modal
+        if (showBackupDialog) {
+            BackupRestoreDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showBackupDialog = false }
+            )
         }
 
         // Employer Profiles Modal
@@ -573,7 +667,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                 onDismissRequest = { showChangelogDialog = false },
                 title = {
                     Text(
-                        text = "Salary Calculator v4.0 Release Notes 🚀",
+                        text = "Salary Calculator v5.0 Release Notes 🚀",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -583,11 +677,11 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                         modifier = Modifier.verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("• Annual P60 End-of-Year Certificate Generator: Official HMRC-styled A4 vector PDF certificate.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Multiple Job & Employer Profiles: Manage and switch between primary, secondary, and freelance jobs.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Statutory Reliefs: Full support for Marriage Allowance (£1,260 transfer) and Blind Person's Allowance (£3,070).", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Vector PDF Payslip Generator & CSV Ledger Exporter.", style = MaterialTheme.typography.bodyMedium)
-                        Text("• Side-by-Side Historical Month Diff & Variance Tool.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Full Ledger Backup & Restore: Cloud JSON export & import.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Shift Timesheet Stopwatch: Real-time punch clock timer.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• High Income Child Benefit Charge Calculator: UK £60k–£80k taper analysis.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Biometric & Device PIN Privacy Lock.", style = MaterialTheme.typography.bodyMedium)
+                        Text("• Annual P60 End-of-Year Certificate Generator.", style = MaterialTheme.typography.bodyMedium)
                     }
                 },
                 confirmButton = {

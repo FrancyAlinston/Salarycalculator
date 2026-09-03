@@ -64,6 +64,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
 
     var showSaveDialog by remember { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
+    var showChildBenefitDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -161,13 +162,21 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             activeProfileName = activeProfile?.name,
                             onProfileClick = { showProfileDialog = true }
                         )
+                        ShiftStopwatchCard(
+                            salaryRepository = salaryRepository,
+                            onApplyToCalculator = { days, hours ->
+                                daysWorkedInput = if (days > 0) "%.0f".format(days) else "1"
+                                hoursPerDayInput = "%.1f".format(hours)
+                            }
+                        )
                         SchedulePresetsSection(
                             daysWorkedInput = daysWorkedInput,
                             hoursPerDayInput = hoursPerDayInput,
                             onSelect = { days, hours ->
                                 daysWorkedInput = days
                                 hoursPerDayInput = hours
-                            }
+                            },
+                            onChildBenefitClick = { showChildBenefitDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -283,13 +292,21 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             displayedNetAmount = displayedNetAmount,
                             grossPay = grossPay
                         )
+                        ShiftStopwatchCard(
+                            salaryRepository = salaryRepository,
+                            onApplyToCalculator = { days, hours ->
+                                daysWorkedInput = if (days > 0) "%.0f".format(days) else "1"
+                                hoursPerDayInput = "%.1f".format(hours)
+                            }
+                        )
                         SchedulePresetsSection(
                             daysWorkedInput = daysWorkedInput,
                             hoursPerDayInput = hoursPerDayInput,
                             onSelect = { days, hours ->
                                 daysWorkedInput = days
                                 hoursPerDayInput = hours
-                            }
+                            },
+                            onChildBenefitClick = { showChildBenefitDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -468,6 +485,13 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
             ProfileManagerDialog(
                 salaryRepository = salaryRepository,
                 onDismiss = { showProfileDialog = false }
+            )
+        }
+        // Child Benefit Dialog
+        if (showChildBenefitDialog) {
+            ChildBenefitDialog(
+                initialAnnualIncome = report.annualGross,
+                onDismiss = { showChildBenefitDialog = false }
             )
         }
     }
@@ -673,14 +697,27 @@ private fun HeroNetPayCard(
 private fun SchedulePresetsSection(
     daysWorkedInput: String,
     hoursPerDayInput: String,
-    onSelect: (String, String) -> Unit
+    onSelect: (String, String) -> Unit,
+    onChildBenefitClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Schedule Presets",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Schedule Presets",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            AssistChip(
+                onClick = onChildBenefitClick,
+                label = { Text("Child Benefit", style = MaterialTheme.typography.labelSmall) },
+                leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                shape = RoundedCornerShape(10.dp)
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
