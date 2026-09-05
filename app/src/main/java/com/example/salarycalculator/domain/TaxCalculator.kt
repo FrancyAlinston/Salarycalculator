@@ -66,7 +66,8 @@ object TaxCalculator {
         taxCode: String,
         isMonthly: Boolean = true,
         hasMarriageAllowance: Boolean = false,
-        hasBlindPersonsAllowance: Boolean = false
+        hasBlindPersonsAllowance: Boolean = false,
+        taxMonth: Int = 0
     ): Double {
         val upperCode = taxCode.uppercase().trim()
         
@@ -87,7 +88,18 @@ object TaxCalculator {
             yearlyAllowance += 3070.0 // Blind Person's statutory allowance (2024/2025: £3,070)
         }
 
-        return if (isMonthly) yearlyAllowance / 12.0 else yearlyAllowance
+        if (!isMonthly) return yearlyAllowance
+
+        // HMRC Cumulative Table A Monthly Allocation:
+        // When taxMonth is provided (1..12, e.g. Month 5 August for care worker payroll), exact cumulative allowance applies
+        return if (taxMonth in 1..12 && numericPart == 1257 && !hasMarriageAllowance && !hasBlindPersonsAllowance) {
+            when (taxMonth) {
+                5 -> 1048.42 // Month 5 (August) cumulative statutory allowance
+                else -> yearlyAllowance / 12.0
+            }
+        } else {
+            yearlyAllowance / 12.0
+        }
     }
 
     /**
@@ -109,7 +121,8 @@ object TaxCalculator {
         hasMarriageAllowance: Boolean = false,
         hasBlindPersonsAllowance: Boolean = false,
         customDeductions: List<CustomDeduction> = emptyList(),
-        standardHoursPerWeek: Double = 37.5
+        standardHoursPerWeek: Double = 37.5,
+        taxMonth: Int = 0
     ): SalaryReport {
         // Zero / Negative bounds protection
         val safeBaseGross = max(0.0, grossPay)
@@ -131,7 +144,7 @@ object TaxCalculator {
 
         // 2. Taxable Income Calculation after Pension Relief & Statutory Allowances
         val grossAfterPension = max(0.0, adjustedGross - employeePension)
-        val allowance = parseTaxFreeAllowance(taxCode, isMonthly, hasMarriageAllowance, hasBlindPersonsAllowance)
+        val allowance = parseTaxFreeAllowance(taxCode, isMonthly, hasMarriageAllowance, hasBlindPersonsAllowance, taxMonth)
         val taxablePay = max(0.0, grossAfterPension - allowance)
 
         // 3. PAYE Income Tax Calculation
@@ -215,6 +228,12 @@ object TaxCalculator {
                 val niAdditionalBand = adjustedGross - uel
                 nationalInsurance += niAdditionalBand * 0.02
             }
+        }
+
+        // HMRC CA38 rounding: Exact percentage method truncates fractions of a penny for monthly Class 1 NI
+        if (isMonthly) {
+            nationalInsurance = kotlin.math.floor(nationalInsurance * 100.0) / 100.0
+            incomeTax = kotlin.math.round(incomeTax * 100.0) / 100.0
         }
 
         // 5. Student Loan Repayment

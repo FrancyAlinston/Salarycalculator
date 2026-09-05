@@ -206,7 +206,7 @@ class SalaryRepository(private val context: Context) {
     // CRITICAL: DATASTORE_PERSISTENCE
     fun getDefaultHourlyRate(): Flow<Double> {
         return context.dataStore.data.map { preferences ->
-            preferences[DEFAULT_HOURLY_RATE_KEY] ?: 12.71
+            preferences[DEFAULT_HOURLY_RATE_KEY] ?: 12.82
         }
     }
 
@@ -214,6 +214,19 @@ class SalaryRepository(private val context: Context) {
     suspend fun setDefaultHourlyRate(rate: Double) {
         context.dataStore.edit { preferences ->
             preferences[DEFAULT_HOURLY_RATE_KEY] = rate
+            // Synchronize with active/primary employer profile
+            val jsonStr = preferences[EMPLOYER_PROFILES_KEY] ?: ""
+            if (jsonStr.isNotBlank()) {
+                try {
+                    val currentList = json.decodeFromString<List<EmployerProfile>>(jsonStr).toMutableList()
+                    val activeId = preferences[ACTIVE_PROFILE_ID_KEY] ?: "primary_default"
+                    val idx = currentList.indexOfFirst { it.id == activeId }.let { if (it >= 0) it else currentList.indexOfFirst { p -> p.isPrimary } }
+                    if (idx >= 0) {
+                        currentList[idx] = currentList[idx].copy(hourlyRate = rate)
+                        preferences[EMPLOYER_PROFILES_KEY] = json.encodeToString(currentList)
+                    }
+                } catch (_: Exception) {}
+            }
         }
     }
 
@@ -357,7 +370,7 @@ class SalaryRepository(private val context: Context) {
     // CRITICAL: DATASTORE_PERSISTENCE
     fun getPensionRate(): Flow<Double> {
         return context.dataStore.data.map { preferences ->
-            preferences[PENSION_RATE_KEY] ?: 5.0
+            preferences[PENSION_RATE_KEY] ?: 0.0
         }
     }
 
@@ -433,6 +446,8 @@ class SalaryRepository(private val context: Context) {
     fun getEmployerProfiles(): Flow<List<EmployerProfile>> {
         return context.dataStore.data.map { preferences ->
             val jsonStr = preferences[EMPLOYER_PROFILES_KEY] ?: ""
+            val defRate = preferences[DEFAULT_HOURLY_RATE_KEY] ?: 12.82
+            val defHours = preferences[DEFAULT_HOURS_PER_DAY_KEY] ?: 12.0
             if (jsonStr.isBlank()) {
                 listOf(
                     EmployerProfile(
@@ -440,7 +455,8 @@ class SalaryRepository(private val context: Context) {
                         name = "Primary Employment",
                         employerName = "Main Employer",
                         taxCode = "1257L",
-                        hourlyRate = 12.71,
+                        hourlyRate = defRate,
+                        hoursPerDay = defHours,
                         isPrimary = true
                     )
                 )
@@ -454,7 +470,8 @@ class SalaryRepository(private val context: Context) {
                             name = "Primary Employment",
                             employerName = "Main Employer",
                             taxCode = "1257L",
-                            hourlyRate = 12.71,
+                            hourlyRate = defRate,
+                            hoursPerDay = defHours,
                             isPrimary = true
                         )
                     )
@@ -672,7 +689,7 @@ class SalaryRepository(private val context: Context) {
     // CRITICAL: DATASTORE_PERSISTENCE
     fun getDefaultHoursPerDay(): Flow<Double> {
         return context.dataStore.data.map { preferences ->
-            preferences[DEFAULT_HOURS_PER_DAY_KEY] ?: 8.0
+            preferences[DEFAULT_HOURS_PER_DAY_KEY] ?: 12.0
         }
     }
 
@@ -680,6 +697,19 @@ class SalaryRepository(private val context: Context) {
     suspend fun setDefaultHoursPerDay(hours: Double) {
         context.dataStore.edit { preferences ->
             preferences[DEFAULT_HOURS_PER_DAY_KEY] = hours
+            // Synchronize with active/primary employer profile
+            val jsonStr = preferences[EMPLOYER_PROFILES_KEY] ?: ""
+            if (jsonStr.isNotBlank()) {
+                try {
+                    val currentList = json.decodeFromString<List<EmployerProfile>>(jsonStr).toMutableList()
+                    val activeId = preferences[ACTIVE_PROFILE_ID_KEY] ?: "primary_default"
+                    val idx = currentList.indexOfFirst { it.id == activeId }.let { if (it >= 0) it else currentList.indexOfFirst { p -> p.isPrimary } }
+                    if (idx >= 0) {
+                        currentList[idx] = currentList[idx].copy(hoursPerDay = hours)
+                        preferences[EMPLOYER_PROFILES_KEY] = json.encodeToString(currentList)
+                    }
+                } catch (_: Exception) {}
+            }
         }
     }
 

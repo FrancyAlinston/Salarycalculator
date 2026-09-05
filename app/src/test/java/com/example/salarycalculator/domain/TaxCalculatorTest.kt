@@ -771,6 +771,33 @@ class TaxCalculatorTest {
         assertEquals(75640.0, evalLondon.adjustedP50, 0.01)
         assertTrue(evalLondon.percentileRank < 50) // £62k is below median in London
     }
+
+    @Test
+    fun calculateTax_careWorkerAugustPayslipExactMatch() {
+        // 16 shifts of 12h = 192.0h @ £12.82/hr = £2,461.44 Gross
+        // Tax code: 1257L, Month 5 (August), Pension Opted Out (0%), Student Loan: None
+        val gross = 16 * 12.0 * 12.82
+        assertEquals(2461.44, gross, 0.001)
+
+        val report = TaxCalculator.calculateTax(
+            grossPay = gross,
+            taxCode = "1257L",
+            isMonthly = true,
+            region = TaxRegion.UK_STANDARD,
+            taxYear = TaxYear.YEAR_2024_2025,
+            pensionRatePercent = 0.0,
+            studentLoanPlan = StudentLoanPlan.NONE,
+            taxMonth = 5 // Month 5 (August)
+        )
+
+        // Exact match with user's August care worker payslip to the penny:
+        assertEquals(2461.44, report.grossPay, 0.01)
+        assertEquals(1413.02, report.taxablePay, 0.01) // £2,461.44 - £1,048.42
+        assertEquals(282.60, report.incomeTax, 0.01)  // £1,413.02 * 20% = £282.60
+        assertEquals(113.07, report.nationalInsurance, 0.01) // (£2,461.44 - £1,048.00) * 8% = £113.0752 -> £113.07
+        assertEquals(0.00, report.pensionContribution, 0.01) // Opted out
+        assertEquals(2065.77, report.netPay, 0.01)    // £2,461.44 - £282.60 - £113.07 = £2,065.77
+    }
 }
 
 

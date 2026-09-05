@@ -457,21 +457,80 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(Icons.Outlined.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("Pension & Student Loan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text("Workplace Pension & Student Loan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        // Pension Opt-Out / Status Card
+                        val currentPensionVal = inputPensionRate.toDoubleOrNull() ?: 0.0
+                        Surface(
+                            color = if (currentPensionVal == 0.0) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    if (currentPensionVal == 0.0) Icons.Default.CheckCircle else Icons.Outlined.Info,
+                                    contentDescription = null,
+                                    tint = if (currentPensionVal == 0.0) androidx.compose.ui.graphics.Color(0xFF059669) else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = if (currentPensionVal == 0.0) "Pension Status: Opted Out" else "Pension Status: Enrolled ($currentPensionVal%)",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = if (currentPensionVal == 0.0) "Zero pension will be deducted from your payslip." else "Statutory auto-enrolment standard is 5% employee / 3% employer.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
                         }
 
                         OutlinedTextField(
                             value = inputPensionRate,
                             onValueChange = { inputPensionRate = it },
                             label = { Text("Employee Pension Contribution (%)") },
-                            placeholder = { Text("e.g. 5.0") },
+                            placeholder = { Text("e.g. 0.0 or 5.0") },
                             suffix = { Text("%") },
-                            supportingText = { Text("Auto-enrolment standard is 5% employee / 3% employer") },
+                            supportingText = { Text("Set to 0.0% if you have opted out of the workplace pension") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
+
+                        // Quick Pension Presets with Opt-Out
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(
+                                0.0 to "0% (Opted Out)",
+                                3.0 to "3% (Statutory Min)",
+                                5.0 to "5% (Standard)",
+                                8.0 to "8%",
+                                10.0 to "10%"
+                            ).forEach { (rate, label) ->
+                                FilterChip(
+                                    selected = currentPensionVal == rate,
+                                    onClick = {
+                                        inputPensionRate = rate.toString()
+                                        scope.launch { salaryRepository.setPensionRate(rate) }
+                                    },
+                                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+                        }
 
                         // Student Loan Plan Selector
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -485,7 +544,10 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                 StudentLoanPlan.entries.forEach { plan ->
                                     FilterChip(
                                         selected = selectedStudentLoan == plan,
-                                        onClick = { selectedStudentLoan = plan },
+                                        onClick = {
+                                            selectedStudentLoan = plan
+                                            scope.launch { salaryRepository.setStudentLoanPlan(plan) }
+                                        },
                                         label = { Text(if (plan == StudentLoanPlan.NONE) "No Loan" else plan.name.replace("_", " ")) },
                                         shape = RoundedCornerShape(10.dp)
                                     )
@@ -495,7 +557,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                     }
                 }
 
-                // 5. Default Wage & Overtime Multiplier Card
+                // 5. Default Wage & Shift Parameters Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
@@ -511,14 +573,20 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(Icons.Outlined.Payments, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("Default Wage & Overtime", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            Text("Static Employment Wage & Shifts", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         }
+
+                        Text(
+                            text = "Set your standard hourly rate and typical shift length once here. The Home calculator uses these static settings automatically.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
                         OutlinedTextField(
                             value = inputHourlyRate,
                             onValueChange = { inputHourlyRate = it },
-                            label = { Text("Default Hourly Rate (£)") },
-                            placeholder = { Text("e.g. 12.71") },
+                            label = { Text("Standard Hourly Rate (£)") },
+                            placeholder = { Text("e.g. 12.82") },
                             prefix = { Text("£ ") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             shape = RoundedCornerShape(14.dp),
@@ -534,37 +602,54 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             SuggestionChip(
-                                onClick = { inputHourlyRate = "12.21" },
+                                onClick = {
+                                    inputHourlyRate = "12.82"
+                                    scope.launch { salaryRepository.setDefaultHourlyRate(12.82) }
+                                },
+                                label = { Text("£12.82 (Care Worker)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            SuggestionChip(
+                                onClick = {
+                                    inputHourlyRate = "12.21"
+                                    scope.launch { salaryRepository.setDefaultHourlyRate(12.21) }
+                                },
                                 label = { Text("£12.21 (Living Wage)") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                             SuggestionChip(
-                                onClick = { inputHourlyRate = "12.60" },
+                                onClick = {
+                                    inputHourlyRate = "12.60"
+                                    scope.launch { salaryRepository.setDefaultHourlyRate(12.60) }
+                                },
                                 label = { Text("£12.60 (Real Living)") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                             SuggestionChip(
-                                onClick = { inputHourlyRate = "13.85" },
+                                onClick = {
+                                    inputHourlyRate = "13.85"
+                                    scope.launch { salaryRepository.setDefaultHourlyRate(13.85) }
+                                },
                                 label = { Text("£13.85 (London)") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                         }
 
-                        // Base Hours per Day Setting
+                        // Base Hours per Day / Shift Setting
                         OutlinedTextField(
                             value = inputHoursPerDay,
                             onValueChange = { inputHoursPerDay = it },
-                            label = { Text("Base Hours per Working Day (h)") },
-                            placeholder = { Text("e.g. 8.0") },
-                            suffix = { Text("hrs/day") },
-                            supportingText = { Text("Default shift length used across calendar and wage generators") },
+                            label = { Text("Standard Shift Length (Hours per Job/Shift)") },
+                            placeholder = { Text("e.g. 12.0") },
+                            suffix = { Text("hrs/shift") },
+                            supportingText = { Text("e.g. 12.0h for care worker shift, 8.0h for standard full-time") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
 
-                        // Quick Hours Presets
+                        // Quick Shift Hours Presets
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -572,23 +657,35 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             SuggestionChip(
-                                onClick = { inputHoursPerDay = "7.5" },
-                                label = { Text("7.5h (Standard Office)") },
+                                onClick = {
+                                    inputHoursPerDay = "12.0"
+                                    scope.launch { salaryRepository.setDefaultHoursPerDay(12.0) }
+                                },
+                                label = { Text("12.0h (Care / Long Shift)") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                             SuggestionChip(
-                                onClick = { inputHoursPerDay = "8.0" },
-                                label = { Text("8.0h (Full Time)") },
+                                onClick = {
+                                    inputHoursPerDay = "8.0"
+                                    scope.launch { salaryRepository.setDefaultHoursPerDay(8.0) }
+                                },
+                                label = { Text("8.0h (Standard)") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                             SuggestionChip(
-                                onClick = { inputHoursPerDay = "10.0" },
+                                onClick = {
+                                    inputHoursPerDay = "7.5"
+                                    scope.launch { salaryRepository.setDefaultHoursPerDay(7.5) }
+                                },
+                                label = { Text("7.5h (Office)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            SuggestionChip(
+                                onClick = {
+                                    inputHoursPerDay = "10.0"
+                                    scope.launch { salaryRepository.setDefaultHoursPerDay(10.0) }
+                                },
                                 label = { Text("10.0h (Extended)") },
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            SuggestionChip(
-                                onClick = { inputHoursPerDay = "12.0" },
-                                label = { Text("12.0h (Long/Night)") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                         }

@@ -55,7 +55,8 @@ fun MainNavigation(salaryRepository: SalaryRepository) {
                     ) {
                         CalculatorScreen(
                             salaryRepository = salaryRepository,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            onNavigateToSettings = { rightPaneTab = BookStyleRightTab.SETTINGS }
                         )
                     }
 
@@ -233,7 +234,18 @@ fun MainNavigation(salaryRepository: SalaryRepository) {
                     backStack = backStack,
                     onBack = { backStack.removeLastOrNull() },
                     entryProvider = entryProvider {
-                        entry<Calculator> { CalculatorScreen(salaryRepository, Modifier.padding(padding)) }
+                        entry<Calculator> {
+                            CalculatorScreen(
+                                salaryRepository = salaryRepository,
+                                modifier = Modifier.padding(padding),
+                                onNavigateToSettings = {
+                                    if (currentTab != Settings) {
+                                        backStack.clear()
+                                        backStack.add(Settings)
+                                    }
+                                }
+                            )
+                        }
                         entry<History> { HistoryScreen(salaryRepository, Modifier.padding(padding)) }
                         entry<Settings> { SettingsScreen(salaryRepository, Modifier.padding(padding)) }
                     }

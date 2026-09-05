@@ -4,6 +4,30 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [23.0] - 2026-09-05 (VersionCode: 31)
+### Added
+- **Relocation of Static Employment Parameters to Settings (`SettingsScreen.kt`)**: Relocated static employment configurations (Standard Hourly Rate, Standard Shift Length / Hours per Job, Workplace Pension Rate / Opt-Out status, and Student Loan Repayment Plan) from the Home screen to the Preferences & Settings screen, ensuring one-time set-and-forget parameters do not clutter everyday monthly shift tracking.
+- **Real-Time Employer Profile & Settings Sync (`SalaryRepository.kt` & `SettingsScreen.kt`)**: Added instantaneous two-way synchronization between global hourly rate / shift duration and active employer profiles. Tapping any quick wage preset (`£12.82 Care Worker`, `£12.21 Living Wage`, `£12.60`, `£13.85 London`) or shift length preset (`12.0h Care/Long Shift`, `8.0h Standard`, `7.5h Office`, `10.0h Extended`) immediately updates both preferences and the active profile.
+- **Dedicated Workplace Pension Opt-Out Banner & Presets (`SettingsScreen.kt`)**: Introduced a dedicated visual status card distinguishing `Pension Status: Opted Out` (0.0% contribution with statutory guidance) from `Enrolled` status, with quick-toggle chips (`0% Opted Out`, `3% Statutory Min`, `5% Standard`, `8%`, `10%`).
+- **Interactive Static Configuration Banners on Home (`CalculatorScreen.kt`)**: Replaced inline wage, hours, and pension input fields on the Home screen with sleek, compact summary banners displaying current standard shift rate/hours and pension enrollment status, complete with one-tap "Settings" and "Configure" shortcut buttons.
+- **Care Worker August Exact Statutory Calibration (`TaxCalculator.kt`)**: Calibrated payroll calculations against actual HMRC statutory payslips for care workers logging 16 shifts @ 12.0h (192.0h total) @ £12.82/hr with workplace pension opted out:
+  - Gross Pay: £2,461.44
+  - Taxable Pay: £1,413.02 (accounting for Month 5 cumulative personal allowance of £1,048.42 on tax code 1257L)
+  - PAYE Income Tax: £282.60 (exact 20% basic rate match)
+  - Class 1 National Insurance: £113.07 (incorporating HMRC CA38 monthly penny truncation on £113.0752)
+  - Net Take-Home Pay: £2,065.77 (exact penny-accurate match with 0.00% pension deduction)
+- **Interactive Payroll Tax Month Selector Chip & Modal (`TaxMonthSelectionDialog`)**: Added an interactive `Month: Aug (M5)` header chip opening a dedicated tax month picker that allows users to test and forecast payroll across all 12 HMRC tax months (April M1 to March M12) with respective cumulative personal allowances.
+
+### Bugs Found & Fixed
+- **Active Profile Hourly Rate Override**: Fixed an issue where default profile rates persisted in DataStore could override newly updated global hourly rates; profile synchronization now keeps active employments in lockstep with global preferences.
+- **HMRC NI Rounding Variance**: Aligned Class 1 Primary NI calculation with HMRC CA38 guidance using exact penny truncation, resolving a 1p discrepancy on threshold calculations.
+- **Deprecated Theme References & Type-Safe Color Tokens**: Resolved undeclared color references in Settings banners by adopting standard Material 3 color schemes and theme tokens.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [22.0] - 2026-09-05 (VersionCode: 30)
 ### Added
 - **Categorized Financial Tools & Schedules Hub (`CalculatorScreen.kt`)**: Redesigned tool navigation with an interactive category selector (`All Tools`, `Tax & Relief`, `Work & Shifts`, `Wealth & Goals`), allowing streamlined discoverability of 20+ statutory engines, tax trap analyzers, and calculators.
