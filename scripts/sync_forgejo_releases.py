@@ -111,7 +111,16 @@ def sync_releases():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     apk_dir = os.path.join(project_root, "APKs")
     
-    versions = ["v16.0", "v17.0", "v17.1", "v17.2", "v18.0", "v19.0", "v20.0"]
+    # Auto-discover all versions from APKs directory
+    discovered = []
+    if os.path.exists(apk_dir):
+        for f in os.listdir(apk_dir):
+            if f.startswith("Salarycalculator-v") and f.endswith(".apk") and not f.endswith("-debug.apk"):
+                v = f.replace("Salarycalculator-", "").replace(".apk", "")
+                discovered.append(v)
+    versions = sorted(list(set(discovered)), key=lambda x: [int(p) if p.isdigit() else p for p in x.lstrip('v').split('.')])
+    if not versions:
+        versions = ["v16.0", "v17.0", "v17.1", "v17.2", "v18.0", "v19.0", "v20.0", "v21.0"]
     
     for v in versions:
         release_apk = os.path.join(apk_dir, f"Salarycalculator-{v}.apk")
