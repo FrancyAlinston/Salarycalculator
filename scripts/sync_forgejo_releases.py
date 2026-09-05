@@ -123,22 +123,25 @@ def sync_releases():
         rel = existing_tags.get(v)
         if not rel:
             print(f"Creating release for {v}...")
-            body_text = f"## Salary Calculator {v}\n\n### Downloads & Assets 📦\n- **Stable Release (Production)**: `Salarycalculator.apk`\n- **Debug Build (Development)**: `Salarycalculator-debug.apk`\n\n---\n*Signed and optimized for standalone installation.*"
+            body_text = f"## Salary Calculator {v}\n\n### Downloads & Assets 📦\n- **Stable Release (Production)**: `Salarycalculator-{v}.apk`\n- **Debug Build (Development)**: `Salarycalculator-{v}-debug.apk`\n\n---\n*Signed and optimized for standalone installation.*"
             rel = create_release(token, v, f"Salary Calculator {v}", body_text)
             
         if rel and "id" in rel:
             rel_id = rel["id"]
             existing_assets = {a["name"] for a in rel.get("assets", [])}
             
-            if "Salarycalculator.apk" not in existing_assets and os.path.exists(release_apk):
-                print(f"Uploading Salarycalculator.apk for {v}...")
-                upload_asset(token, rel_id, release_apk, "Salarycalculator.apk")
+            prod_name = f"Salarycalculator-{v}.apk"
+            debug_name = f"Salarycalculator-{v}-debug.apk"
+            
+            if prod_name not in existing_assets and os.path.exists(release_apk):
+                print(f"Uploading {prod_name} for {v}...")
+                upload_asset(token, rel_id, release_apk, prod_name)
                 
-            if "Salarycalculator-debug.apk" not in existing_assets and os.path.exists(debug_apk):
-                print(f"Uploading Salarycalculator-debug.apk for {v}...")
-                upload_asset(token, rel_id, debug_apk, "Salarycalculator-debug.apk")
+            if debug_name not in existing_assets and os.path.exists(debug_apk):
+                print(f"Uploading {debug_name} for {v}...")
+                upload_asset(token, rel_id, debug_apk, debug_name)
                 
-            print(f"✓ {v} release and assets synchronized.")
+            print(f"✓ {v} release and versioned assets synchronized.")
             
     print("All Forgejo releases synchronized successfully.")
     return 0

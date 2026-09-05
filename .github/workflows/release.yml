@@ -33,35 +33,6 @@ jobs:
       - name: Run Unit Tests & Build APKs
         run: ./gradlew test assembleDebug assembleRelease --stacktrace
 
-      - name: Prepare Release Artifacts
-        run: |
-          mkdir -p release-artifacts
-          
-          # Search and copy Release APK
-          RELEASE_APK=$(find app/build/outputs/apk/release/ -name "*.apk" -not -name "*unaligned*" | head -n 1)
-          if [ -n "$RELEASE_APK" ] && [ -f "$RELEASE_APK" ]; then
-            echo "Found Release APK: $RELEASE_APK"
-            cp "$RELEASE_APK" release-artifacts/Salarycalculator.apk
-          else
-            echo "::error::Release APK not found in app/build/outputs/apk/release/"
-            find app/build/outputs/apk/ -type f || true
-            exit 1
-          fi
-
-          # Search and copy Debug APK
-          DEBUG_APK=$(find app/build/outputs/apk/debug/ -name "*.apk" -not -name "*unaligned*" | head -n 1)
-          if [ -n "$DEBUG_APK" ] && [ -f "$DEBUG_APK" ]; then
-            echo "Found Debug APK: $DEBUG_APK"
-            cp "$DEBUG_APK" release-artifacts/Salarycalculator-debug.apk
-          else
-            echo "::error::Debug APK not found in app/build/outputs/apk/debug/"
-            find app/build/outputs/apk/ -type f || true
-            exit 1
-          fi
-
-          echo "Successfully prepared artifacts:"
-          ls -lh release-artifacts/
-
       - name: Extract Semantic Tag & Version
         id: get_version
         run: |
@@ -74,6 +45,36 @@ jobs:
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "Release target tag: ${TAG}"
 
+      - name: Prepare Release Artifacts
+        run: |
+          mkdir -p release-artifacts
+          TAG="${{ steps.get_version.outputs.tag }}"
+          
+          # Search and copy Release APK
+          RELEASE_APK=$(find app/build/outputs/apk/release/ -name "*.apk" -not -name "*unaligned*" | head -n 1)
+          if [ -n "$RELEASE_APK" ] && [ -f "$RELEASE_APK" ]; then
+            echo "Found Release APK: $RELEASE_APK"
+            cp "$RELEASE_APK" "release-artifacts/Salarycalculator-${TAG}.apk"
+          else
+            echo "::error::Release APK not found in app/build/outputs/apk/release/"
+            find app/build/outputs/apk/ -type f || true
+            exit 1
+          fi
+
+          # Search and copy Debug APK
+          DEBUG_APK=$(find app/build/outputs/apk/debug/ -name "*.apk" -not -name "*unaligned*" | head -n 1)
+          if [ -n "$DEBUG_APK" ] && [ -f "$DEBUG_APK" ]; then
+            echo "Found Debug APK: $DEBUG_APK"
+            cp "$DEBUG_APK" "release-artifacts/Salarycalculator-${TAG}-debug.apk"
+          else
+            echo "::error::Debug APK not found in app/build/outputs/apk/debug/"
+            find app/build/outputs/apk/ -type f || true
+            exit 1
+          fi
+
+          echo "Successfully prepared artifacts:"
+          ls -lh release-artifacts/
+
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -82,14 +83,14 @@ jobs:
           body: |
             ## Downloads & Assets 📦
 
-            - **Stable Release (Production)**: [`Salarycalculator.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/${{ steps.get_version.outputs.tag }}/Salarycalculator.apk)
-            - **Debug Version (Development)**: [`Salarycalculator-debug.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/${{ steps.get_version.outputs.tag }}/Salarycalculator-debug.apk)
+            - **Stable Release (Production)**: [`Salarycalculator-${{ steps.get_version.outputs.tag }}.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/${{ steps.get_version.outputs.tag }}/Salarycalculator-${{ steps.get_version.outputs.tag }}.apk)
+            - **Debug Version (Development)**: [`Salarycalculator-${{ steps.get_version.outputs.tag }}-debug.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/${{ steps.get_version.outputs.tag }}/Salarycalculator-${{ steps.get_version.outputs.tag }}-debug.apk)
 
             ---
             *Signed with keystore and optimized for standalone installation.*
           files: |
-            release-artifacts/Salarycalculator.apk
-            release-artifacts/Salarycalculator-debug.apk
+            release-artifacts/Salarycalculator-${{ steps.get_version.outputs.tag }}.apk
+            release-artifacts/Salarycalculator-${{ steps.get_version.outputs.tag }}-debug.apk
           generate_release_notes: true
           make_latest: true
           prerelease: false

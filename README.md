@@ -120,8 +120,8 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 ./gradlew assembleRelease
 ```
 The APKs are generated at:
-- Stable APK: `app/build/outputs/apk/release/Salarycalculator-release.apk` (or `Salarycalculator.apk`)
-- Debug APK: `app/build/outputs/apk/debug/Salarycalculator-debug.apk`
+- Stable Release APK: `APKs/Salarycalculator-v<version>.apk` (packaged from `app/build/outputs/apk/release/`)
+- Debug Development APK: `APKs/Salarycalculator-v<version>-debug.apk` (packaged from `app/build/outputs/apk/debug/`)
 
 ### Run Unit Tests
 ```bash
@@ -133,9 +133,9 @@ The APKs are generated at:
 ## Continuous Integration & Automated Releases (GitHub & Forgejo)
 
 The repository provides continuous delivery workflows and release synchronization for both GitHub and Forgejo:
-- **Mandatory Dual-Platform Release**: Every version release is published simultaneously to both GitHub and Forgejo with signed production and debug APKs attached.
-- **GitHub Actions**: [`.github/workflows/release.yml`](file:///.github/workflows/release.yml) automatically builds signed Release and Debug APKs on push to `main` and creates official GitHub releases on `v*` tags.
-- **Forgejo Actions & API Synchronizer**: [`.forgejo/workflows/release.yaml`](file:///.forgejo/workflows/release.yaml) and [`scripts/sync_forgejo_releases.py`](file:///scripts/sync_forgejo_releases.py) automatically publish release notes and upload APK assets directly to your self-hosted Forgejo instance (`https://forgejo.449100.xyz`).
+- **Mandatory Dual-Platform Release**: Every version release is published simultaneously to both GitHub and Forgejo with version-stamped production (`Salarycalculator-v<version>.apk`) and debug (`Salarycalculator-v<version>-debug.apk`) APKs attached.
+- **GitHub Actions**: [`.github/workflows/release.yml`](file:///.github/workflows/release.yml) automatically builds signed Release and Debug APKs on push to `main` and creates official GitHub releases on `v*` tags with versioned asset attachments.
+- **Forgejo Actions & API Synchronizer**: [`.forgejo/workflows/release.yaml`](file:///.forgejo/workflows/release.yaml) and [`scripts/sync_forgejo_releases.py`](file:///scripts/sync_forgejo_releases.py) automatically publish release notes and upload versioned APK assets directly to your self-hosted Forgejo instance (`https://forgejo.449100.xyz`).
 - **Forgejo `act_runner` CI/CD**: Containerized turn-key runner package located in [`ci/forgejo-runner/`](file:///ci/forgejo-runner/) for on-premise builds.
 
 ---
