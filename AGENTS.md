@@ -98,6 +98,10 @@ These rules define the mandatory behavioral constraints, development workflows, 
 
 ## 5. Testing & Verification Standards (`@rules:mandatory_post_implementation_testing_and_full_verification`)
 
+- **Mandatory Emulator & Live UI Verification (`@rules:mandatory_emulator_verification_and_ui_inspection`)**:
+  - Whenever changes are made, the agent MUST install and launch the build on the Android emulator (`adb install -r ...` and `adb shell am start ...`).
+  - The agent MUST actively inspect the live running app for glitches, alignment issues, layout overflow, truncated text, touch target clipping, and runtime logcat exceptions.
+  - Verify that screens render cleanly in both portrait and landscape/foldable modes with edge-to-edge system insets properly observed.
 - **Post-Implementation Functional Testing**:
   - Upon finishing any new implementation, bugfix, or refactoring, the agent MUST always test that the changes work exactly as intended across all screen orientations and states.
 - **Periodic Full-Battery Tax Engine Verification**:
