@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Comprehensive v17.0 Unit Test Suite (`PayScheduleEngineTest.kt`)**: 100% automated test coverage validating 12-month Last Friday & Sunday cutoff schedules for 2025/2026, shift splitting accuracy, and `.ics` RFC 5545 format compliance.
 
 ### Bugs Found & Fixed
+- **Adaptive Launcher Icon Zoom & Mask Clipping**: Re-engineered adaptive foreground layer across all density buckets (`mipmap-mdpi` through `mipmap-xxxhdpi`) to strictly fit within the Android 62% (67dp) safe zone, eliminating launcher edge clipping and over-zooming on installed home screens.
 - **Material 3 AutoMirrored Icon Compatibility**: Replaced deprecated `Icons.Filled.TrendingUp` references in `CapitalGainsDialog.kt` with `Icons.AutoMirrored.Filled.TrendingUp`.
 - **iCalendar Exporter DateFormatSymbols Import**: Fixed missing `java.text.DateFormatSymbols` import in `IcsCalendarExporter.kt`.
 
