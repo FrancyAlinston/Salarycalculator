@@ -129,6 +129,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showUmbrellaPayrollDialog by remember { mutableStateOf(false) }
     var showTaxFreeChildcareDialog by remember { mutableStateOf(false) }
     var showOvertimeBracketDialog by remember { mutableStateOf(false) }
+    var showHicbcDialog by remember { mutableStateOf(false) }
+    var showMultiCurrencyDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -267,7 +269,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onMultiJobClick = { showMultiJobDialog = true },
                             onUmbrellaClick = { showUmbrellaPayrollDialog = true },
                             onTaxFreeChildcareClick = { showTaxFreeChildcareDialog = true },
-                            onOvertimeBracketClick = { showOvertimeBracketDialog = true }
+                            onOvertimeBracketClick = { showOvertimeBracketDialog = true },
+                            onHicbcClick = { showHicbcDialog = true },
+                            onMultiCurrencyClick = { showMultiCurrencyDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -464,7 +468,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onMultiJobClick = { showMultiJobDialog = true },
                             onUmbrellaClick = { showUmbrellaPayrollDialog = true },
                             onTaxFreeChildcareClick = { showTaxFreeChildcareDialog = true },
-                            onOvertimeBracketClick = { showOvertimeBracketDialog = true }
+                            onOvertimeBracketClick = { showOvertimeBracketDialog = true },
+                            onHicbcClick = { showHicbcDialog = true },
+                            onMultiCurrencyClick = { showMultiCurrencyDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -936,6 +942,32 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showOvertimeBracketDialog = false }
             )
         }
+        // High Income Child Benefit Charge (HICBC) Dialog
+        if (showHicbcDialog) {
+            HicbcDialog(
+                initialGrossAnnual = report.annualGross,
+                onDismissRequest = { showHicbcDialog = false },
+                onApplyPensionSacrifice = { sacrificeAnnual ->
+                    val monthlySacrifice = sacrificeAnnual / 12.0
+                    salarySacrificeInput = String.format("%.2f", monthlySacrifice)
+                }
+            )
+        }
+        // Company Car & EV Benefit-in-Kind (BiK) Dialog
+        if (showCompanyCarDialog) {
+            CompanyCarBikDialog(
+                initialGrossAnnual = report.annualGross,
+                onDismissRequest = { showCompanyCarDialog = false }
+            )
+        }
+        // Multi-Currency Converter Dialog
+        if (showMultiCurrencyDialog) {
+            MultiCurrencyConverterDialog(
+                annualNetTakeHomeGbp = report.annualNet,
+                annualGrossGbp = report.annualGross,
+                onDismissRequest = { showMultiCurrencyDialog = false }
+            )
+        }
     }
 }
 
@@ -1191,7 +1223,9 @@ private fun SchedulePresetsSection(
     onMultiJobClick: () -> Unit = {},
     onUmbrellaClick: () -> Unit = {},
     onTaxFreeChildcareClick: () -> Unit = {},
-    onOvertimeBracketClick: () -> Unit = {}
+    onOvertimeBracketClick: () -> Unit = {},
+    onHicbcClick: () -> Unit = {},
+    onMultiCurrencyClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -1205,6 +1239,24 @@ private fun SchedulePresetsSection(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            AssistChip(
+                onClick = onHicbcClick,
+                label = { Text("HICBC Child Benefit", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onCompanyCarClick,
+                label = { Text("EV Company Car BiK", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.ElectricCar, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onMultiCurrencyClick,
+                label = { Text("Currency Converter", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.Public, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
+            )
             AssistChip(
                 onClick = onTaxFreeChildcareClick,
                 label = { Text("Tax-Free Childcare (£2k)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },

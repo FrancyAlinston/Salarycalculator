@@ -4,14 +4,17 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [20.0] - 2026-09-05 (VersionCode: 28)
+## [21.0] - 2026-09-05 (VersionCode: 29)
 ### Added
-- **HMRC Tax-Free Childcare & 30-Hours Subsidy Engine (`TaxFreeChildcareEngine.kt` & `TaxFreeChildcareDialog.kt`)**: Statutory childcare funding calculator modeling 20% government top-ups (up to £2,000/yr per child or £4,000 disabled), 30-hours / 15-hours free childcare funding equivalents, and the £100,000 Adjusted Net Income cliff-edge. Features automated pension salary sacrifice remedy calculation to restore full entitlement and calculate net ROI.
-- **Overtime Tax Bracket Headroom & Threshold Monitor (`OvertimeBracketEngine.kt` & `OvertimeBracketDialog.kt`)**: Real-time tax bracket capacity monitor computing exact remaining headroom in pounds (£) and safe monthly overtime hours before crossing the 40% Higher Rate band (£50,270) or 60% Marginal Tax Trap (£100,000). Features 1-tap pension sacrifice recommendations.
-- **Comprehensive v20.0 Automated Unit Test Suite (`TaxFreeChildcareEngineTest.kt` & `OvertimeBracketEngineTest.kt`)**: 100% test coverage validating £2,000/child top-ups, £4,000 disabled caps, £100k cliff-edge benefit drops, higher rate headroom math, and overtime capacity algorithms.
+- **High Income Child Benefit Charge (HICBC) Taper Engine (`HicbcEngine.kt` & `HicbcDialog.kt`)**: Statutory UK 2024/2025–2025/2026 reformed HICBC calculation engine modeling the £60,000–£80,000 Adjusted Net Income (ANI) taper band. Computes exact statutory Child Benefit (£25.60/wk first child, £16.95/wk additional children), clawback percentages (1% per £200), and automated Pension Salary Sacrifice Remedy to restore 100% of Child Benefit and eliminate tax charges.
+- **Salary Sacrifice Company Car & EV Benefit-in-Kind (BiK) Calculator (`CompanyCarBikEngine.kt` & `CompanyCarBikDialog.kt`)**: Comprehensive company vehicle lease savings calculator supporting Pure Electric (EV 2%–5%), PHEV, and ICE powertrains across 2024/25 through 2027/28 tax years. Evaluates gross monthly salary sacrifice vs 20%/40%/45% Income Tax and 8%/2% NI savings, monthly Class 1A BiK tax charges, net take-home salary impact, and comparative savings vs private personal contract hire (PCH).
+- **Dynamic Multi-Currency Salary Converter (`MultiCurrencyConverterEngine.kt` & `MultiCurrencyConverterDialog.kt`)**: Instant global currency conversion engine translating UK net take-home salary and gross earnings into 10 major global currencies (EUR, USD, CAD, AUD, JPY, CHF, SGD, INR, NZD, AED) across Annual, Monthly, 4-Weekly, Bi-Weekly, Weekly, Daily, and Hourly horizons.
+- **Fastlane Store Metadata & High-Res App Assets (`fastlane/metadata/android/`)**: Full Fastlane store listing structure with `en-GB` and `en-US` titles, short/full descriptions, 512x512 app icon, and 1024x500 store graphic.
+- **F-Droid Package Recipe & Privacy Policy (`fdroid/com.example.salarycalculator.yml` & `PRIVACY_POLICY.md`)**: Complete F-Droid YAML build recipe and comprehensive open-source privacy policy.
+- **Comprehensive v21.0 Automated Unit Test Suite (`HicbcEngineTest.kt`, `CompanyCarBikEngineTest.kt`, `MultiCurrencyConverterEngineTest.kt`)**: 100% test coverage validating HICBC clawback mathematics, EV BiK rate progressions, and multi-currency conversions.
 
 ### Bugs Found & Fixed
-- **Overtime Multiplier Chip Horizontal Wrapping**: Fixed multiplier chip wrapping on narrow screens by adding `horizontalScroll(rememberScrollState())` to `OvertimeBracketDialog.kt`.
+- **BiK Tax Year Enum Collision**: Renamed vehicle tax year enum to `BikTaxYear` to avoid namespace collision with core payroll `TaxYear`.
 
 ### What Needs to Be Fixed / Pending
 - Dynamic live exchange rate streaming for crypto/fiat pairs.
