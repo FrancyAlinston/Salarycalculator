@@ -60,6 +60,10 @@ fun ShiftCalendarDialog(
     val fullMonthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
     val dayOfWeekLabels = remember { listOf("M", "T", "W", "T", "F", "S", "S") }
 
+    val employerProfiles by (salaryRepository?.getEmployerProfiles() ?: flowOf(emptyList())).collectAsState(initial = emptyList())
+    val shiftAssignments by (salaryRepository?.getShiftEmployerAssignments() ?: flowOf(emptyMap())).collectAsState(initial = emptyMap())
+    var selectedEmployerFilterId by remember { mutableStateOf<String?>(null) }
+
     // Multi-Year Persistent Shift Store: Key = "$year-$month" -> Map(Day -> Hours)
     val multiYearShifts = remember { mutableStateMapOf<String, MutableMap<Int, Double>>() }
 
@@ -370,6 +374,36 @@ fun ShiftCalendarDialog(
                     }
                 }
 
+                // Multi-Employer Filter & Assignment Bar (if multiple profiles exist)
+                if (employerProfiles.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilterChip(
+                            selected = selectedEmployerFilterId == null,
+                            onClick = { selectedEmployerFilterId = null },
+                            label = { Text("All Employers (${employerProfiles.size})", style = MaterialTheme.typography.labelSmall) }
+                        )
+                        employerProfiles.forEach { profile ->
+                            val isSelected = selectedEmployerFilterId == profile.id
+                            val pColor = try {
+                                Color(android.graphics.Color.parseColor(profile.colorHex))
+                            } catch (_: Exception) { Teal60 }
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedEmployerFilterId = if (isSelected) null else profile.id },
+                                label = { Text(profile.name.ifBlank { "Employer" }, style = MaterialTheme.typography.labelSmall) },
+                                leadingIcon = {
+                                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(pColor))
+                                }
+                            )
+                        }
+                    }
+                }
+
                 // 2. Color Legend Row
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -555,6 +589,12 @@ fun ShiftCalendarDialog(
                                         else -> defaultLabel
                                     }
 
+                                    val assignedEmployerId = shiftAssignments["$selectedYear-$selectedMonth-$dayNum"]
+                                    val assignedProfile = employerProfiles.find { it.id == assignedEmployerId }
+                                    val profileColor = if (assignedProfile != null) {
+                                        try { Color(android.graphics.Color.parseColor(assignedProfile.colorHex)) } catch (_: Exception) { null }
+                                    } else null
+
                                     Box(
                                         modifier = Modifier
                                             .size(38.dp)
@@ -571,6 +611,11 @@ fun ShiftCalendarDialog(
                                                 }
                                                 if (next > 0.0) {
                                                     currentMonthMap[dayNum] = next
+                                                    if (selectedEmployerFilterId != null && salaryRepository != null) {
+                                                        scope.launch {
+                                                            salaryRepository.setShiftEmployerAssignment("$selectedYear-$selectedMonth-$dayNum", selectedEmployerFilterId!!)
+                                                        }
+                                                    }
                                                 } else {
                                                     currentMonthMap.remove(dayNum)
                                                 }
@@ -578,6 +623,16 @@ fun ShiftCalendarDialog(
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
+                                        if (profileColor != null && hours > 0.0) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .align(Alignment.TopEnd)
+                                                    .padding(top = 2.dp, end = 2.dp)
+                                                    .clip(CircleShape)
+                                                    .background(profileColor)
+                                            )
+                                        }
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                             Text(
                                                 text = "$dayNum",

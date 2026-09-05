@@ -60,6 +60,7 @@ class SalaryRepository(private val context: Context) {
     private val PAY_SCHEDULE_FIXED_DAY_KEY = intPreferencesKey("pay_schedule_fixed_day")
     private val PAY_SCHEDULE_CUTOFF_LEAD_DAYS_KEY = intPreferencesKey("pay_schedule_cutoff_lead_days")
     private val DEFAULT_HOURS_PER_DAY_KEY = doublePreferencesKey("default_hours_per_day")
+    private val EMPLOYER_SHIFT_ASSIGNMENTS_KEY = stringPreferencesKey("employer_shift_assignments_json")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -707,6 +708,47 @@ class SalaryRepository(private val context: Context) {
                     emptyMap()
                 }
             }
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getShiftEmployerAssignments(): Flow<Map<String, String>> {
+        return context.dataStore.data.map { preferences ->
+            val jsonStr = preferences[EMPLOYER_SHIFT_ASSIGNMENTS_KEY] ?: ""
+            if (jsonStr.isBlank()) {
+                emptyMap()
+            } else {
+                try {
+                    json.decodeFromString<Map<String, String>>(jsonStr)
+                } catch (_: Exception) {
+                    emptyMap()
+                }
+            }
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setShiftEmployerAssignment(dateKey: String, employerId: String) {
+        context.dataStore.edit { preferences ->
+            val jsonStr = preferences[EMPLOYER_SHIFT_ASSIGNMENTS_KEY] ?: ""
+            val currentMap = if (jsonStr.isBlank()) {
+                mutableMapOf()
+            } else {
+                try {
+                    json.decodeFromString<Map<String, String>>(jsonStr).toMutableMap()
+                } catch (_: Exception) {
+                    mutableMapOf()
+                }
+            }
+            currentMap[dateKey] = employerId
+            preferences[EMPLOYER_SHIFT_ASSIGNMENTS_KEY] = json.encodeToString(currentMap)
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun saveShiftEmployerAssignments(assignments: Map<String, String>) {
+        context.dataStore.edit { preferences ->
+            preferences[EMPLOYER_SHIFT_ASSIGNMENTS_KEY] = json.encodeToString(assignments)
         }
     }
 }

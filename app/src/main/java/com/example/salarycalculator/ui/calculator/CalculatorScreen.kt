@@ -124,6 +124,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showSelfEmployedDialog by remember { mutableStateOf(false) }
     var showGiftAidDialog by remember { mutableStateOf(false) }
     var showCapitalGainsDialog by remember { mutableStateOf(false) }
+    var showOvertimeOptimizerDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -257,7 +258,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onPayslipOcrClick = { showPayslipImportDialog = true },
                             onDirectorTaxClick = { showDirectorDividendDialog = true },
                             onYtdProjectionClick = { showYtdProjectionDialog = true },
-                            onSalaryBenchmarkClick = { showSalaryBenchmarkDialog = true }
+                            onSalaryBenchmarkClick = { showSalaryBenchmarkDialog = true },
+                            onOvertimeOptimizerClick = { showOvertimeOptimizerDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -449,7 +451,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onStudentLoanPayoffClick = { showStudentLoanPayoffDialog = true },
                             onSelfEmployedClick = { showSelfEmployedDialog = true },
                             onGiftAidClick = { showGiftAidDialog = true },
-                            onCapitalGainsClick = { showCapitalGainsDialog = true }
+                            onCapitalGainsClick = { showCapitalGainsDialog = true },
+                            onOvertimeOptimizerClick = { showOvertimeOptimizerDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -874,6 +877,24 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showCapitalGainsDialog = false }
             )
         }
+        // Overtime Tax-Efficiency & Marginal Return Optimizer Dialog
+        if (showOvertimeOptimizerDialog) {
+            val baseHourly = activeProfile?.hourlyRate ?: defaultHourlyRate
+            val standardMonthlyBase = (daysWorked * hoursPerDay * baseHourly)
+            OvertimeTaxOptimizerDialog(
+                baseGrossMonthly = standardMonthlyBase,
+                baseHourlyRate = baseHourly,
+                taxCode = taxCode,
+                taxRegion = taxRegion,
+                taxYear = taxYear,
+                pensionRate = selectedPensionPercent,
+                studentLoanPlan = selectedStudentLoan,
+                hasMarriageAllowance = hasMarriageAllowance,
+                hasBlindPersonsAllowance = hasBlindPersonsAllowance,
+                defaultOvertimeMultiplier = selectedOvertimeMultiplier,
+                onDismiss = { showOvertimeOptimizerDialog = false }
+            )
+        }
     }
 }
 
@@ -1124,7 +1145,8 @@ private fun SchedulePresetsSection(
     onStudentLoanPayoffClick: () -> Unit = {},
     onSelfEmployedClick: () -> Unit = {},
     onGiftAidClick: () -> Unit = {},
-    onCapitalGainsClick: () -> Unit = {}
+    onCapitalGainsClick: () -> Unit = {},
+    onOvertimeOptimizerClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -1138,6 +1160,12 @@ private fun SchedulePresetsSection(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            AssistChip(
+                onClick = onOvertimeOptimizerClick,
+                label = { Text("Overtime Optimizer", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                shape = RoundedCornerShape(10.dp)
+            )
             AssistChip(
                 onClick = onSandboxClick,
                 label = { Text("What-If Sandbox", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },

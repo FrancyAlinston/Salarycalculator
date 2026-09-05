@@ -15,5 +15,6 @@ data class EmployerProfile(
     val pensionRate: Double = 5.0,
     val taxRegion: TaxRegion = TaxRegion.UK_STANDARD,
     val studentLoanPlan: StudentLoanPlan = StudentLoanPlan.NONE,
-    val isPrimary: Boolean = false
+    val isPrimary: Boolean = false,
+    val colorHex: String = "#0D9488"
 )

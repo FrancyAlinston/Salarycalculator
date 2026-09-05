@@ -102,6 +102,8 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - Whenever changes are made, the agent MUST install and launch the build on the Android emulator (`adb install -r ...` and `adb shell am start ...`).
   - The agent MUST actively inspect the live running app for glitches, alignment issues, layout overflow, truncated text, touch target clipping, and runtime logcat exceptions.
   - Verify that screens render cleanly in both portrait and landscape/foldable modes with edge-to-edge system insets properly observed.
+- **Mandatory Emulator Teardown on Completion (`@rules:emulator_auto_close_on_completion`)**:
+  - Once live UI inspection and emulator testing are completed, the agent MUST immediately close the emulator (`adb emu kill` or kill the emulator process) and never leave it running in the background.
 - **Post-Implementation Functional Testing**:
   - Upon finishing any new implementation, bugfix, or refactoring, the agent MUST always test that the changes work exactly as intended across all screen orientations and states.
 - **Periodic Full-Battery Tax Engine Verification**:

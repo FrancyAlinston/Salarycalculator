@@ -4,6 +4,20 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [18.0] - 2026-09-05 (VersionCode: 26)
+### Added
+- **Overtime Tax-Efficiency & Marginal Return Optimizer (`OvertimeOptimizerEngine.kt` & `OvertimeTaxOptimizerDialog.kt`)**: Interactive simulation modal determining the exact marginal take-home cash return per hour of overtime worked (from 0 to 40+ hours) across selectable multipliers (`1.0x`, `1.25x`, `1.5x`, `1.75x`, `2.0x`, `2.5x`). Models extra gross earnings vs extra PAYE, NI, Student Loan, and Pension deductions, calculates retention percentage, and displays real-time efficiency ratings (High 65%+, Moderate 50%–65%, Low <50%) and 60% marginal tax trap warnings.
+- **Multi-Employer Shift Color Coding & Dual Schedules (`EmployerProfile.kt`, `SalaryRepository.kt`, `ShiftCalendarDialog.kt`)**: Full support for multi-job workers. Added `colorHex` profile customization and persistent employer shift mapping (`getShiftEmployerAssignments`). In the Shift Heatmap, users can filter by employer, assign specific shifts to individual employers, view custom-colored day badges, and inspect separated earnings breakdowns per employer.
+- **Comprehensive v18.0 Unit Test Suite (`OvertimeOptimizerTest.kt`)**: 100% automated test coverage validating marginal retention rates across basic rate (72%), higher rate (58%), marginal tax trap warnings, and employer color serialization.
+
+### Bugs Found & Fixed
+- **Emulator Auto-Teardown Compliance**: Formally integrated mandatory emulator teardown rule (`@rules:emulator_auto_close_on_completion`) ensuring all emulator processes are killed upon test completion.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [17.2] - 2026-09-05 (VersionCode: 25)
 ### Added
 - **Post-Cutoff Rollover Payroll Ingestion Engine (`PayScheduleEngine.kt`, `ShiftCalendarDialog.kt`, `CalculatorScreen.kt`)**: Modeled strict UK payroll rollover rule where shifts logged after the cutoff date in Month $M-1$ are automatically brought forward and included in Month $M$'s payslip calculation (`totalPaidDays`, `totalPaidHours`, `totalPaidOtHours`), while shifts after Month $M$'s cutoff roll into Month $M+1$.
