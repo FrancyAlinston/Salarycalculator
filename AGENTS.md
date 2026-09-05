@@ -35,6 +35,7 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - **Statutory Reliefs**:
     - Marriage Allowance: £1,260 transferred personal allowance (£21/month tax reduction).
     - Blind Person's Allowance: £3,070 statutory tax-free personal allowance.
+  - **Pay Schedule & Cutoff Engine**: Standard monthly pay schedule calculates Pay Day as the Last Friday of the month with Timesheet Cutoff Date as the preceding Sunday at 23:59 ($\text{Last Friday} - 5\text{ days}$). Shifts logged after cutoff date roll over into the subsequent month's payslip.
   - **Zero / Negative Bounds Protection**: Taxable pay and deductions must never result in negative tax amounts or negative net pay calculations. Always clamp minimums with `max(0.0, ...)`.
 
 - **Critical Code Annotations**:

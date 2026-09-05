@@ -1,7 +1,9 @@
 package com.example.salarycalculator.ui.calculator
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -24,12 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.salarycalculator.domain.IcsCalendarExporter
-import com.example.salarycalculator.domain.SalaryRepository
+import com.example.salarycalculator.domain.*
 import com.example.salarycalculator.theme.Amber60
 import com.example.salarycalculator.theme.Emerald60
 import com.example.salarycalculator.theme.Rose60
 import com.example.salarycalculator.theme.Teal60
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -126,13 +128,26 @@ fun ShiftCalendarDialog(
         (dow + 5) % 7
     }
 
+    val payScheduleConfigState = salaryRepository?.getPayScheduleConfig()?.collectAsState(initial = PayScheduleConfig())
+    val payScheduleConfig = payScheduleConfigState?.value ?: PayScheduleConfig()
+
+    val payPeriod = remember(selectedYear, selectedMonth, payScheduleConfig) {
+        PayScheduleEngine.calculatePayPeriod(selectedYear, selectedMonth, payScheduleConfig)
+    }
+
     val currentMonthMap = annualShifts.getOrPut(selectedMonth) { mutableStateMapOf() }
+
+    val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), payScheduleConfig) {
+        PayScheduleEngine.calculateShiftPayrollSplit(selectedYear, selectedMonth, currentMonthMap, payScheduleConfig)
+    }
 
     val monthDaysWorked = currentMonthMap.values.count { it > 0 }
     val monthTotalHours = currentMonthMap.values.sum()
     val monthStandardHours = currentMonthMap.values.sumOf { minOf(8.0, it) }
     val monthOvertimeHours = currentMonthMap.values.sumOf { maxOf(0.0, it - 8.0) }
     val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else 8.0
+
+    val inCycleAvgHours = if (payrollSplit.inCycleDays > 0) payrollSplit.inCycleHours / payrollSplit.inCycleDays else 8.0
 
     // Annual Aggregate Calculations
     val annualDaysWorked = annualShifts.values.sumOf { m -> m.values.count { it > 0 } }
@@ -156,7 +171,7 @@ fun ShiftCalendarDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("Annual Shift Heatmap", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Shift Heatmap & Cutoffs", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(
@@ -186,6 +201,18 @@ fun ShiftCalendarDialog(
                         }
                     ) {
                         Icon(Icons.Default.Share, contentDescription = "Export 12-Month .ICS Calendar", tint = MaterialTheme.colorScheme.primary)
+                    }
+
+                    IconButton(
+                        onClick = {
+                            val ics = IcsCalendarExporter.generatePayScheduleIcsContent(
+                                year = selectedYear,
+                                config = payScheduleConfig
+                            )
+                            IcsCalendarExporter.shareIcsFile(context, ics, "Pay_and_Cutoff_Schedule_${selectedYear}.ics")
+                        }
+                    ) {
+                        Icon(Icons.Default.NotificationsActive, contentDescription = "Export Pay & Cutoff Reminders (.ics)", tint = Amber60)
                     }
                 }
             }
@@ -258,37 +285,80 @@ fun ShiftCalendarDialog(
                     }
                 }
 
-                // Monthly Summary Card
+                // Payroll Cutoff & Pay Cycle Banner Card
                 Card(
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Amber60.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "⏰ Cutoff: Sun ${payPeriod.cutoffDay} ${monthNames.getOrElse(selectedMonth - 1) { "" }}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Amber60,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                    )
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Emerald60.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = "💰 Pay: Fri ${payPeriod.payDay} ${monthNames.getOrElse(selectedMonth - 1) { "" }}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Emerald60,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                    )
+                                }
+                            }
+
                             Text(
-                                text = "${monthNames.getOrElse(selectedMonth - 1) { "" }} $selectedYear Summary",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = "$monthDaysWorked days · ${"%.0f".format(monthStandardHours)}h standard · ${"%.0f".format(monthOvertimeHours)}h OT",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = "Rule: ${payScheduleConfig.type.name.take(11)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontSize = 9.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        Column(horizontalAlignment = Alignment.End) {
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "${"%.0f".format(monthTotalHours)} hrs",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
+                                text = "In This Payslip: ${payrollSplit.inCycleDays}d (${"%.0f".format(payrollSplit.inCycleHours)}h) · OT: ${"%.0f".format(payrollSplit.inCycleOtHours)}h",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
                                 color = Emerald60
                             )
+                            if (payrollSplit.rolloverDays > 0) {
+                                Text(
+                                    text = "Rollover: +${payrollSplit.rolloverDays}d (${"%.0f".format(payrollSplit.rolloverHours)}h)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Amber60,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -326,7 +396,11 @@ fun ShiftCalendarDialog(
 
                                 if (dayNum in 1..daysInCurrentMonth) {
                                     val hours = currentMonthMap[dayNum] ?: 0.0
-                                    val (bgColor, textColor, label) = when {
+                                    val isCutoff = (dayNum == payPeriod.cutoffDay && selectedMonth == payPeriod.cutoffMonth && selectedYear == payPeriod.cutoffYear)
+                                    val isPayday = (dayNum == payPeriod.payDay && selectedMonth == payPeriod.payMonth && selectedYear == payPeriod.payYear)
+                                    val isRollover = (dayNum > payPeriod.cutoffDay && selectedMonth == payPeriod.cutoffMonth && selectedYear == payPeriod.cutoffYear)
+
+                                    val (bgColor, textColor, defaultLabel) = when {
                                         hours >= 12.0 -> Triple(Rose60, Color.White, "12h")
                                         hours >= 10.0 -> Triple(Amber60, Color.Black, "10h")
                                         hours >= 8.0 -> Triple(Emerald60, Color.White, "8h")
@@ -334,11 +408,25 @@ fun ShiftCalendarDialog(
                                         else -> Triple(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), MaterialTheme.colorScheme.onSurface, "")
                                     }
 
+                                    val cellBorder = when {
+                                        isPayday -> BorderStroke(2.dp, Emerald60)
+                                        isCutoff -> BorderStroke(2.dp, Amber60)
+                                        else -> null
+                                    }
+
+                                    val cellLabel = when {
+                                        isCutoff && hours == 0.0 -> "Cutoff"
+                                        isPayday && hours == 0.0 -> "Payday"
+                                        isRollover && hours > 0.0 -> "+Roll"
+                                        else -> defaultLabel
+                                    }
+
                                     Box(
                                         modifier = Modifier
                                             .size(38.dp)
                                             .clip(RoundedCornerShape(8.dp))
                                             .background(bgColor)
+                                            .then(if (cellBorder != null) Modifier.border(cellBorder, RoundedCornerShape(8.dp)) else Modifier)
                                             .clickable {
                                                 // Cycle: 0h -> 8h -> 10h -> 12h -> 0h
                                                 val next = when (hours) {
@@ -360,15 +448,16 @@ fun ShiftCalendarDialog(
                                                 text = "$dayNum",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
-                                                color = textColor,
+                                                color = if (cellLabel == "Cutoff") Amber60 else if (cellLabel == "Payday") Emerald60 else textColor,
                                                 fontSize = 11.sp
                                             )
-                                            if (label.isNotEmpty()) {
+                                            if (cellLabel.isNotEmpty()) {
                                                 Text(
-                                                    text = label,
+                                                    text = cellLabel,
                                                     style = MaterialTheme.typography.labelSmall,
-                                                    fontSize = 8.sp,
-                                                    color = textColor
+                                                    fontSize = 7.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (cellLabel == "Cutoff") Amber60 else if (cellLabel == "Payday") Emerald60 else if (cellLabel == "+Roll") Amber60 else textColor
                                                 )
                                             }
                                         }
@@ -494,14 +583,36 @@ fun ShiftCalendarDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    saveSchedule()
-                    onApply(monthDaysWorked.toDouble(), monthAvgHoursPerDay, monthOvertimeHours)
-                    onDismiss()
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (payrollSplit.rolloverDays > 0) {
+                    FilledTonalButton(
+                        onClick = {
+                            saveSchedule()
+                            onApply(monthDaysWorked.toDouble(), monthAvgHoursPerDay, monthOvertimeHours)
+                            onDismiss()
+                        }
+                    ) {
+                        Text("Apply All (${monthDaysWorked}d)")
+                    }
                 }
-            ) {
-                Text("Apply Month (${monthDaysWorked}d · ${"%.1f".format(monthAvgHoursPerDay)}h)")
+                Button(
+                    onClick = {
+                        saveSchedule()
+                        if (payrollSplit.rolloverDays > 0) {
+                            onApply(payrollSplit.inCycleDays.toDouble(), inCycleAvgHours, payrollSplit.inCycleOtHours)
+                        } else {
+                            onApply(monthDaysWorked.toDouble(), monthAvgHoursPerDay, monthOvertimeHours)
+                        }
+                        onDismiss()
+                    }
+                ) {
+                    Text(
+                        if (payrollSplit.rolloverDays > 0)
+                            "Apply Cutoff (${payrollSplit.inCycleDays}d · ${"%.0f".format(payrollSplit.inCycleHours)}h)"
+                        else
+                            "Apply Month (${monthDaysWorked}d · ${"%.1f".format(monthAvgHoursPerDay)}h)"
+                    )
+                }
             }
         },
         dismissButton = {

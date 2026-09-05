@@ -4,6 +4,23 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [17.0] - 2026-09-05 (VersionCode: 23)
+### Added
+- **Payroll Pay Schedule & Cutoff Date Engine (`PayScheduleEngine.kt`)**: Modeled standard UK company pay schedule rules with primary default for **Last Friday of the Month (with preceding Sunday timesheet cutoff)**. Exact calculation of monthly cutoff deadline ($5$ days prior to pay date at 23:59), cycle start dates, and post-cutoff rollover partitioning.
+- **Pay Cycle & Cutoff Visualizer in Shift Calendar (`ShiftCalendarDialog.kt`)**: Color-coded calendar badges for **Cutoff Day** (amber badge & border) and **Payday** (emerald badge & border), visual rollover indicator (`+Roll`) for post-cutoff shifts, payroll summary banner partitioning in-cycle hours vs rolled-over hours, and 1-tap "Apply Cutoff Hours" selector.
+- **Pay Schedule Configuration in Settings (`PayScheduleSettingsDialog.kt` & `SettingsScreen.kt`)**: Dedicated interactive configuration modal supporting selectable employer pay rules (*Last Friday of Month*, *Last Working Day*, *Fixed Day of Month with Lead-Time*, *Four-Weekly*, *Bi-Weekly*, *Calendar Month*) with live preview of upcoming pay & cutoff dates.
+- **Automated Payday & Cutoff iCalendar Export with Alarms (`IcsCalendarExporter.kt`)**: Full-year RFC 5545 `.ics` calendar generation for company paydays and timesheet cutoff deadlines with integrated `VALARM` notifications (cutoff reminder the night before, and morning payday alert with estimated net take-home pay).
+- **Comprehensive v17.0 Unit Test Suite (`PayScheduleEngineTest.kt`)**: 100% automated test coverage validating 12-month Last Friday & Sunday cutoff schedules for 2025/2026, shift splitting accuracy, and `.ics` RFC 5545 format compliance.
+
+### Bugs Found & Fixed
+- **Material 3 AutoMirrored Icon Compatibility**: Replaced deprecated `Icons.Filled.TrendingUp` references in `CapitalGainsDialog.kt` with `Icons.AutoMirrored.Filled.TrendingUp`.
+- **iCalendar Exporter DateFormatSymbols Import**: Fixed missing `java.text.DateFormatSymbols` import in `IcsCalendarExporter.kt`.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [16.0] - 2026-09-03 (VersionCode: 22)
 ### Added
 - **Self-Employed Payments on Account & Balancing Charge Calculator (`SelfEmployedTaxEngine.kt` & `SelfEmployedTaxDialog.kt`)**: Implemented HMRC statutory Self-Assessment calculations including £1,000 Trading Allowance, Class 4 NI (6% main band / 2% upper band), combined PAYE + Self-Employment assessment, and automatic Payments on Account calculation (50% due 31 January, 50% due 31 July) with first-year cash outlay projections.

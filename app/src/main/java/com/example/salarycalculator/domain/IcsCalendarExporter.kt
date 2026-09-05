@@ -5,6 +5,7 @@ import android.content.Intent
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
+import java.text.DateFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -106,6 +107,83 @@ object IcsCalendarExporter {
                     sb.appendLine("END:VEVENT")
                 }
             }
+        }
+
+        sb.appendLine("END:VCALENDAR")
+        return sb.toString()
+    }
+
+    /**
+     * Converts annual Payday and Cutoff deadlines into an RFC 5545 iCalendar (.ics) with alarms/reminders.
+     */
+    fun generatePayScheduleIcsContent(
+        year: Int,
+        config: PayScheduleConfig = PayScheduleConfig(),
+        estimatedNetPay: Double = 0.0
+    ): String {
+        val sb = StringBuilder()
+        sb.appendLine("BEGIN:VCALENDAR")
+        sb.appendLine("VERSION:2.0")
+        sb.appendLine("PRODID:-//SalaryCalculator//PayScheduleCalendar 17.0//EN")
+        sb.appendLine("CALSCALE:GREGORIAN")
+        sb.appendLine("METHOD:PUBLISH")
+
+        val utcFormat = SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+
+        val annualSchedule = PayScheduleEngine.calculateAnnualSchedule(year, config)
+        val monthNames = DateFormatSymbols().months
+
+        annualSchedule.forEach { period ->
+            val monthTitle = monthNames.getOrElse(period.month - 1) { "Month ${period.month}" }
+
+            // 1. Cutoff Event (23:59 on Cutoff Day with 1-day advance alarm)
+            val cutoffCal = Calendar.getInstance().apply {
+                set(period.cutoffYear, period.cutoffMonth - 1, period.cutoffDay, 20, 0, 0)
+            }
+            val cutoffStart = cutoffCal.time
+            val cutoffEnd = Date(cutoffStart.time + 4 * 3600 * 1000) // 20:00 to 24:00
+
+            val cutoffUid = "cutoff-${period.year}-${period.month}-${UUID.randomUUID()}@salarycalculator.app"
+            sb.appendLine("BEGIN:VEVENT")
+            sb.appendLine("UID:$cutoffUid")
+            sb.appendLine("DTSTAMP:${utcFormat.format(Date())}")
+            sb.appendLine("DTSTART:${utcFormat.format(cutoffStart)}")
+            sb.appendLine("DTEND:${utcFormat.format(cutoffEnd)}")
+            sb.appendLine("SUMMARY:⏰ $monthTitle Timesheet & Overtime Cutoff")
+            sb.appendLine("DESCRIPTION:Payroll cutoff for $monthTitle. Submit all hours and overtime shifts by midnight tonight to be included in $monthTitle payslip.")
+            sb.appendLine("STATUS:CONFIRMED")
+            sb.appendLine("BEGIN:VALARM")
+            sb.appendLine("TRIGGER:-PT4H")
+            sb.appendLine("ACTION:DISPLAY")
+            sb.appendLine("DESCRIPTION:Reminder: Timesheet Cutoff Deadline tonight!")
+            sb.appendLine("END:VALARM")
+            sb.appendLine("END:VEVENT")
+
+            // 2. Payday Event (09:00 on Payday with morning notification)
+            val payCal = Calendar.getInstance().apply {
+                set(period.payYear, period.payMonth - 1, period.payDay, 9, 0, 0)
+            }
+            val payStart = payCal.time
+            val payEnd = Date(payStart.time + 3600 * 1000)
+
+            val payUid = "payday-${period.year}-${period.month}-${UUID.randomUUID()}@salarycalculator.app"
+            val netPayStr = if (estimatedNetPay > 0.0) " (£${"%,.2f".format(estimatedNetPay)})" else ""
+            sb.appendLine("BEGIN:VEVENT")
+            sb.appendLine("UID:$payUid")
+            sb.appendLine("DTSTAMP:${utcFormat.format(Date())}")
+            sb.appendLine("DTSTART:${utcFormat.format(payStart)}")
+            sb.appendLine("DTEND:${utcFormat.format(payEnd)}")
+            sb.appendLine("SUMMARY:💰 $monthTitle Payday$netPayStr")
+            sb.appendLine("DESCRIPTION:Salary deposit for $monthTitle. Schedule rule: ${config.type.displayName}.")
+            sb.appendLine("STATUS:CONFIRMED")
+            sb.appendLine("BEGIN:VALARM")
+            sb.appendLine("TRIGGER:-PT15M")
+            sb.appendLine("ACTION:DISPLAY")
+            sb.appendLine("DESCRIPTION:Payday! Salary deposited today.")
+            sb.appendLine("END:VALARM")
+            sb.appendLine("END:VEVENT")
         }
 
         sb.appendLine("END:VCALENDAR")

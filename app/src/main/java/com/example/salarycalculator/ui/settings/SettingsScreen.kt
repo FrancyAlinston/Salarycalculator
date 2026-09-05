@@ -50,6 +50,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val autoBackupFrequency by salaryRepository.getAutoBackupFrequency().collectAsState(initial = AutoBackupFrequency.DISABLED)
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
     val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
+    val payScheduleConfig by salaryRepository.getPayScheduleConfig().collectAsState(initial = PayScheduleConfig())
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
@@ -74,6 +75,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var showBackupDialog by remember { mutableStateOf(false) }
     var showCustomCloudSyncDialog by remember { mutableStateOf(false) }
     var showCurrencySettingsDialog by remember { mutableStateOf(false) }
+    var showPayScheduleDialog by remember { mutableStateOf(false) }
     var showHmrcSyncDialog by remember { mutableStateOf(false) }
     var showChangelogDialog by remember { mutableStateOf(false) }
 
@@ -773,6 +775,42 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                     }
                 }
 
+                // 7b. Payroll Schedule & Timesheet Cutoff Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Text("Pay & Cutoff Schedule", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                            }
+                            TextButton(onClick = { showPayScheduleDialog = true }) {
+                                Text("Configure", fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        Text(
+                            text = "Current rule: ${payScheduleConfig.type.displayName}. Shift hours and overtime are automatically partitioned based on your company's timesheet cutoff date.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 // 8. Live HMRC Statutory Tax Rates Sync Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -995,6 +1033,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
             CurrencySettingsDialog(
                 salaryRepository = salaryRepository,
                 onDismiss = { showCurrencySettingsDialog = false }
+            )
+        }
+
+        // Pay Schedule & Cutoff Settings Modal
+        if (showPayScheduleDialog) {
+            PayScheduleSettingsDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showPayScheduleDialog = false }
             )
         }
 

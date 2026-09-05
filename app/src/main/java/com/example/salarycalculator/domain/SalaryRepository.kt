@@ -56,6 +56,9 @@ class SalaryRepository(private val context: Context) {
     private val WEEKEND_OVERTIME_KEY = doublePreferencesKey("weekend_overtime_multiplier")
     private val BANK_HOLIDAY_OVERTIME_KEY = doublePreferencesKey("bank_holiday_overtime_multiplier")
     private val ANNUAL_SHIFT_SCHEDULE_KEY = stringPreferencesKey("annual_shift_schedule_json")
+    private val PAY_SCHEDULE_TYPE_KEY = stringPreferencesKey("pay_schedule_type")
+    private val PAY_SCHEDULE_FIXED_DAY_KEY = intPreferencesKey("pay_schedule_fixed_day")
+    private val PAY_SCHEDULE_CUTOFF_LEAD_DAYS_KEY = intPreferencesKey("pay_schedule_cutoff_lead_days")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -633,6 +636,34 @@ class SalaryRepository(private val context: Context) {
     suspend fun setAnnualShiftSchedule(scheduleJson: String) {
         context.dataStore.edit { preferences ->
             preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = scheduleJson
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getPayScheduleConfig(): Flow<PayScheduleConfig> {
+        return context.dataStore.data.map { preferences ->
+            val typeStr = preferences[PAY_SCHEDULE_TYPE_KEY] ?: PayScheduleType.LAST_FRIDAY_OF_MONTH.name
+            val type = try {
+                PayScheduleType.valueOf(typeStr)
+            } catch (_: Exception) {
+                PayScheduleType.LAST_FRIDAY_OF_MONTH
+            }
+            val fixedDay = preferences[PAY_SCHEDULE_FIXED_DAY_KEY] ?: 28
+            val cutoffLeadDays = preferences[PAY_SCHEDULE_CUTOFF_LEAD_DAYS_KEY] ?: 5
+            PayScheduleConfig(
+                type = type,
+                fixedDay = fixedDay,
+                cutoffLeadDays = cutoffLeadDays
+            )
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setPayScheduleConfig(config: PayScheduleConfig) {
+        context.dataStore.edit { preferences ->
+            preferences[PAY_SCHEDULE_TYPE_KEY] = config.type.name
+            preferences[PAY_SCHEDULE_FIXED_DAY_KEY] = config.fixedDay
+            preferences[PAY_SCHEDULE_CUTOFF_LEAD_DAYS_KEY] = config.cutoffLeadDays
         }
     }
 }
