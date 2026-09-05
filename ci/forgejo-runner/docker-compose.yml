@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  forgejo-runner:
+    image: code.forgejo.org/forgejo/act_runner:latest
+    container_name: forgejo-act-runner
+    restart: always
+    environment:
+      # URL of your Forgejo instance
+      - GITEA_INSTANCE=https://forgejo.449100.xyz
+      # Registration Token obtained from Forgejo Admin or Repo Settings -> Actions -> Runners
+      - GITEA_RUNNER_REGISTRATION_TOKEN=${RUNNER_TOKEN}
+      - GITEA_RUNNER_NAME=salarycalculator-android-runner
+      # Standard Ubuntu image supporting Java 17 & Android builds
+      - GITEA_RUNNER_LABELS=ubuntu-latest:docker://ghcr.io/catthehacker/ubuntu:act-latest,ubuntu-22.04:docker://ghcr.io/catthehacker/ubuntu:act-latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/data
+      - ./config.yaml:/config.yaml
