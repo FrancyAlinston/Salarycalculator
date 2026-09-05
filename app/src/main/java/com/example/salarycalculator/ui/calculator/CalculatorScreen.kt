@@ -127,6 +127,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showOvertimeOptimizerDialog by remember { mutableStateOf(false) }
     var showMultiJobDialog by remember { mutableStateOf(false) }
     var showUmbrellaPayrollDialog by remember { mutableStateOf(false) }
+    var showTaxFreeChildcareDialog by remember { mutableStateOf(false) }
+    var showOvertimeBracketDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -263,7 +265,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onSalaryBenchmarkClick = { showSalaryBenchmarkDialog = true },
                             onOvertimeOptimizerClick = { showOvertimeOptimizerDialog = true },
                             onMultiJobClick = { showMultiJobDialog = true },
-                            onUmbrellaClick = { showUmbrellaPayrollDialog = true }
+                            onUmbrellaClick = { showUmbrellaPayrollDialog = true },
+                            onTaxFreeChildcareClick = { showTaxFreeChildcareDialog = true },
+                            onOvertimeBracketClick = { showOvertimeBracketDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -458,7 +462,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onCapitalGainsClick = { showCapitalGainsDialog = true },
                             onOvertimeOptimizerClick = { showOvertimeOptimizerDialog = true },
                             onMultiJobClick = { showMultiJobDialog = true },
-                            onUmbrellaClick = { showUmbrellaPayrollDialog = true }
+                            onUmbrellaClick = { showUmbrellaPayrollDialog = true },
+                            onTaxFreeChildcareClick = { showTaxFreeChildcareDialog = true },
+                            onOvertimeBracketClick = { showOvertimeBracketDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -913,6 +919,23 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showUmbrellaPayrollDialog = false }
             )
         }
+        // HMRC Tax-Free Childcare & 30-Hours Subsidy Dialog
+        if (showTaxFreeChildcareDialog) {
+            TaxFreeChildcareDialog(
+                initialSalary = report.annualGross,
+                onDismiss = { showTaxFreeChildcareDialog = false }
+            )
+        }
+        // Overtime Bracket Headroom & Threshold Monitor Dialog
+        if (showOvertimeBracketDialog) {
+            val baseHourly = activeProfile?.hourlyRate ?: defaultHourlyRate
+            val standardAnnualBase = (daysWorked * hoursPerDay * baseHourly) * 12.0
+            OvertimeBracketDialog(
+                initialBaseSalary = standardAnnualBase,
+                initialHourlyRate = baseHourly,
+                onDismiss = { showOvertimeBracketDialog = false }
+            )
+        }
     }
 }
 
@@ -1166,7 +1189,9 @@ private fun SchedulePresetsSection(
     onCapitalGainsClick: () -> Unit = {},
     onOvertimeOptimizerClick: () -> Unit = {},
     onMultiJobClick: () -> Unit = {},
-    onUmbrellaClick: () -> Unit = {}
+    onUmbrellaClick: () -> Unit = {},
+    onTaxFreeChildcareClick: () -> Unit = {},
+    onOvertimeBracketClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -1180,6 +1205,18 @@ private fun SchedulePresetsSection(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            AssistChip(
+                onClick = onTaxFreeChildcareClick,
+                label = { Text("Tax-Free Childcare (£2k)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onOvertimeBracketClick,
+                label = { Text("Bracket Headroom", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                shape = RoundedCornerShape(10.dp)
+            )
             AssistChip(
                 onClick = onMultiJobClick,
                 label = { Text("Dual-Job Tax", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },

@@ -4,6 +4,20 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [20.0] - 2026-09-05 (VersionCode: 28)
+### Added
+- **HMRC Tax-Free Childcare & 30-Hours Subsidy Engine (`TaxFreeChildcareEngine.kt` & `TaxFreeChildcareDialog.kt`)**: Statutory childcare funding calculator modeling 20% government top-ups (up to £2,000/yr per child or £4,000 disabled), 30-hours / 15-hours free childcare funding equivalents, and the £100,000 Adjusted Net Income cliff-edge. Features automated pension salary sacrifice remedy calculation to restore full entitlement and calculate net ROI.
+- **Overtime Tax Bracket Headroom & Threshold Monitor (`OvertimeBracketEngine.kt` & `OvertimeBracketDialog.kt`)**: Real-time tax bracket capacity monitor computing exact remaining headroom in pounds (£) and safe monthly overtime hours before crossing the 40% Higher Rate band (£50,270) or 60% Marginal Tax Trap (£100,000). Features 1-tap pension sacrifice recommendations.
+- **Comprehensive v20.0 Automated Unit Test Suite (`TaxFreeChildcareEngineTest.kt` & `OvertimeBracketEngineTest.kt`)**: 100% test coverage validating £2,000/child top-ups, £4,000 disabled caps, £100k cliff-edge benefit drops, higher rate headroom math, and overtime capacity algorithms.
+
+### Bugs Found & Fixed
+- **Overtime Multiplier Chip Horizontal Wrapping**: Fixed multiplier chip wrapping on narrow screens by adding `horizontalScroll(rememberScrollState())` to `OvertimeBracketDialog.kt`.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [19.0] - 2026-09-05 (VersionCode: 27)
 ### Added
 - **Multi-Job Cumulative Tax & Dual-Employer Aggregator (`MultiJobAggregatorEngine.kt` & `MultiJobTaxDialog.kt`)**: Dedicated dual-job calculation engine and interactive Material 3 dialog modeling concurrent employments. Evaluates independent Class 1 Primary NI thresholds (£12,576 per employer) alongside combined cumulative PAYE Income Tax brackets (Basic 20%, Higher 40%, Additional 45%, or Scottish 6-tier system). Features individual job net take-home breakdowns, secondary tax code presets (`BR`, `0T`, `D0`, `1257L`), and 60% marginal tax trap threshold warnings.
