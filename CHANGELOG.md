@@ -4,6 +4,23 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [22.0] - 2026-09-05 (VersionCode: 30)
+### Added
+- **Categorized Financial Tools & Schedules Hub (`CalculatorScreen.kt`)**: Redesigned tool navigation with an interactive category selector (`All Tools`, `Tax & Relief`, `Work & Shifts`, `Wealth & Goals`), allowing streamlined discoverability of 20+ statutory engines, tax trap analyzers, and calculators.
+- **Modern Glassmorphic Hero Net Pay Card (`CalculatorScreen.kt`)**: Elevated card aesthetics featuring subtle linear gradient surface blending, animated currency numbers, single-line take-home percentage badge, interactive FX quick-rate badge, and a responsive 5-segment proportional deduction breakdown.
+- **Enhanced Working Hours & Variable Pay Controls (`CalculatorScreen.kt`)**: Added quick chip steppers (`16d`, `18d`, `20d`, `21.7d`, `22d` and `6.0h`, `7.5h`, `8.0h`, `10.0h`, `12.0h`), clear clear-buttons, and polished multiplier selectors.
+- **Responsive & Overflow-Protected Punch Clock (`ShiftStopwatchCard.kt`)**: Re-architected stopwatch card layout for fluid responsiveness across compact mobile displays (320dp) through large tablets and foldable book-style dual screens.
+- **Polished Payslip Breakdown & Multi-Period Metric Tiles (`CalculatorScreen.kt`)**: Clean itemized row styling with clear color-coded deductions and balanced action buttons (`Save`, `PDF`, `Email`, `Share`).
+
+### Bugs Found & Fixed
+- **Narrow Screen Layout Wrapping**: Fixed text wrapping on narrow devices for the hourly rate pill, take-home badge, stopwatch action button, and export action buttons.
+- **CompareArrows Icon Deprecation**: Cleaned up icon usage for multi-period comparison header.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [21.0] - 2026-09-05 (VersionCode: 29)
 ### Added
 - **High Income Child Benefit Charge (HICBC) Taper Engine (`HicbcEngine.kt` & `HicbcDialog.kt`)**: Statutory UK 2024/2025–2025/2026 reformed HICBC calculation engine modeling the £60,000–£80,000 Adjusted Net Income (ANI) taper band. Computes exact statutory Child Benefit (£25.60/wk first child, £16.95/wk additional children), clawback percentages (1% per £200), and automated Pension Salary Sacrifice Remedy to restore 100% of Child Benefit and eliminate tax charges.

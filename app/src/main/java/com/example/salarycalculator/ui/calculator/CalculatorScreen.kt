@@ -973,6 +973,13 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
 
 // Subcomponents
 
+private enum class ToolCategory(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    ALL("All Tools", Icons.Default.GridView),
+    TAX_RELIEF("Tax & Relief", Icons.Default.AccountBalance),
+    WORK_SHIFTS("Work & Shifts", Icons.Default.Schedule),
+    WEALTH_PLANNING("Wealth & Goals", Icons.AutoMirrored.Filled.TrendingUp)
+}
+
 @Composable
 private fun AppHeaderSection(
     taxRegion: TaxRegion,
@@ -983,47 +990,92 @@ private fun AppHeaderSection(
     onProfileClick: () -> Unit = {},
     onTaxCodeClick: () -> Unit = {}
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Salary Calculator",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Row(
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            if (activeProfileName != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f, fill = false)) {
+                    Text(
+                        text = "Salary Calculator",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = "UK PAYE & Take-Home Engine",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "£${"%.2f".format(defaultHourlyRate)}/hr",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (activeProfileName != null) {
+                    AssistChip(
+                        onClick = onProfileClick,
+                        label = { Text(activeProfileName, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold) },
+                        leadingIcon = { Icon(Icons.Default.WorkOutline, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
                 AssistChip(
-                    onClick = onProfileClick,
-                    label = { Text(activeProfileName, style = MaterialTheme.typography.labelSmall) },
-                    leadingIcon = { Icon(Icons.Default.WorkOutline, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                    onClick = {},
+                    label = { Text(if (taxRegion == TaxRegion.SCOTLAND) "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland" else "🇬🇧 UK Standard", style = MaterialTheme.typography.labelSmall) },
+                    shape = RoundedCornerShape(10.dp)
+                )
+                AssistChip(
+                    onClick = onTaxCodeClick,
+                    label = { Text("Code: $taxCode", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                    leadingIcon = { Icon(Icons.Default.Info, contentDescription = "Explain Tax Code", modifier = Modifier.size(14.dp), tint = Emerald60) },
+                    shape = RoundedCornerShape(10.dp)
+                )
+                AssistChip(
+                    onClick = {},
+                    label = { Text("Base: £${"%.2f".format(standardPay)}", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
                     shape = RoundedCornerShape(10.dp)
                 )
             }
-            AssistChip(
-                onClick = {},
-                label = { Text(if (taxRegion == TaxRegion.SCOTLAND) "Scotland" else "UK Standard", style = MaterialTheme.typography.labelSmall) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onTaxCodeClick,
-                label = { Text(taxCode, style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.Info, contentDescription = "Explain Tax Code", modifier = Modifier.size(14.dp)) },
-                shape = RoundedCornerShape(10.dp)
-            )
         }
-
-        Text(
-            text = "Rate: £${"%.2f".format(defaultHourlyRate)}/hr · Base Pay: £${"%.2f".format(standardPay)}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
@@ -1040,7 +1092,13 @@ private fun FrequencySelectorRow(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = PayFrequency.entries.size),
                 icon = {}
             ) {
-                Text(freq.displayName, style = MaterialTheme.typography.labelSmall, fontSize = 11.sp, maxLines = 1)
+                Text(
+                    text = freq.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 11.sp,
+                    fontWeight = if (selectedFrequency == freq) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1
+                )
             }
         }
     }
@@ -1056,17 +1114,25 @@ private fun HeroNetPayCard(
     usdRate: Double = ConvertedCurrencies.DEFAULT_USD_RATE,
     onCurrencyClick: () -> Unit = {}
 ) {
-    ElevatedCard(
+    Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.elevatedCardColors(
+        colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+                        )
+                    )
+                )
                 .padding(22.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
@@ -1075,21 +1141,39 @@ private fun HeroNetPayCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Estimated Net (${selectedFrequency.displayName})",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(Emerald60)
+                    )
+                    Text(
+                        text = "Net (${selectedFrequency.displayName})",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
                 Surface(
                     color = EmeraldContainerLight,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
                         text = "${"%.1f".format(report.takeHomePercentage)}% Take-Home",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Emerald40
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Emerald40,
+                        maxLines = 1
                     )
                 }
             }
@@ -1108,29 +1192,35 @@ private fun HeroNetPayCard(
                 Column {
                     Text(
                         text = "£${"%.2f".format(amount)}",
-                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 36.sp),
+                        style = MaterialTheme.typography.displayLarge.copy(fontSize = 38.sp),
                         fontWeight = FontWeight.ExtraBold,
                         color = Emerald60
                     )
-                    Row(
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable(onClick = onCurrencyClick)
-                            .padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Text(
-                            text = "≈ €${"%.2f".format(converted.eurAmount)} · $${"%.2f".format(converted.usdAmount)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Icon(
-                            Icons.Default.CurrencyExchange,
-                            contentDescription = "Edit FX Rates",
-                            modifier = Modifier.size(12.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "≈ €${"%.2f".format(converted.eurAmount)} · $${"%.2f".format(converted.usdAmount)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Icon(
+                                Icons.Default.CurrencyExchange,
+                                contentDescription = "Edit FX Rates",
+                                modifier = Modifier.size(13.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
@@ -1183,11 +1273,11 @@ private fun HeroNetPayCard(
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        LegendItem(color = Emerald60, label = "Take Home")
-                        if (report.pensionContribution > 0) LegendItem(color = Teal60, label = "Pension")
-                        LegendItem(color = Rose60, label = "PAYE Tax")
-                        LegendItem(color = Amber60, label = "NI")
-                        if (report.studentLoanDeduction > 0) LegendItem(color = Violet60, label = "Student Loan")
+                        LegendItem(color = Emerald60, label = "Take Home (${"%.0f".format(report.takeHomePercentage)}%)")
+                        if (report.pensionContribution > 0) LegendItem(color = Teal60, label = "Pension (${"%.0f".format((report.pensionContribution / grossPay) * 100)}%)")
+                        LegendItem(color = Rose60, label = "PAYE (${"%.0f".format((report.incomeTax / grossPay) * 100)}%)")
+                        LegendItem(color = Amber60, label = "NI (${"%.0f".format((report.nationalInsurance / grossPay) * 100)}%)")
+                        if (report.studentLoanDeduction > 0) LegendItem(color = Violet60, label = "Student Loan (${"%.0f".format((report.studentLoanDeduction / grossPay) * 100)}%)")
                     }
                 }
             }
@@ -1227,211 +1317,260 @@ private fun SchedulePresetsSection(
     onHicbcClick: () -> Unit = {},
     onMultiCurrencyClick: () -> Unit = {}
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Schedule Presets & Tools",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+    var selectedCategory by remember { mutableStateOf(ToolCategory.ALL) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AssistChip(
-                onClick = onHicbcClick,
-                label = { Text("HICBC Child Benefit", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onCompanyCarClick,
-                label = { Text("EV Company Car BiK", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.Default.ElectricCar, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onMultiCurrencyClick,
-                label = { Text("Currency Converter", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.Default.Public, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onTaxFreeChildcareClick,
-                label = { Text("Tax-Free Childcare (£2k)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onOvertimeBracketClick,
-                label = { Text("Bracket Headroom", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onMultiJobClick,
-                label = { Text("Dual-Job Tax", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.Default.Work, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onUmbrellaClick,
-                label = { Text("Umbrella / Employer Cost", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.Default.AccountBalance, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onOvertimeOptimizerClick,
-                label = { Text("Overtime Optimizer", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onSandboxClick,
-                label = { Text("What-If Sandbox", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.Default.Science, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onCalendarClick,
-                label = { Text("Shift Heatmap", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
-                leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onSelfEmployedClick,
-                label = { Text("Self-Employed Tax", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onGiftAidClick,
-                label = { Text("Gift Aid Relief", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.VolunteerActivism, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onCapitalGainsClick,
-                label = { Text("Capital Gains (CGT)", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onYtdProjectionClick,
-                label = { Text("YTD Projections", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onSalaryBenchmarkClick,
-                label = { Text("Salary Benchmarking", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.Insights, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onPensionAllowanceClick,
-                label = { Text("Pension Allowance (£60k)", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(14.dp), tint = Teal60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onStudentLoanPayoffClick,
-                label = { Text("Student Loan Payoff", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(14.dp), tint = Violet60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onPayslipOcrClick,
-                label = { Text("Payslip OCR Scanner", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.DocumentScanner, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onDirectorTaxClick,
-                label = { Text("Director Dividends", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.BusinessCenter, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onTaxComparisonClick,
-                label = { Text("Multi-Year Tax", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.AutoGraph, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onSa100Click,
-                label = { Text("SA100 Return", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onTaxRefundClick,
-                label = { Text("Tax Refund", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onCalendarClick,
-                label = { Text("Shift Heatmap", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp)) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onCompanyCarClick,
-                label = { Text("Company Car", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.DirectionsCar, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onStatutoryLeaveClick,
-                label = { Text("Statutory Leave", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.Healing, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onMortgageClick,
-                label = { Text("Mortgage Power", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onChildBenefitClick,
-                label = { Text("Child Benefit", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp)) },
-                shape = RoundedCornerShape(10.dp)
-            )
-            AssistChip(
-                onClick = onTaxTrapClick,
-                label = { Text("60% Tax Trap", style = MaterialTheme.typography.labelSmall) },
-                leadingIcon = { Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(14.dp), tint = Rose60) },
-                shape = RoundedCornerShape(10.dp)
-            )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            FilterChip(
-                selected = daysWorkedInput == "20" && hoursPerDayInput == "8.0",
-                onClick = { onSelect("20", "8.0") },
-                label = { Text("Full Month (20d · 8h)") },
-                shape = RoundedCornerShape(12.dp)
-            )
-            FilterChip(
-                selected = daysWorkedInput == "21.67" && hoursPerDayInput == "7.5",
-                onClick = { onSelect("21.67", "7.5") },
-                label = { Text("UK Avg (21.7d · 7.5h)") },
-                shape = RoundedCornerShape(12.dp)
-            )
-            FilterChip(
-                selected = daysWorkedInput == "16" && hoursPerDayInput == "8.0",
-                onClick = { onSelect("16", "8.0") },
-                label = { Text("4-Day Week (16d)") },
-                shape = RoundedCornerShape(12.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Tools & Schedules",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1
+                )
+                Text(
+                    text = "20+ Features",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+
+            // Category Filter Pills
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                ToolCategory.entries.forEach { category ->
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = { selectedCategory = category },
+                        label = { Text(category.title, style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = category.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+            }
+
+            // Filtered Tools Chips Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                // Tax & Relief Tools
+                if (selectedCategory == ToolCategory.ALL || selectedCategory == ToolCategory.TAX_RELIEF) {
+                    AssistChip(
+                        onClick = onHicbcClick,
+                        label = { Text("HICBC Child Benefit", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onCompanyCarClick,
+                        label = { Text("EV Company Car BiK", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.ElectricCar, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onTaxTrapClick,
+                        label = { Text("60% Tax Trap", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(14.dp), tint = Rose60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onTaxFreeChildcareClick,
+                        label = { Text("Tax-Free Childcare (£2k)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.ChildCare, contentDescription = null, modifier = Modifier.size(14.dp), tint = Teal60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onGiftAidClick,
+                        label = { Text("Gift Aid Relief", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.VolunteerActivism, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onSa100Click,
+                        label = { Text("SA100 Return", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Assignment, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onTaxRefundClick,
+                        label = { Text("Tax Refund Estimator", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onTaxComparisonClick,
+                        label = { Text("Multi-Year Tax", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.AutoGraph, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+
+                // Work & Shifts Tools
+                if (selectedCategory == ToolCategory.ALL || selectedCategory == ToolCategory.WORK_SHIFTS) {
+                    AssistChip(
+                        onClick = onCalendarClick,
+                        label = { Text("Shift Heatmap", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onOvertimeOptimizerClick,
+                        label = { Text("Overtime Optimizer", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onOvertimeBracketClick,
+                        label = { Text("Bracket Headroom", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onMultiJobClick,
+                        label = { Text("Dual-Job Tax", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.Work, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onUmbrellaClick,
+                        label = { Text("Umbrella / Employer Cost", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.AccountBalance, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onStatutoryLeaveClick,
+                        label = { Text("Statutory Leave", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.Healing, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+
+                // Wealth & Goals Tools
+                if (selectedCategory == ToolCategory.ALL || selectedCategory == ToolCategory.WEALTH_PLANNING) {
+                    AssistChip(
+                        onClick = onSandboxClick,
+                        label = { Text("What-If Sandbox", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.Science, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onMultiCurrencyClick,
+                        label = { Text("Currency Converter (10 FX)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.Public, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onSalaryBenchmarkClick,
+                        label = { Text("Salary Benchmarking", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.Insights, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onPensionAllowanceClick,
+                        label = { Text("Pension Allowance (£60k)", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.Savings, contentDescription = null, modifier = Modifier.size(14.dp), tint = Teal60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onStudentLoanPayoffClick,
+                        label = { Text("Student Loan Payoff", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.School, contentDescription = null, modifier = Modifier.size(14.dp), tint = Violet60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onDirectorTaxClick,
+                        label = { Text("Director Dividends", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.BusinessCenter, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onCapitalGainsClick,
+                        label = { Text("Capital Gains (CGT)", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onMortgageClick,
+                        label = { Text("Mortgage Power", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onSelfEmployedClick,
+                        label = { Text("Self-Employed Tax", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.Storefront, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onYtdProjectionClick,
+                        label = { Text("YTD Projections", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onPayslipOcrClick,
+                        label = { Text("Payslip OCR Scanner", style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = { Icon(Icons.Default.DocumentScanner, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            // Work Schedule Presets
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = daysWorkedInput == "20" && hoursPerDayInput == "8.0",
+                    onClick = { onSelect("20", "8.0") },
+                    label = { Text("Full Month (20d · 8h)") },
+                    shape = RoundedCornerShape(12.dp)
+                )
+                FilterChip(
+                    selected = daysWorkedInput == "21.67" && hoursPerDayInput == "7.5",
+                    onClick = { onSelect("21.67", "7.5") },
+                    label = { Text("UK Avg (21.7d · 7.5h)") },
+                    shape = RoundedCornerShape(12.dp)
+                )
+                FilterChip(
+                    selected = daysWorkedInput == "16" && hoursPerDayInput == "8.0",
+                    onClick = { onSelect("16", "8.0") },
+                    label = { Text("4-Day Week (16d)") },
+                    shape = RoundedCornerShape(12.dp)
+                )
+            }
         }
     }
 }
@@ -1461,51 +1600,96 @@ private fun WorkingHoursCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Working Hours & Variable Earnings",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            OutlinedTextField(
-                value = daysWorkedInput,
-                onValueChange = onDaysWorkedChange,
-                label = { Text("Days Worked") },
-                placeholder = { Text("e.g. 20") },
-                leadingIcon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null) },
-                trailingIcon = {
-                    if (daysWorkedInput.isNotEmpty()) {
-                        IconButton(onClick = { onDaysWorkedChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
-                        }
-                    }
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = RoundedCornerShape(14.dp),
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Working Hours & Variable Pay",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Icon(
+                    Icons.Outlined.AccessTime,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
 
-            OutlinedTextField(
-                value = hoursPerDayInput,
-                onValueChange = onHoursPerDayChange,
-                label = { Text("Hours per Day") },
-                placeholder = { Text("e.g. 8.0") },
-                leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
-                trailingIcon = {
-                    if (hoursPerDayInput.isNotEmpty()) {
-                        IconButton(onClick = { onHoursPerDayChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+            // Days Worked with Quick Steppers
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlinedTextField(
+                    value = daysWorkedInput,
+                    onValueChange = onDaysWorkedChange,
+                    label = { Text("Days Worked") },
+                    placeholder = { Text("e.g. 20") },
+                    leadingIcon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = null) },
+                    trailingIcon = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (daysWorkedInput.isNotEmpty()) {
+                                IconButton(onClick = { onDaysWorkedChange("") }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                                }
+                            }
                         }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("16", "18", "20", "21.67", "22").forEach { days ->
+                        SuggestionChip(
+                            onClick = { onDaysWorkedChange(days) },
+                            label = { Text("${days}d", style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
                     }
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+                }
+            }
 
+            // Hours per Day
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                OutlinedTextField(
+                    value = hoursPerDayInput,
+                    onValueChange = onHoursPerDayChange,
+                    label = { Text("Hours per Day") },
+                    placeholder = { Text("e.g. 8.0") },
+                    leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
+                    trailingIcon = {
+                        if (hoursPerDayInput.isNotEmpty()) {
+                            IconButton(onClick = { onHoursPerDayChange("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("6.0", "7.5", "8.0", "10.0", "12.0").forEach { hrs ->
+                        SuggestionChip(
+                            onClick = { onHoursPerDayChange(hrs) },
+                            label = { Text("${hrs}h", style = MaterialTheme.typography.labelSmall) },
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                    }
+                }
+            }
+
+            // Overtime Hours
             OutlinedTextField(
                 value = overtimeHoursInput,
                 onValueChange = onOvertimeHoursChange,
@@ -1515,7 +1699,7 @@ private fun WorkingHoursCard(
                 trailingIcon = {
                     if (overtimeHoursInput.isNotEmpty()) {
                         IconButton(onClick = { onOvertimeHoursChange("") }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(18.dp))
                         }
                     }
                 },
@@ -1525,6 +1709,7 @@ private fun WorkingHoursCard(
                 singleLine = true
             )
 
+            // Bonus & Commission
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -1554,11 +1739,12 @@ private fun WorkingHoursCard(
                 )
             }
 
+            // Overtime Multiplier
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "Overtime Multiplier",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
                 Row(
                     modifier = Modifier
@@ -1579,7 +1765,7 @@ private fun WorkingHoursCard(
                         FilterChip(
                             selected = selectedOvertimeMultiplier == rate,
                             onClick = { onOvertimeMultiplierChange(rate) },
-                            label = { Text(label) },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
                             shape = RoundedCornerShape(10.dp)
                         )
                     }
@@ -1608,19 +1794,31 @@ private fun DeductionsAdjustmentsCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Pension, Student Loan & Sacrifice",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Pension, Student Loan & Sacrifice",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Icon(
+                    Icons.Outlined.AccountBalanceWallet,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
 
             // Employee Pension
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "Employee Pension: ${"%.1f".format(selectedPensionPercent)}%",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
                 Row(
                     modifier = Modifier
@@ -1628,11 +1826,11 @@ private fun DeductionsAdjustmentsCard(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    listOf(0.0, 3.0, 5.0, 8.0, 10.0).forEach { rate ->
+                    listOf(0.0, 3.0, 5.0, 8.0, 10.0, 15.0).forEach { rate ->
                         FilterChip(
                             selected = selectedPensionPercent == rate,
                             onClick = { onPensionChange(rate) },
-                            label = { Text("${rate.toInt()}%") },
+                            label = { Text("${rate.toInt()}%", style = MaterialTheme.typography.labelSmall) },
                             shape = RoundedCornerShape(10.dp)
                         )
                     }
@@ -1644,7 +1842,7 @@ private fun DeductionsAdjustmentsCard(
                 Text(
                     text = "Student Loan: ${selectedStudentLoan.displayName}",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.SemiBold
                 )
                 Row(
                     modifier = Modifier
@@ -1656,7 +1854,7 @@ private fun DeductionsAdjustmentsCard(
                         FilterChip(
                             selected = selectedStudentLoan == plan,
                             onClick = { onStudentLoanChange(plan) },
-                            label = { Text(if (plan == StudentLoanPlan.NONE) "None" else plan.name.replace("_", " ")) },
+                            label = { Text(if (plan == StudentLoanPlan.NONE) "None" else plan.name.replace("_", " "), style = MaterialTheme.typography.labelSmall) },
                             shape = RoundedCornerShape(10.dp)
                         )
                     }
@@ -1715,11 +1913,18 @@ private fun DetailedPayslipCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    text = "${"%.1f".format(totalHours)} hrs",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "${"%.1f".format(totalHours)} hrs total",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -1778,7 +1983,7 @@ private fun DetailedPayslipCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             PayslipRow(
-                label = if (taxRegion == TaxRegion.SCOTLAND) "Scottish Income Tax (2024/25)" else "PAYE Income Tax (2024/25)",
+                label = if (taxRegion == TaxRegion.SCOTLAND) "Scottish Income Tax" else "PAYE Income Tax",
                 value = "-£${"%.2f".format(report.incomeTax)}",
                 valueColor = Rose60
             )
@@ -1822,7 +2027,7 @@ private fun DetailedPayslipCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "£${"%.2f".format(report.netPay)}",
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp),
+                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
                     fontWeight = FontWeight.ExtraBold,
                     color = Emerald60,
                     maxLines = 1
@@ -1844,22 +2049,73 @@ private fun MultiPeriodCard(report: SalaryReport) {
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "Multi-Period Comparison",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Multi-Period Comparison",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Icon(
+                    Icons.Default.CompareArrows,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                PeriodColumn(title = "Hourly", net = report.hourlyNet, gross = ((report.grossPay * 12.0) / 52.0) / 37.5)
-                PeriodColumn(title = "Weekly", net = report.weeklyNet, gross = (report.grossPay * 12.0) / 52.0)
-                PeriodColumn(title = "Monthly", net = report.monthlyNet, gross = report.grossPay)
-                PeriodColumn(title = "Annual", net = report.annualNet, gross = report.grossPay * 12.0)
+                PeriodTile(modifier = Modifier.weight(1f), title = "Hourly", net = report.hourlyNet, gross = ((report.grossPay * 12.0) / 52.0) / 37.5)
+                PeriodTile(modifier = Modifier.weight(1f), title = "Weekly", net = report.weeklyNet, gross = (report.grossPay * 12.0) / 52.0)
+                PeriodTile(modifier = Modifier.weight(1f), title = "Monthly", net = report.monthlyNet, gross = report.grossPay)
+                PeriodTile(modifier = Modifier.weight(1f), title = "Annual", net = report.annualNet, gross = report.grossPay * 12.0)
             }
+        }
+    }
+}
+
+@Composable
+private fun PeriodTile(modifier: Modifier = Modifier, title: String, net: Double, gross: Double) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+            Text(
+                text = "£${"%,.0f".format(net)}",
+                style = MaterialTheme.typography.titleMedium,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Emerald60,
+                maxLines = 1
+            )
+            Text(
+                text = "£${"%,.0f".format(gross)}",
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
         }
     }
 }
@@ -1874,19 +2130,20 @@ private fun ActionButtonsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(bottom = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Button(
             onClick = onSaveClick,
             modifier = Modifier
                 .weight(1.1f)
                 .height(48.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Default.BookmarkAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("Save", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+            Icon(Icons.Default.BookmarkAdd, contentDescription = null, modifier = Modifier.size(15.dp))
+            Spacer(modifier = Modifier.width(3.dp))
+            Text("Save", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, maxLines = 1)
         }
 
         FilledTonalButton(
@@ -1894,11 +2151,12 @@ private fun ActionButtonsRow(
             modifier = Modifier
                 .weight(0.9f)
                 .height(48.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("PDF", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+            Icon(Icons.Outlined.PictureAsPdf, contentDescription = null, modifier = Modifier.size(15.dp))
+            Spacer(modifier = Modifier.width(3.dp))
+            Text("PDF", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, maxLines = 1)
         }
 
         FilledTonalButton(
@@ -1906,11 +2164,12 @@ private fun ActionButtonsRow(
             modifier = Modifier
                 .weight(0.9f)
                 .height(48.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("Email", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+            Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(15.dp))
+            Spacer(modifier = Modifier.width(3.dp))
+            Text("Email", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, maxLines = 1)
         }
 
         FilledTonalButton(
@@ -1918,11 +2177,12 @@ private fun ActionButtonsRow(
             modifier = Modifier
                 .weight(0.9f)
                 .height(48.dp),
+            contentPadding = PaddingValues(horizontal = 4.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text("Share", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(15.dp))
+            Spacer(modifier = Modifier.width(3.dp))
+            Text("Share", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }

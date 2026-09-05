@@ -105,102 +105,108 @@ fun ShiftStopwatchCard(
                 }
             }
 
-            // Timer display
-            Row(
+            // Timer display & Quick Actions
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Column {
-                    Text(
-                        text = if (shiftState.isPunchActive) timeFormatted else "00:00:00",
-                        style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp),
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (shiftState.isPunchActive) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Accumulated: ${"%.1f".format(shiftState.accumulatedHours)} hrs (${shiftState.accumulatedDays.toInt()} shifts)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // Punch In / Punch Out Action Button
-                if (!shiftState.isPunchActive) {
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                salaryRepository.saveActiveShiftState(
-                                    shiftState.copy(
-                                        isPunchActive = true,
-                                        startTime = System.currentTimeMillis()
-                                    )
-                                )
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Punch In", fontWeight = FontWeight.Bold)
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            val durationHrs = elapsedSeconds / 3600.0
-                            val newTotalHrs = shiftState.accumulatedHours + durationHrs
-                            val newTotalDays = shiftState.accumulatedDays + 1.0
-                            scope.launch {
-                                salaryRepository.saveActiveShiftState(
-                                    shiftState.copy(
-                                        isPunchActive = false,
-                                        startTime = 0L,
-                                        accumulatedDays = newTotalDays,
-                                        accumulatedHours = newTotalHrs
-                                    )
-                                )
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Rose60),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Punch Out", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-
-            // Apply to Calculator Action
-            if (shiftState.accumulatedHours > 0.0) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    FilledTonalButton(
-                        onClick = {
-                            val avgHrsPerDay = if (shiftState.accumulatedDays > 0) shiftState.accumulatedHours / shiftState.accumulatedDays else 8.0
-                            onApplyToCalculator(shiftState.accumulatedDays, avgHrsPerDay)
-                        },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Apply to Calculator")
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                        Text(
+                            text = if (shiftState.isPunchActive) timeFormatted else "00:00:00",
+                            style = MaterialTheme.typography.displayMedium.copy(fontSize = 30.sp),
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (shiftState.isPunchActive) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Accumulated: ${"%.1f".format(shiftState.accumulatedHours)} hrs (${shiftState.accumulatedDays.toInt()} shifts)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
 
-                    OutlinedButton(
-                        onClick = {
-                            scope.launch {
-                                salaryRepository.saveActiveShiftState(
-                                    shiftState.copy(accumulatedDays = 0.0, accumulatedHours = 0.0)
-                                )
-                            }
-                        },
-                        shape = RoundedCornerShape(10.dp)
+                    // Punch In / Punch Out Action Button
+                    if (!shiftState.isPunchActive) {
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    salaryRepository.saveActiveShiftState(
+                                        shiftState.copy(
+                                            isPunchActive = true,
+                                            startTime = System.currentTimeMillis()
+                                        )
+                                    )
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Punch In", fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                val durationHrs = elapsedSeconds / 3600.0
+                                val newTotalHrs = shiftState.accumulatedHours + durationHrs
+                                val newTotalDays = shiftState.accumulatedDays + 1.0
+                                scope.launch {
+                                    salaryRepository.saveActiveShiftState(
+                                        shiftState.copy(
+                                            isPunchActive = false,
+                                            startTime = 0L,
+                                            accumulatedDays = newTotalDays,
+                                            accumulatedHours = newTotalHrs
+                                        )
+                                    )
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Rose60),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Punch Out", fontWeight = FontWeight.Bold, maxLines = 1)
+                        }
+                    }
+                }
+
+                // Apply & Reset Actions
+                if (shiftState.accumulatedHours > 0.0) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Reset")
+                        FilledTonalButton(
+                            onClick = {
+                                val avgHrsPerDay = if (shiftState.accumulatedDays > 0) shiftState.accumulatedHours / shiftState.accumulatedDays else 8.0
+                                onApplyToCalculator(shiftState.accumulatedDays, avgHrsPerDay)
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Apply to Calculator", maxLines = 1)
+                        }
+
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    salaryRepository.saveActiveShiftState(
+                                        ActiveShiftState(isPunchActive = false, startTime = 0L, accumulatedDays = 0.0, accumulatedHours = 0.0)
+                                    )
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Reset", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
