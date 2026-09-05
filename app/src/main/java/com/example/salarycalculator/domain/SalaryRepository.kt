@@ -59,6 +59,7 @@ class SalaryRepository(private val context: Context) {
     private val PAY_SCHEDULE_TYPE_KEY = stringPreferencesKey("pay_schedule_type")
     private val PAY_SCHEDULE_FIXED_DAY_KEY = intPreferencesKey("pay_schedule_fixed_day")
     private val PAY_SCHEDULE_CUTOFF_LEAD_DAYS_KEY = intPreferencesKey("pay_schedule_cutoff_lead_days")
+    private val DEFAULT_HOURS_PER_DAY_KEY = doublePreferencesKey("default_hours_per_day")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -664,6 +665,48 @@ class SalaryRepository(private val context: Context) {
             preferences[PAY_SCHEDULE_TYPE_KEY] = config.type.name
             preferences[PAY_SCHEDULE_FIXED_DAY_KEY] = config.fixedDay
             preferences[PAY_SCHEDULE_CUTOFF_LEAD_DAYS_KEY] = config.cutoffLeadDays
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getDefaultHoursPerDay(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[DEFAULT_HOURS_PER_DAY_KEY] ?: 8.0
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setDefaultHoursPerDay(hours: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[DEFAULT_HOURS_PER_DAY_KEY] = hours
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getMonthShiftSchedule(year: Int, month: Int): Flow<Map<Int, Double>> {
+        return context.dataStore.data.map { preferences ->
+            val jsonStr = preferences[ANNUAL_SHIFT_SCHEDULE_KEY] ?: ""
+            if (jsonStr.isBlank()) {
+                emptyMap()
+            } else {
+                try {
+                    val parsed = json.decodeFromString<Map<String, Map<String, Double>>>(jsonStr)
+                    // Check YYYY-MM key first (e.g. "2026-09"), then fallback to "9" or "09"
+                    val ymKey = "$year-$month"
+                    val mKey = month.toString()
+                    val dayMap = parsed[ymKey] ?: parsed[mKey] ?: emptyMap()
+                    val result = mutableMapOf<Int, Double>()
+                    dayMap.forEach { (dStr, hrs) ->
+                        val d = dStr.toIntOrNull()
+                        if (d != null && d in 1..31 && hrs > 0.0) {
+                            result[d] = hrs
+                        }
+                    }
+                    result
+                } catch (_: Exception) {
+                    emptyMap()
+                }
+            }
         }
     }
 }

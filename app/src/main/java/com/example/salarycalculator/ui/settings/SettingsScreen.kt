@@ -51,9 +51,11 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
     val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
     val payScheduleConfig by salaryRepository.getPayScheduleConfig().collectAsState(initial = PayScheduleConfig())
+    val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 8.0)
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
+    var inputHoursPerDay by remember(defaultHoursPerDay) { mutableStateOf(defaultHoursPerDay.toString()) }
     var inputPensionRate by remember(pensionRate) { mutableStateOf(pensionRate.toString()) }
     var selectedThemeMode by remember(currentThemeMode) { mutableStateOf(currentThemeMode) }
     var selectedThemePalette by remember(currentThemePalette) { mutableStateOf(currentThemePalette) }
@@ -548,6 +550,49 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             )
                         }
 
+                        // Base Hours per Day Setting
+                        OutlinedTextField(
+                            value = inputHoursPerDay,
+                            onValueChange = { inputHoursPerDay = it },
+                            label = { Text("Base Hours per Working Day (h)") },
+                            placeholder = { Text("e.g. 8.0") },
+                            suffix = { Text("hrs/day") },
+                            supportingText = { Text("Default shift length used across calendar and wage generators") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+
+                        // Quick Hours Presets
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            SuggestionChip(
+                                onClick = { inputHoursPerDay = "7.5" },
+                                label = { Text("7.5h (Standard Office)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            SuggestionChip(
+                                onClick = { inputHoursPerDay = "8.0" },
+                                label = { Text("8.0h (Full Time)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            SuggestionChip(
+                                onClick = { inputHoursPerDay = "10.0" },
+                                label = { Text("10.0h (Extended)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                            SuggestionChip(
+                                onClick = { inputHoursPerDay = "12.0" },
+                                label = { Text("12.0h (Long/Night)") },
+                                shape = RoundedCornerShape(10.dp)
+                            )
+                        }
+
                         // Default Weekday Overtime Multiplier
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(
@@ -980,6 +1025,9 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             ScheduledBackupWorker.scheduleBackup(context, selectedAutoBackupFrequency)
                             inputHourlyRate.toDoubleOrNull()?.let {
                                 salaryRepository.setDefaultHourlyRate(it)
+                            }
+                            inputHoursPerDay.toDoubleOrNull()?.let {
+                                salaryRepository.setDefaultHoursPerDay(it)
                             }
                             inputPensionRate.toDoubleOrNull()?.let {
                                 salaryRepository.setPensionRate(it)

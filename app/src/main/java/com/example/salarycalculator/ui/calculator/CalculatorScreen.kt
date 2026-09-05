@@ -57,6 +57,12 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     val activeProfileId by salaryRepository.getActiveProfileId().collectAsState(initial = null)
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
     val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
+    val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 8.0)
+
+    val curCal = remember { java.util.Calendar.getInstance() }
+    val curYear = remember { curCal.get(java.util.Calendar.YEAR) }
+    val curMonth = remember { curCal.get(java.util.Calendar.MONTH) + 1 }
+    val currentMonthShifts by salaryRepository.getMonthShiftSchedule(curYear, curMonth).collectAsState(initial = emptyMap())
 
     var selectedFrequency by remember { mutableStateOf(PayFrequency.MONTHLY) }
     var selectedOvertimeMultiplier by remember(defaultOvertimeMultiplier) { mutableStateOf(defaultOvertimeMultiplier) }
@@ -70,11 +76,27 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var bonusInput by remember { mutableStateOf("") }
     var commissionInput by remember { mutableStateOf("") }
 
+    // Live Sync with Shift Heatmap for current month
+    LaunchedEffect(currentMonthShifts, defaultHoursPerDay) {
+        if (currentMonthShifts.isNotEmpty()) {
+            val dCount = currentMonthShifts.count { it.value > 0 }
+            val totHrs = currentMonthShifts.values.sum()
+            val otHrs = currentMonthShifts.values.sumOf { maxOf(0.0, it - 8.0) }
+            val avgHrs = if (dCount > 0) totHrs / dCount else defaultHoursPerDay
+            daysWorkedInput = dCount.toString()
+            hoursPerDayInput = "%.1f".format(avgHrs)
+            overtimeHoursInput = if (otHrs > 0) "%.1f".format(otHrs) else ""
+        } else {
+            hoursPerDayInput = "%.1f".format(defaultHoursPerDay)
+        }
+    }
+
     var showSaveDialog by remember { mutableStateOf(false) }
     var showProfileDialog by remember { mutableStateOf(false) }
     var showChildBenefitDialog by remember { mutableStateOf(false) }
     var showTaxExplainerDialog by remember { mutableStateOf(false) }
     var showShiftCalendarDialog by remember { mutableStateOf(false) }
+    var showSandboxDialog by remember { mutableStateOf(false) }
     var showCurrencySettingsDialog by remember { mutableStateOf(false) }
     var showTaxTrapDialog by remember { mutableStateOf(false) }
     var showTaxComparisonDialog by remember { mutableStateOf(false) }
@@ -214,6 +236,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             },
                             onChildBenefitClick = { showChildBenefitDialog = true },
                             onCalendarClick = { showShiftCalendarDialog = true },
+                            onSandboxClick = { showSandboxDialog = true },
                             onTaxTrapClick = { showTaxTrapDialog = true },
                             onTaxComparisonClick = { showTaxComparisonDialog = true },
                             onSa100Click = { showSa100Dialog = true },
@@ -400,6 +423,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             },
                             onChildBenefitClick = { showChildBenefitDialog = true },
                             onCalendarClick = { showShiftCalendarDialog = true },
+                            onSandboxClick = { showSandboxDialog = true },
                             onTaxTrapClick = { showTaxTrapDialog = true },
                             onTaxComparisonClick = { showTaxComparisonDialog = true },
                             onSa100Click = { showSa100Dialog = true },
@@ -654,6 +678,7 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 initialHoursPerDay = hoursPerDay,
                 salaryRepository = salaryRepository,
                 hourlyRate = activeProfile?.hourlyRate ?: defaultHourlyRate,
+                overtimeMultiplier = selectedOvertimeMultiplier,
                 onApply = { days, hours, otHours ->
                     daysWorkedInput = if (days > 0) "%.0f".format(days) else "0"
                     hoursPerDayInput = "%.1f".format(hours)
@@ -662,6 +687,30 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                     }
                 },
                 onDismiss = { showShiftCalendarDialog = false }
+            )
+        }
+        // What-If Scenario Sandbox Dialog
+        if (showSandboxDialog) {
+            SandboxCalculatorDialog(
+                baselineDays = daysWorked,
+                baselineHoursPerDay = hoursPerDay,
+                baselineOvertimeHours = overtimeHours,
+                hourlyRate = activeProfile?.hourlyRate ?: defaultHourlyRate,
+                taxCode = taxCode,
+                taxRegion = taxRegion,
+                taxYear = taxYear,
+                pensionRate = selectedPensionPercent,
+                studentLoanPlan = selectedStudentLoan,
+                hasMarriageAllowance = hasMarriageAllowance,
+                hasBlindPersonsAllowance = hasBlindPersonsAllowance,
+                onApplyToCalculator = { sDays, sHrs, sOt, sBonus, sComm ->
+                    daysWorkedInput = if (sDays > 0) "%.0f".format(sDays) else "0"
+                    hoursPerDayInput = "%.1f".format(sHrs)
+                    overtimeHoursInput = if (sOt > 0) "%.1f".format(sOt) else ""
+                    if (sBonus > 0) bonusInput = "%.2f".format(sBonus)
+                    if (sComm > 0) commissionInput = "%.2f".format(sComm)
+                },
+                onDismiss = { showSandboxDialog = false }
             )
         }
         // Currency Settings Dialog
@@ -1049,6 +1098,7 @@ private fun SchedulePresetsSection(
     onSelect: (String, String) -> Unit,
     onChildBenefitClick: () -> Unit = {},
     onCalendarClick: () -> Unit = {},
+    onSandboxClick: () -> Unit = {},
     onTaxTrapClick: () -> Unit = {},
     onTaxComparisonClick: () -> Unit = {},
     onSa100Click: () -> Unit = {},
@@ -1078,6 +1128,18 @@ private fun SchedulePresetsSection(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            AssistChip(
+                onClick = onSandboxClick,
+                label = { Text("What-If Sandbox", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.Science, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onCalendarClick,
+                label = { Text("Shift Heatmap", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                shape = RoundedCornerShape(10.dp)
+            )
             AssistChip(
                 onClick = onSelfEmployedClick,
                 label = { Text("Self-Employed Tax", style = MaterialTheme.typography.labelSmall) },

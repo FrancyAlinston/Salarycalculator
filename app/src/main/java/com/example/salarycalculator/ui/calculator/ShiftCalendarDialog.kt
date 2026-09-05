@@ -40,10 +40,11 @@ import java.util.Calendar
 
 @Composable
 fun ShiftCalendarDialog(
-    initialDaysWorked: Double,
-    initialHoursPerDay: Double,
+    initialDaysWorked: Double = 20.0,
+    initialHoursPerDay: Double = 8.0,
     salaryRepository: SalaryRepository? = null,
     hourlyRate: Double = 15.0,
+    overtimeMultiplier: Double = 1.5,
     onApply: (days: Double, hoursPerDay: Double, overtimeHours: Double) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -52,41 +53,29 @@ fun ShiftCalendarDialog(
     val cal = remember { Calendar.getInstance() }
     var selectedYear by remember { mutableIntStateOf(cal.get(Calendar.YEAR)) }
     var selectedMonth by remember { mutableIntStateOf(cal.get(Calendar.MONTH) + 1) } // 1..12
+    var showYearPicker by remember { mutableStateOf(false) }
 
     val monthNames = remember { DateFormatSymbols().shortMonths.filter { it.isNotBlank() } }
+    val fullMonthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
     val dayOfWeekLabels = remember { listOf("M", "T", "W", "T", "F", "S", "S") }
 
-    // Map: Month (1..12) -> Map(Day -> Hours)
-    val annualShifts = remember {
-        mutableStateMapOf<Int, MutableMap<Int, Double>>().apply {
-            for (m in 1..12) {
-                put(m, mutableStateMapOf())
-            }
-            // Seed current month
-            val currentMonthMap = get(selectedMonth)!!
-            val initialCount = initialDaysWorked.toInt().coerceIn(0, 31)
-            for (d in 1..initialCount) {
-                currentMonthMap[d] = initialHoursPerDay
-            }
-        }
-    }
+    // Multi-Year Persistent Shift Store: Key = "$year-$month" -> Map(Day -> Hours)
+    val multiYearShifts = remember { mutableStateMapOf<String, MutableMap<Int, Double>>() }
 
-    // Try loading persisted annual schedule if available
+    // Load persisted schedule from DataStore
     LaunchedEffect(Unit) {
         if (salaryRepository != null) {
             salaryRepository.getAnnualShiftSchedule().collect { jsonStr ->
                 if (jsonStr.isNotBlank()) {
                     try {
                         val parsed = Json.decodeFromString<Map<String, Map<String, Double>>>(jsonStr)
-                        parsed.forEach { (mStr, dayMap) ->
-                            val m = mStr.toIntOrNull()
-                            if (m != null && m in 1..12) {
-                                val targetMap = annualShifts.getOrPut(m) { mutableStateMapOf() }
-                                dayMap.forEach { (dStr, hrs) ->
-                                    val d = dStr.toIntOrNull()
-                                    if (d != null && d in 1..31) {
-                                        targetMap[d] = hrs
-                                    }
+                        parsed.forEach { (keyStr, dayMap) ->
+                            val targetKey = if (keyStr.contains("-")) keyStr else "${cal.get(Calendar.YEAR)}-$keyStr"
+                            val targetMap = multiYearShifts.getOrPut(targetKey) { mutableStateMapOf() }
+                            dayMap.forEach { (dStr, hrs) ->
+                                val d = dStr.toIntOrNull()
+                                if (d != null && d in 1..31 && hrs > 0.0) {
+                                    targetMap[d] = hrs
                                 }
                             }
                         }
@@ -100,15 +89,18 @@ fun ShiftCalendarDialog(
         if (salaryRepository != null) {
             scope.launch {
                 try {
-                    val exportMap = annualShifts.mapKeys { it.key.toString() }.mapValues { (_, dayMap) ->
-                        dayMap.mapKeys { it.key.toString() }
-                    }
+                    val exportMap = multiYearShifts.mapValues { (_, dayMap) ->
+                        dayMap.filterValues { it > 0.0 }.mapKeys { it.key.toString() }
+                    }.filterValues { it.isNotEmpty() }
                     val jsonStr = Json.encodeToString(exportMap)
                     salaryRepository.setAnnualShiftSchedule(jsonStr)
                 } catch (_: Exception) {}
             }
         }
     }
+
+    val currentMonthKey = "$selectedYear-$selectedMonth"
+    val currentMonthMap = multiYearShifts.getOrPut(currentMonthKey) { mutableStateMapOf() }
 
     // Days in current selected month/year
     val daysInCurrentMonth = remember(selectedYear, selectedMonth) {
@@ -135,8 +127,6 @@ fun ShiftCalendarDialog(
         PayScheduleEngine.calculatePayPeriod(selectedYear, selectedMonth, payScheduleConfig)
     }
 
-    val currentMonthMap = annualShifts.getOrPut(selectedMonth) { mutableStateMapOf() }
-
     val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), payScheduleConfig) {
         PayScheduleEngine.calculateShiftPayrollSplit(selectedYear, selectedMonth, currentMonthMap, payScheduleConfig)
     }
@@ -146,14 +136,26 @@ fun ShiftCalendarDialog(
     val monthStandardHours = currentMonthMap.values.sumOf { minOf(8.0, it) }
     val monthOvertimeHours = currentMonthMap.values.sumOf { maxOf(0.0, it - 8.0) }
     val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else 8.0
-
     val inCycleAvgHours = if (payrollSplit.inCycleDays > 0) payrollSplit.inCycleHours / payrollSplit.inCycleDays else 8.0
 
-    // Annual Aggregate Calculations
-    val annualDaysWorked = annualShifts.values.sumOf { m -> m.values.count { it > 0 } }
-    val annualTotalHours = annualShifts.values.sumOf { m -> m.values.sum() }
-    val annualOvertimeHours = annualShifts.values.sumOf { m -> m.values.sumOf { maxOf(0.0, it - 8.0) } }
-    val annualEstimatedGross = annualTotalHours * hourlyRate
+    // Exact Monthly Estimated Gross Calculation (Strict £0.00 zero-state if no shifts)
+    val monthEstimatedGross = if (monthDaysWorked == 0 || monthTotalHours == 0.0) {
+        0.0
+    } else {
+        (monthStandardHours * hourlyRate) + (monthOvertimeHours * hourlyRate * overtimeMultiplier)
+    }
+
+    val inCycleEstimatedGross = if (payrollSplit.inCycleDays == 0 || payrollSplit.inCycleHours == 0.0) {
+        0.0
+    } else {
+        (payrollSplit.inCycleStandardHours * hourlyRate) + (payrollSplit.inCycleOtHours * hourlyRate * overtimeMultiplier)
+    }
+
+    // Annual Aggregate Calculations for selectedYear
+    val annualDaysWorked = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.count { it > 0 } ?: 0 }
+    val annualTotalHours = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.sum() ?: 0.0 }
+    val annualOvertimeHours = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.sumOf { maxOf(0.0, it - 8.0) } ?: 0.0 }
+    val annualEstimatedGross = if (annualTotalHours == 0.0) 0.0 else (annualTotalHours * hourlyRate)
 
     AlertDialog(
         onDismissRequest = {
@@ -176,7 +178,9 @@ fun ShiftCalendarDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(
                         onClick = {
-                            val fullSchedule = annualShifts.mapValues { it.value.toMap() }
+                            val fullSchedule = (1..12).associateWith { m ->
+                                (multiYearShifts["$selectedYear-$m"] ?: emptyMap()).toMap()
+                            }
                             val pdf = com.example.salarycalculator.domain.AnnualShiftPdfGenerator.generateAnnualShiftPdf(
                                 context = context,
                                 year = selectedYear,
@@ -191,7 +195,9 @@ fun ShiftCalendarDialog(
 
                     IconButton(
                         onClick = {
-                            val fullSchedule = annualShifts.mapValues { it.value.toMap() }
+                            val fullSchedule = (1..12).associateWith { m ->
+                                (multiYearShifts["$selectedYear-$m"] ?: emptyMap()).toMap()
+                            }
                             val ics = IcsCalendarExporter.generateAnnualIcsContent(
                                 year = selectedYear,
                                 monthlyShifts = fullSchedule,
@@ -207,7 +213,8 @@ fun ShiftCalendarDialog(
                         onClick = {
                             val ics = IcsCalendarExporter.generatePayScheduleIcsContent(
                                 year = selectedYear,
-                                config = payScheduleConfig
+                                config = payScheduleConfig,
+                                estimatedNetPay = monthEstimatedGross * 0.8
                             )
                             IcsCalendarExporter.shareIcsFile(context, ics, "Pay_and_Cutoff_Schedule_${selectedYear}.ics")
                         }
@@ -224,29 +231,82 @@ fun ShiftCalendarDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Year Switcher Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // 1. Month-by-Month Primary Sequential Navigation Row
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    IconButton(
-                        onClick = { selectedYear -= 1 },
-                        modifier = Modifier.size(32.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Year", modifier = Modifier.size(18.dp))
+                        IconButton(
+                            onClick = {
+                                if (selectedMonth > 1) {
+                                    selectedMonth -= 1
+                                } else {
+                                    selectedMonth = 12
+                                    selectedYear -= 1
+                                }
+                            },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous Month")
+                        }
+
+                        // Month & Year Clickable Heading
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.clickable { showYearPicker = !showYearPicker }
+                        ) {
+                            Text(
+                                text = "${fullMonthNames.getOrElse(selectedMonth - 1) { "Month $selectedMonth" }} $selectedYear",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Icon(Icons.Default.ArrowDropDown, contentDescription = "Switch Year", modifier = Modifier.size(20.dp))
+                        }
+
+                        IconButton(
+                            onClick = {
+                                if (selectedMonth < 12) {
+                                    selectedMonth += 1
+                                } else {
+                                    selectedMonth = 1
+                                    selectedYear += 1
+                                }
+                            },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Month")
+                        }
                     }
-                    Text(
-                        text = "Year $selectedYear",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    IconButton(
-                        onClick = { selectedYear += 1 },
-                        modifier = Modifier.size(32.dp)
+                }
+
+                // Expandable Quick Year Picker
+                AnimatedVisibility(visible = showYearPicker) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next Year", modifier = Modifier.size(18.dp))
+                        (2024..2028).forEach { y ->
+                            FilterChip(
+                                selected = selectedYear == y,
+                                onClick = {
+                                    selectedYear = y
+                                    showYearPicker = false
+                                },
+                                label = { Text("$y", fontWeight = if (selectedYear == y) FontWeight.Bold else FontWeight.Normal) }
+                            )
+                        }
                     }
                 }
 
@@ -259,7 +319,7 @@ fun ShiftCalendarDialog(
                 ) {
                     for (m in 1..12) {
                         val isSelected = selectedMonth == m
-                        val mDaysCount = annualShifts[m]?.values?.count { it > 0 } ?: 0
+                        val mDaysCount = multiYearShifts["$selectedYear-$m"]?.values?.count { it > 0 } ?: 0
                         FilterChip(
                             selected = isSelected,
                             onClick = { selectedMonth = m },
@@ -285,7 +345,49 @@ fun ShiftCalendarDialog(
                     }
                 }
 
-                // Payroll Cutoff & Pay Cycle Banner Card
+                // 2. Color Legend Row
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Standard 8h
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Emerald60))
+                            Text("8h Standard", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        }
+                        // Overtime 10h
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Amber60))
+                            Text("10h OT", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        }
+                        // Long Shift 12h
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Rose60))
+                            Text("12h Long/Night", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        }
+                        // Part time
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Teal60))
+                            Text("<8h Part-Time", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        }
+                        // Off
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant))
+                            Text("0h Off", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        }
+                    }
+                }
+
+                // 3. Payroll Cutoff & Pay Cycle Banner Card
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
@@ -333,10 +435,10 @@ fun ShiftCalendarDialog(
                             }
 
                             Text(
-                                text = "Rule: ${payScheduleConfig.type.name.take(11)}",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 9.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = "Est. Gross: £${"%,.2f".format(monthEstimatedGross)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (monthEstimatedGross > 0) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
@@ -349,7 +451,7 @@ fun ShiftCalendarDialog(
                                 text = "In This Payslip: ${payrollSplit.inCycleDays}d (${"%.0f".format(payrollSplit.inCycleHours)}h) · OT: ${"%.0f".format(payrollSplit.inCycleOtHours)}h",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Emerald60
+                                color = if (payrollSplit.inCycleDays > 0) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (payrollSplit.rolloverDays > 0) {
                                 Text(
@@ -380,7 +482,7 @@ fun ShiftCalendarDialog(
                     }
                 }
 
-                // Calendar Grid for Selected Month
+                // 4. Calendar Grid for Selected Month
                 val totalCells = startDayOffset + daysInCurrentMonth
                 val totalRows = (totalCells + 6) / 7
 
@@ -440,6 +542,7 @@ fun ShiftCalendarDialog(
                                                 } else {
                                                     currentMonthMap.remove(dayNum)
                                                 }
+                                                saveSchedule()
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -490,6 +593,7 @@ fun ShiftCalendarDialog(
                                     currentMonthMap.remove(d)
                                 }
                             }
+                            saveSchedule()
                         },
                         label = { Text("Mon–Fri (8h)", style = MaterialTheme.typography.labelSmall) }
                     )
@@ -505,29 +609,34 @@ fun ShiftCalendarDialog(
                                     currentMonthMap.remove(d)
                                 }
                             }
+                            saveSchedule()
                         },
                         label = { Text("4-On 4-Off", style = MaterialTheme.typography.labelSmall) }
                     )
 
                     AssistChip(
                         onClick = {
-                            // Copy current month pattern to all 12 months
+                            // Copy current month pattern to all 12 months for this selectedYear
                             val template = currentMonthMap.toMap()
                             for (m in 1..12) {
                                 if (m != selectedMonth) {
-                                    val target = annualShifts.getOrPut(m) { mutableStateMapOf() }
+                                    val target = multiYearShifts.getOrPut("$selectedYear-$m") { mutableStateMapOf() }
                                     target.clear()
                                     template.forEach { (d, h) ->
                                         if (d <= 28) target[d] = h
                                     }
                                 }
                             }
+                            saveSchedule()
                         },
                         label = { Text("Copy to All 12 Months", style = MaterialTheme.typography.labelSmall) }
                     )
 
                     AssistChip(
-                        onClick = { currentMonthMap.clear() },
+                        onClick = {
+                            currentMonthMap.clear()
+                            saveSchedule()
+                        },
                         label = { Text("Clear Month", style = MaterialTheme.typography.labelSmall) }
                     )
                 }
@@ -572,10 +681,10 @@ fun ShiftCalendarDialog(
                                 style = MaterialTheme.typography.bodySmall
                             )
                             Text(
-                                text = "Est. Gross: £${"%,.0f".format(annualEstimatedGross)}",
+                                text = "Est. Gross: £${"%,.2f".format(annualEstimatedGross)}",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
-                                color = Emerald60
+                                color = if (annualEstimatedGross > 0) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }

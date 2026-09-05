@@ -4,6 +4,25 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [17.1] - 2026-09-05 (VersionCode: 24)
+### Added
+- **Isolated "What-If" Scenario Sandbox Calculator (`SandboxCalculatorDialog.kt`)**: Decoupled variable earnings and scenario modeling from the live Shift Heatmap into a dedicated sandbox environment. Supports standard working days/hours, independent Overtime multiplier pills (`1.0x`, `1.25x`, `1.5x`, `1.75x`, `2.0x`, `2.5x`), dedicated Bank Holiday multiplier pills (`1.5x`, `2.0x`, `2.5x`, `3.0x`), variable bonus/commission inputs, quick scenario presets (+2 Weekend OT, +1 Bank Holiday, +£500 Bonus), and real-time net take-home pay comparison vs baseline actual payslip.
+- **Base Hours per Working Day Configuration in Settings (`SettingsScreen.kt` & `SalaryRepository.kt`)**: Configurable standard base hours per working day (default `8.0h`, with presets `7.5h`, `8.0h`, `10.0h`, `12.0h`) persisted in DataStore (`default_hours_per_day`), automatically consumed across the home screen, Shift Heatmap, and schedule presets.
+- **Sequential Month-by-Month Heatmap Navigation (`ShiftCalendarDialog.kt`)**: Re-engineered primary `<` and `>` arrow navigation to step sequentially through individual months with automatic year rollover (e.g., December 2026 $\rightarrow$ January 2027), accompanied by a dedicated year selector dropdown/chips.
+- **Visual Shift Heatmap Color Legend (`ShiftCalendarDialog.kt`)**: Added prominent color legend bar defining 🟢 Standard 8h Shift (`Emerald60`), 🟠 Overtime 10h Shift (`Amber60`), 🔴 Long/Night 12h Duty (`Rose60`), 🔵 Part-Time <8h Shift (`Teal60`), and ⚪ Day Off.
+- **Live Home Screen Sync with Active Month Heatmap Schedule (`CalculatorScreen.kt`)**: On app launch and upon calendar changes, the Home screen automatically syncs with the current calendar month's saved shift schedule (`getMonthShiftSchedule`), reflecting accurate days worked, average hours, and overtime.
+- **Comprehensive v17.1 Unit Test Suite (`ShiftPersistenceAndSandboxTest.kt`)**: 100% automated test coverage validating multi-year JSON persistence, sequential month rollover, strict zero-state £0.00 earnings calculation, and sandbox take-home variance modeling.
+
+### Bugs Found & Fixed
+- **Shift Heatmap State Persistence Bug (Issue #1.1)**: Eliminated unconditional default shift overwriting on dialog reopen by replacing destructive memory seeding with non-destructive multi-year JSON persistence keyed by `"YYYY-MM"`.
+- **Month vs Year Navigation Inversion (Issue #1.3)**: Corrected top navigation arrows to cycle months sequentially rather than skipping entire years.
+- **Heatmap Zero-State False Earnings Bug (Issue #1.4)**: Enforced strict £0.00 gross and net take-home calculation when a viewed month contains zero marked shifts.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [17.0] - 2026-09-05 (VersionCode: 23)
 ### Added
 - **Payroll Pay Schedule & Cutoff Date Engine (`PayScheduleEngine.kt`)**: Modeled standard UK company pay schedule rules with primary default for **Last Friday of the Month (with preceding Sunday timesheet cutoff)**. Exact calculation of monthly cutoff deadline ($5$ days prior to pay date at 23:59), cycle start dates, and post-cutoff rollover partitioning.
