@@ -98,6 +98,54 @@ def upload_asset(token, release_id, file_path, file_name):
         print(f"Error uploading asset {file_name}: {e}")
         return None
 
+def get_changelog_for_version(version_tag):
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    changelog_path = os.path.join(project_root, "CHANGELOG.md")
+    if not os.path.exists(changelog_path):
+        return ""
+    
+    clean_ver = version_tag.lstrip("v")
+    with open(changelog_path, "r", encoding="utf-8") as f:
+        content = f.read()
+        
+    lines = content.splitlines()
+    in_version = False
+    ver_lines = []
+    
+    for line in lines:
+        if line.startswith("## [") and f"[{clean_ver}]" in line:
+            in_version = True
+            continue
+        elif in_version and line.startswith("## ["):
+            break
+        elif in_version:
+            if line.strip() == "---":
+                continue
+            ver_lines.append(line)
+            
+    return "\n".join(ver_lines).strip()
+
+def update_release(token, release_id, tag_name, name, body):
+    url = f"{BASE_URL}/repos/{OWNER}/{REPO}/releases/{release_id}"
+    payload = {
+        "tag_name": tag_name,
+        "name": name,
+        "body": body
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers={
+        "Authorization": f"token {token}",
+        "Content-Type": "application/json",
+        "User-Agent": USER_AGENT
+    })
+    req.get_method = lambda: "PATCH"
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        print(f"Error updating release {tag_name}: {e}")
+        return None
+
 def sync_releases():
     token = get_token()
     if not token:
@@ -120,7 +168,7 @@ def sync_releases():
                 discovered.append(v)
     versions = sorted(list(set(discovered)), key=lambda x: [int(p) if p.isdigit() else p for p in x.lstrip('v').split('.')])
     if not versions:
-        versions = ["v16.0", "v17.0", "v17.1", "v17.2", "v18.0", "v19.0", "v20.0", "v21.0"]
+        versions = ["v16.0", "v17.0", "v17.1", "v17.2", "v18.0", "v19.0", "v20.0", "v21.0", "v22.0"]
     
     for v in versions:
         release_apk = os.path.join(apk_dir, f"Salarycalculator-{v}.apk")
@@ -129,11 +177,19 @@ def sync_releases():
         if not os.path.exists(release_apk):
             continue
             
+        changelog_body = get_changelog_for_version(v)
+        body_text = f"## Salary Calculator {v}\n\n"
+        if changelog_body:
+            body_text += f"### Release Notes & Changes from Previous Version\n{changelog_body}\n\n---\n"
+        body_text += f"### Downloads & Binaries 📦\n- **Production APK (Signed)**: `Salarycalculator-{v}.apk`\n- **Debug APK (Development)**: `Salarycalculator-{v}-debug.apk`\n\n---\n*Signed and optimized for standalone installation.*"
+
         rel = existing_tags.get(v)
         if not rel:
             print(f"Creating release for {v}...")
-            body_text = f"## Salary Calculator {v}\n\n### Downloads & Assets 📦\n- **Stable Release (Production)**: `Salarycalculator-{v}.apk`\n- **Debug Build (Development)**: `Salarycalculator-{v}-debug.apk`\n\n---\n*Signed and optimized for standalone installation.*"
             rel = create_release(token, v, f"Salary Calculator {v}", body_text)
+        else:
+            print(f"Updating release notes for {v}...")
+            update_release(token, rel["id"], v, f"Salary Calculator {v}", body_text)
             
         if rel and "id" in rel:
             rel_id = rel["id"]
