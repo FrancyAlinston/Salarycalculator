@@ -132,9 +132,11 @@ The APKs are generated at:
 
 ## Continuous Integration & Automated Releases (GitHub & Forgejo)
 
-The repository provides continuous delivery workflows for both GitHub Actions and Forgejo / Gitea Actions:
+The repository provides continuous delivery workflows and release synchronization for both GitHub and Forgejo:
+- **Mandatory Dual-Platform Release**: Every version release is published simultaneously to both GitHub and Forgejo with signed production and debug APKs attached.
 - **GitHub Actions**: [`.github/workflows/release.yml`](file:///.github/workflows/release.yml) automatically builds signed Release and Debug APKs on push to `main` and creates official GitHub releases on `v*` tags.
-- **Forgejo Actions**: [`.forgejo/workflows/release.yaml`](file:///.forgejo/workflows/release.yaml) enables self-hosted CI/CD runner execution with automated test validation, artifact packaging, and Forgejo release generation.
+- **Forgejo Actions & API Synchronizer**: [`.forgejo/workflows/release.yaml`](file:///.forgejo/workflows/release.yaml) and [`scripts/sync_forgejo_releases.py`](file:///scripts/sync_forgejo_releases.py) automatically publish release notes and upload APK assets directly to your self-hosted Forgejo instance (`https://forgejo.449100.xyz`).
+- **Forgejo `act_runner` CI/CD**: Containerized turn-key runner package located in [`ci/forgejo-runner/`](file:///ci/forgejo-runner/) for on-premise builds.
 
 ---
 

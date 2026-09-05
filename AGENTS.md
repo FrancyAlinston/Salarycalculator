@@ -87,12 +87,17 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - This folder MUST be included in `.gitignore` and used strictly for storing built `.apk` binaries across all app versions.
   - On every build or version release, the agent MUST automatically copy the newly generated release and debug APKs into `APKs/` named with their semantic version: e.g. `Salarycalculator-v<versionName>.apk` and `Salarycalculator-v<versionName>-debug.apk`.
   - Only `.apk` files with version names are permitted in this folder.
-- **Automated CI/CD**:
-  - Releases are automatically generated via GitHub Actions ([`.github/workflows/release.yml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.github/workflows/release.yml)) and Forgejo Actions ([`.forgejo/workflows/release.yaml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.forgejo/workflows/release.yaml)) on push to `main` with semantic tags `v*`.
-  - Artifact path rules:
+- **Mandatory Dual-Platform Release on Both Git and Forgejo (`@rules:Always release on both git and forgejo`)**:
+  - On **EVERY** version release or build update, the agent MUST publish, tag, and synchronize the release to **BOTH** GitHub and Forgejo.
+  - **Git Remotes Synchronization**: Always push all commits and semantic tags to both primary Forgejo (`origin`) and secondary GitHub (`github`):
+    `git push origin main --tags && git push github main --tags`
+  - **Release Assets & Pages Parity**: Verify that release entries exist on both GitHub Releases and Forgejo Releases with corresponding changelog notes and both binaries attached:
     - **Stable / Production APK**: `Salarycalculator.apk` (packaged from `app/build/outputs/apk/release/`).
     - **Debug / Development APK**: `Salarycalculator-debug.apk` (packaged from `app/build/outputs/apk/debug/`).
-    - In installed environments, the app launcher display name MUST remain strictly the project name (`Salary Calculator`).
+  - **Automated Forgejo API Release Sync**: Execute `python3 scripts/sync_forgejo_releases.py` on every release to ensure immediate API publishing of release pages and APK assets directly to Forgejo (`https://forgejo.449100.xyz`), guaranteeing 100% release parity regardless of runner availability.
+- **Automated CI/CD**:
+  - Releases are automatically generated via GitHub Actions ([`.github/workflows/release.yml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.github/workflows/release.yml)) and Forgejo Actions ([`.forgejo/workflows/release.yaml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.forgejo/workflows/release.yaml)) on push to `main` with semantic tags `v*`.
+  - In installed environments, the app launcher display name MUST remain strictly the project name (`Salary Calculator`).
 
 ---
 
