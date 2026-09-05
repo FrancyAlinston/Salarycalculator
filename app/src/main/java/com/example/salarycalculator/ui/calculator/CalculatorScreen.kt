@@ -125,6 +125,8 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var showGiftAidDialog by remember { mutableStateOf(false) }
     var showCapitalGainsDialog by remember { mutableStateOf(false) }
     var showOvertimeOptimizerDialog by remember { mutableStateOf(false) }
+    var showMultiJobDialog by remember { mutableStateOf(false) }
+    var showUmbrellaPayrollDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("September 2026") }
     var saveNote by remember { mutableStateOf("") }
 
@@ -259,7 +261,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onDirectorTaxClick = { showDirectorDividendDialog = true },
                             onYtdProjectionClick = { showYtdProjectionDialog = true },
                             onSalaryBenchmarkClick = { showSalaryBenchmarkDialog = true },
-                            onOvertimeOptimizerClick = { showOvertimeOptimizerDialog = true }
+                            onOvertimeOptimizerClick = { showOvertimeOptimizerDialog = true },
+                            onMultiJobClick = { showMultiJobDialog = true },
+                            onUmbrellaClick = { showUmbrellaPayrollDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -452,7 +456,9 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                             onSelfEmployedClick = { showSelfEmployedDialog = true },
                             onGiftAidClick = { showGiftAidDialog = true },
                             onCapitalGainsClick = { showCapitalGainsDialog = true },
-                            onOvertimeOptimizerClick = { showOvertimeOptimizerDialog = true }
+                            onOvertimeOptimizerClick = { showOvertimeOptimizerDialog = true },
+                            onMultiJobClick = { showMultiJobDialog = true },
+                            onUmbrellaClick = { showUmbrellaPayrollDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
@@ -895,6 +901,18 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
                 onDismiss = { showOvertimeOptimizerDialog = false }
             )
         }
+        // Dual-Job & Multi-Employer Aggregator Dialog
+        if (showMultiJobDialog) {
+            MultiJobTaxDialog(
+                onDismiss = { showMultiJobDialog = false }
+            )
+        }
+        // Umbrella Contractor & Employer On-Cost Dialog
+        if (showUmbrellaPayrollDialog) {
+            UmbrellaPayrollDialog(
+                onDismiss = { showUmbrellaPayrollDialog = false }
+            )
+        }
     }
 }
 
@@ -1146,7 +1164,9 @@ private fun SchedulePresetsSection(
     onSelfEmployedClick: () -> Unit = {},
     onGiftAidClick: () -> Unit = {},
     onCapitalGainsClick: () -> Unit = {},
-    onOvertimeOptimizerClick: () -> Unit = {}
+    onOvertimeOptimizerClick: () -> Unit = {},
+    onMultiJobClick: () -> Unit = {},
+    onUmbrellaClick: () -> Unit = {}
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -1160,6 +1180,18 @@ private fun SchedulePresetsSection(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            AssistChip(
+                onClick = onMultiJobClick,
+                label = { Text("Dual-Job Tax", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.Work, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                shape = RoundedCornerShape(10.dp)
+            )
+            AssistChip(
+                onClick = onUmbrellaClick,
+                label = { Text("Umbrella / Employer Cost", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                leadingIcon = { Icon(Icons.Default.AccountBalance, contentDescription = null, modifier = Modifier.size(14.dp), tint = Amber60) },
+                shape = RoundedCornerShape(10.dp)
+            )
             AssistChip(
                 onClick = onOvertimeOptimizerClick,
                 label = { Text("Overtime Optimizer", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
