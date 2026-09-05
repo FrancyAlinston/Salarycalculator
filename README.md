@@ -126,6 +126,14 @@ The APKs are generated at:
 
 ---
 
+## Continuous Integration & Automated Releases (GitHub & Forgejo)
+
+The repository provides continuous delivery workflows for both GitHub Actions and Forgejo / Gitea Actions:
+- **GitHub Actions**: [`.github/workflows/release.yml`](file:///.github/workflows/release.yml) automatically builds signed Release and Debug APKs on push to `main` and creates official GitHub releases on `v*` tags.
+- **Forgejo Actions**: [`.forgejo/workflows/release.yaml`](file:///.forgejo/workflows/release.yaml) enables self-hosted CI/CD runner execution with automated test validation, artifact packaging, and Forgejo release generation.
+
+---
+
 ## Tech Stack
 
 - **Language:** Kotlin 2.1.20 (JVM Toolchain 17)

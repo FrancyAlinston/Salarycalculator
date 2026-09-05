@@ -64,7 +64,7 @@ These rules define the mandatory behavioral constraints, development workflows, 
 ## 4. Version Control, Build, Release & Tracking Automation
 
 - **Automated Commit & Push on Every Change (`@rules:auto_git_sync`)**:
-  - Whenever any new change, feature, bugfix, or update is detected/completed, the agent MUST automatically stage all changes (`git add .`), create a semantic and descriptive commit (`git commit -m "..."`), and push immediately to GitHub (`git push origin <branch>`).
+  - Whenever any new change, feature, bugfix, or update is detected/completed, the agent MUST automatically stage all changes (`git add .`), create a semantic and descriptive commit (`git commit -m "..."`), and push immediately to both GitHub and Forgejo (`git push origin <branch>` with dual push URLs configured or pushing to both remotes).
 - **Version Tracking & Changelog Integrity (`@rules:version_changelog_tracking`)**:
   - For EVERY version change, the agent MUST maintain a structured, up-to-date entry in [`CHANGELOG.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/CHANGELOG.md).
   - Every version log MUST categorically document:
@@ -77,18 +77,18 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - When introducing user-facing features, schema modifications, or calculation updates, increment `versionCode` and update `versionName` in [`app/build.gradle.kts`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/build.gradle.kts).
 - **Keystore & Signing Integrity**:
   - Maintain signing config referencing [`app/debug.keystore`](file:///home/d3fault/Documents/Projects/Salarycalculator/app/debug.keystore) to ensure compatibility with automated release workflows.
-- **GitHub Actions Storage Limits & Release Backtracking (`@rules:github_upload_storage_limits_management`)**:
-  - On every change or build push for release, the agent MUST consider GitHub Actions upload/artifact storage quotas.
-  - Never allow intermediate workflow artifact upload steps (`actions/upload-artifact`) to block or fail release publishing (`softprops/action-gh-release`), because GitHub Releases utilize independent, uncapped release asset storage.
-  - If a storage quota or recalculation window (6-12 hours) prevents immediate artifact staging, the agent MUST bypass ephemeral workflow artifact uploads and attach production and debug APKs directly to the GitHub Release.
-  - The agent MUST backtrack across past versions (from the last successful GitHub release up to the current active version) to verify all intervening releases are properly tagged, built, and published.
+- **GitHub & Forgejo Actions Storage Limits & Release Backtracking (`@rules:github_upload_storage_limits_management`)**:
+  - On every change or build push for release, the agent MUST consider GitHub and Forgejo Actions upload/artifact storage quotas.
+  - Never allow intermediate workflow artifact upload steps (`actions/upload-artifact`) to block or fail release publishing (`softprops/action-gh-release`), because Releases utilize independent, uncapped release asset storage.
+  - If a storage quota or recalculation window (6-12 hours) prevents immediate artifact staging, the agent MUST bypass ephemeral workflow artifact uploads and attach production and debug APKs directly to the Release.
+  - The agent MUST backtrack across past versions (from the last successful release up to the current active version) to verify all intervening releases are properly tagged, built, and published.
 - **Local Versioned APK Archive Directory (`@rules:local_versioned_apks_folder`)**:
   - The repository maintains a local folder named `APKs` at the workspace root.
   - This folder MUST be included in `.gitignore` and used strictly for storing built `.apk` binaries across all app versions.
   - On every build or version release, the agent MUST automatically copy the newly generated release and debug APKs into `APKs/` named with their semantic version: e.g. `Salarycalculator-v<versionName>.apk` and `Salarycalculator-v<versionName>-debug.apk`.
   - Only `.apk` files with version names are permitted in this folder.
 - **Automated CI/CD**:
-  - Releases are automatically generated via GitHub Actions ([`.github/workflows/release.yml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.github/workflows/release.yml)) on push to `main` with semantic tags `v*`.
+  - Releases are automatically generated via GitHub Actions ([`.github/workflows/release.yml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.github/workflows/release.yml)) and Forgejo Actions ([`.forgejo/workflows/release.yaml`](file:///home/d3fault/Documents/Projects/Salarycalculator/.forgejo/workflows/release.yaml)) on push to `main` with semantic tags `v*`.
   - Artifact path rules:
     - **Stable / Production APK**: `Salarycalculator.apk` (packaged from `app/build/outputs/apk/release/`).
     - **Debug / Development APK**: `Salarycalculator-debug.apk` (packaged from `app/build/outputs/apk/debug/`).
