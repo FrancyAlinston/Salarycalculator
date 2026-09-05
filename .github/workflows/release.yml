@@ -75,23 +75,58 @@ jobs:
           echo "Successfully prepared artifacts:"
           ls -lh release-artifacts/
 
+      - name: Extract Changelog Notes for Release
+        id: changelog_notes
+        run: |
+          python3 - << 'EOF'
+          import os
+          tag = os.environ.get("RELEASE_TAG", "").lstrip("v")
+          changelog_path = "CHANGELOG.md"
+          notes = []
+          if os.path.exists(changelog_path):
+              with open(changelog_path, "r", encoding="utf-8") as f:
+                  lines = f.readlines()
+              in_section = False
+              for line in lines:
+                  if line.startswith("## [") and f"[{tag}]" in line:
+                      in_section = True
+                      continue
+                  elif in_section and line.startswith("## ["):
+                      break
+                  elif in_section:
+                      if line.strip() != "---":
+                          notes.append(line)
+          changelog_body = "".join(notes).strip()
+          header = f"""## Downloads & Assets 📦
+
+- **Stable Release (Production)**: [`Salarycalculator-v{tag}.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/v{tag}/Salarycalculator-v{tag}.apk)
+- **Debug Version (Development)**: [`Salarycalculator-v{tag}-debug.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/v{tag}/Salarycalculator-v{tag}-debug.apk)
+
+---
+
+### What's Changed in this Release
+
+{changelog_body}
+
+---
+*Signed with keystore and verified for standalone installation.*
+"""
+          with open("release_notes.md", "w", encoding="utf-8") as out:
+              out.write(header)
+          EOF
+        env:
+          RELEASE_TAG: ${{ steps.get_version.outputs.tag }}
+
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.tag }}
           name: "Salary Calculator ${{ steps.get_version.outputs.tag }}"
-          body: |
-            ## Downloads & Assets 📦
-
-            - **Stable Release (Production)**: [`Salarycalculator-${{ steps.get_version.outputs.tag }}.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/${{ steps.get_version.outputs.tag }}/Salarycalculator-${{ steps.get_version.outputs.tag }}.apk)
-            - **Debug Version (Development)**: [`Salarycalculator-${{ steps.get_version.outputs.tag }}-debug.apk`](https://github.com/FrancyAlinston/Salarycalculator/releases/download/${{ steps.get_version.outputs.tag }}/Salarycalculator-${{ steps.get_version.outputs.tag }}-debug.apk)
-
-            ---
-            *Signed with keystore and optimized for standalone installation.*
+          body_path: release_notes.md
           files: |
             release-artifacts/Salarycalculator-${{ steps.get_version.outputs.tag }}.apk
             release-artifacts/Salarycalculator-${{ steps.get_version.outputs.tag }}-debug.apk
-          generate_release_notes: true
+          generate_release_notes: false
           make_latest: true
           prerelease: false
           fail_on_unmatched_files: false
