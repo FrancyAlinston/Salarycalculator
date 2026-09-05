@@ -35,7 +35,8 @@ enum class PayScheduleType(val displayName: String, val description: String) {
 data class PayScheduleConfig(
     val type: PayScheduleType = PayScheduleType.LAST_FRIDAY_OF_MONTH,
     val fixedDay: Int = 28,
-    val cutoffLeadDays: Int = 5 // e.g. Sunday before Friday = 5 days
+    val cutoffLeadDays: Int = 5, // e.g. Sunday before Friday = 5 days
+    val adjustForBankHolidays: Boolean = true
 )
 
 @Serializable
@@ -50,7 +51,8 @@ data class PayPeriodInfo(
     val cutoffDay: Int,
     val startYear: Int,
     val startMonth: Int,
-    val startDay: Int
+    val startDay: Int,
+    val isBankHolidayAdjusted: Boolean = false
 ) {
     fun isCutoffDay(y: Int, m: Int, d: Int): Boolean {
         return y == cutoffYear && m == cutoffMonth && d == cutoffDay
@@ -122,6 +124,17 @@ object PayScheduleEngine {
                 val cutoffMonth = cal.get(Calendar.MONTH) + 1
                 val cutoffDay = cal.get(Calendar.DAY_OF_MONTH)
 
+                var adjustedPayDay = lastFriday
+                var isHolidayAdjusted = false
+
+                // If Dec 25 or Dec 26 falls on the last Friday, bring forward to Wednesday/Thursday
+                if (config.adjustForBankHolidays && month == 12) {
+                    if (lastFriday == 25 || lastFriday == 26) {
+                        adjustedPayDay = 24 // Christmas Eve
+                        isHolidayAdjusted = true
+                    }
+                }
+
                 // Start date is previous month's cutoff + 1 day
                 val prevMonth = if (month == 1) 12 else month - 1
                 val prevYear = if (month == 1) year - 1 else year
@@ -147,13 +160,14 @@ object PayScheduleEngine {
                     month = month,
                     payYear = year,
                     payMonth = month,
-                    payDay = lastFriday,
+                    payDay = adjustedPayDay,
                     cutoffYear = cutoffYear,
                     cutoffMonth = cutoffMonth,
                     cutoffDay = cutoffDay,
                     startYear = prevCutoffCal.get(Calendar.YEAR),
                     startMonth = prevCutoffCal.get(Calendar.MONTH) + 1,
-                    startDay = prevCutoffCal.get(Calendar.DAY_OF_MONTH)
+                    startDay = prevCutoffCal.get(Calendar.DAY_OF_MONTH),
+                    isBankHolidayAdjusted = isHolidayAdjusted
                 )
             }
 

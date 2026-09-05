@@ -68,10 +68,16 @@ class PayScheduleEngineTest {
         assertEquals(28, nov.payDay)
         assertEquals(23, nov.cutoffDay)
 
-        // Dec 2025: Last Friday = Dec 26, Cutoff = Dec 21
-        val dec = PayScheduleEngine.calculatePayPeriod(2025, 12, config)
-        assertEquals(26, dec.payDay)
-        assertEquals(21, dec.cutoffDay)
+        // Dec 2025: Last Friday = Dec 26 (Boxing Day), with adjustForBankHolidays=false -> 26, with true -> 24
+        val decRaw = PayScheduleEngine.calculatePayPeriod(2025, 12, config.copy(adjustForBankHolidays = false))
+        assertEquals(26, decRaw.payDay)
+        assertEquals(21, decRaw.cutoffDay)
+        assertFalse(decRaw.isBankHolidayAdjusted)
+
+        val decAdjusted = PayScheduleEngine.calculatePayPeriod(2025, 12, config.copy(adjustForBankHolidays = true))
+        assertEquals(24, decAdjusted.payDay)
+        assertEquals(21, decAdjusted.cutoffDay)
+        assertTrue(decAdjusted.isBankHolidayAdjusted)
     }
 
     @Test
