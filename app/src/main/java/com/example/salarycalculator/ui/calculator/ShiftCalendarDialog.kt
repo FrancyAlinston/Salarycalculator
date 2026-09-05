@@ -62,6 +62,7 @@ fun ShiftCalendarDialog(
 
     val employerProfiles by (salaryRepository?.getEmployerProfiles() ?: flowOf(emptyList())).collectAsState(initial = emptyList())
     val shiftAssignments by (salaryRepository?.getShiftEmployerAssignments() ?: flowOf(emptyMap())).collectAsState(initial = emptyMap())
+    val defaultHoursPerDay by (salaryRepository?.getDefaultHoursPerDay() ?: flowOf(12.0)).collectAsState(initial = 12.0)
     var selectedEmployerFilterId by remember { mutableStateOf<String?>(null) }
 
     // Multi-Year Persistent Shift Store: Key = "$year-$month" -> Map(Day -> Hours)
@@ -139,24 +140,25 @@ fun ShiftCalendarDialog(
     }
 
     // Includes current month shifts AND previous month post-cutoff rollover shifts
-    val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), prevMonthMap.toMap(), payScheduleConfig) {
+    val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), prevMonthMap.toMap(), payScheduleConfig, defaultHoursPerDay) {
         PayScheduleEngine.calculateShiftPayrollSplit(
             year = selectedYear,
             month = selectedMonth,
             currentMonthShifts = currentMonthMap,
             previousMonthShifts = prevMonthMap,
-            config = payScheduleConfig
+            config = payScheduleConfig,
+            standardHoursPerShift = defaultHoursPerDay
         )
     }
 
     val monthDaysWorked = currentMonthMap.values.count { it > 0 }
     val monthTotalHours = currentMonthMap.values.sum()
-    val monthStandardHours = currentMonthMap.values.sumOf { minOf(8.0, it) }
-    val monthOvertimeHours = currentMonthMap.values.sumOf { maxOf(0.0, it - 8.0) }
-    val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else 8.0
+    val monthStandardHours = currentMonthMap.values.sumOf { minOf(defaultHoursPerDay, it) }
+    val monthOvertimeHours = currentMonthMap.values.sumOf { maxOf(0.0, it - defaultHoursPerDay) }
+    val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else defaultHoursPerDay
 
     // Paid in this payslip (in-cycle current month + post-cutoff rollover from previous month)
-    val totalPaidAvgHours = if (payrollSplit.totalPaidDays > 0) payrollSplit.totalPaidHours / payrollSplit.totalPaidDays else 8.0
+    val totalPaidAvgHours = if (payrollSplit.totalPaidDays > 0) payrollSplit.totalPaidHours / payrollSplit.totalPaidDays else defaultHoursPerDay
 
     // Exact Monthly Estimated Gross Calculation (Strict £0.00 zero-state if no shifts)
     val monthEstimatedGross = if (monthDaysWorked == 0 || monthTotalHours == 0.0) {

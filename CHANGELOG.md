@@ -4,6 +4,23 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [23.1] - 2026-09-05 (VersionCode: 32)
+### Added
+- **Instant Two-Way Synchronization for Settings & Home Screen Work Hours (`SettingsScreen.kt` & `CalculatorScreen.kt`)**: Resolved a synchronization gap where shift length modified in Preferences & Settings did not immediately reflect in the Home calculator. The calculator screen now automatically invalidates stale shift hour overrides and seamlessly pulls the live `effectiveHoursPerDay` whenever settings or active employer profiles change.
+- **Reactive Instant Auto-Persist Across Preferences Fields (`SettingsScreen.kt`)**: Added debounced/immediate reactive DataStore synchronization across all core employment text fields (`inputHoursPerDay`, `inputHourlyRate`, `inputPensionRate`, `inputTaxCode`) and statutory toggles (`switchMarriageAllowance`, `switchBlindAllowance`, overtime multipliers), eliminating data loss when navigating between tabs without explicitly tapping "Save All Settings".
+- **Dynamic Shift Length Partitioning in Payroll Engine (`PayScheduleEngine.kt` & `ShiftCalendarDialog.kt`)**: Upgraded `calculateShiftPayrollSplit` to accept a dynamic `standardHoursPerShift` parameter (derived directly from the user's settings, e.g. 12.0h for care workers or 8.0h for standard full-time) rather than hardcoded 8.0h, correctly computing in-cycle standard pay, post-cutoff rollover, and true overtime across both the shift calendar and monthly payslip.
+- **Unified Default Hours Configuration (`SalaryRepository.kt`)**: Ensured employer profile creation and updates automatically synchronize `hoursPerDay` and `hourlyRate` simultaneously so newly selected shift configurations remain 100% consistent across single-pane and dual-pane foldable interfaces.
+
+### Bugs Found & Fixed
+- **Settings Work Hours Non-Syncing Bug**: Fixed an issue where manual overrides or previous month's post-cutoff rollover shifts in `LaunchedEffect` continuously locked shift hours to 12.0h, blocking newly configured hours in Settings from propagating to the Home screen.
+- **Settings Screen Default Hours Initial State Mismatch**: Fixed initial state mismatch where `SettingsScreen.kt` collected `defaultHoursPerDay` with `initial = 8.0` while `SalaryRepository.kt` and `CalculatorScreen.kt` used `12.0`.
+- **CompareArrows Icon Deprecation**: Migrated `Icons.Filled.CompareArrows` to `Icons.AutoMirrored.Filled.CompareArrows`.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [23.0] - 2026-09-05 (VersionCode: 31)
 ### Added
 - **Relocation of Static Employment Parameters to Settings (`SettingsScreen.kt`)**: Relocated static employment configurations (Standard Hourly Rate, Standard Shift Length / Hours per Job, Workplace Pension Rate / Opt-Out status, and Student Loan Repayment Plan) from the Home screen to the Preferences & Settings screen, ensuring one-time set-and-forget parameters do not clutter everyday monthly shift tracking.

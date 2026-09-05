@@ -216,17 +216,34 @@ class SalaryRepository(private val context: Context) {
             preferences[DEFAULT_HOURLY_RATE_KEY] = rate
             // Synchronize with active/primary employer profile
             val jsonStr = preferences[EMPLOYER_PROFILES_KEY] ?: ""
-            if (jsonStr.isNotBlank()) {
+            val currentList = if (jsonStr.isNotBlank()) {
                 try {
-                    val currentList = json.decodeFromString<List<EmployerProfile>>(jsonStr).toMutableList()
-                    val activeId = preferences[ACTIVE_PROFILE_ID_KEY] ?: "primary_default"
-                    val idx = currentList.indexOfFirst { it.id == activeId }.let { if (it >= 0) it else currentList.indexOfFirst { p -> p.isPrimary } }
-                    if (idx >= 0) {
-                        currentList[idx] = currentList[idx].copy(hourlyRate = rate)
-                        preferences[EMPLOYER_PROFILES_KEY] = json.encodeToString(currentList)
-                    }
-                } catch (_: Exception) {}
+                    json.decodeFromString<List<EmployerProfile>>(jsonStr).toMutableList()
+                } catch (_: Exception) {
+                    mutableListOf()
+                }
+            } else {
+                mutableListOf()
             }
+            val activeId = preferences[ACTIVE_PROFILE_ID_KEY] ?: "primary_default"
+            val idx = currentList.indexOfFirst { it.id == activeId }.let { if (it >= 0) it else currentList.indexOfFirst { p -> p.isPrimary } }
+            if (idx >= 0) {
+                currentList[idx] = currentList[idx].copy(hourlyRate = rate)
+            } else {
+                val defHours = preferences[DEFAULT_HOURS_PER_DAY_KEY] ?: 12.0
+                currentList.add(
+                    EmployerProfile(
+                        id = activeId,
+                        name = "Primary Employment",
+                        employerName = "Main Employer",
+                        taxCode = preferences[TAX_CODE_KEY] ?: "1257L",
+                        hourlyRate = rate,
+                        hoursPerDay = defHours,
+                        isPrimary = true
+                    )
+                )
+            }
+            preferences[EMPLOYER_PROFILES_KEY] = json.encodeToString(currentList)
         }
     }
 
@@ -699,17 +716,34 @@ class SalaryRepository(private val context: Context) {
             preferences[DEFAULT_HOURS_PER_DAY_KEY] = hours
             // Synchronize with active/primary employer profile
             val jsonStr = preferences[EMPLOYER_PROFILES_KEY] ?: ""
-            if (jsonStr.isNotBlank()) {
+            val currentList = if (jsonStr.isNotBlank()) {
                 try {
-                    val currentList = json.decodeFromString<List<EmployerProfile>>(jsonStr).toMutableList()
-                    val activeId = preferences[ACTIVE_PROFILE_ID_KEY] ?: "primary_default"
-                    val idx = currentList.indexOfFirst { it.id == activeId }.let { if (it >= 0) it else currentList.indexOfFirst { p -> p.isPrimary } }
-                    if (idx >= 0) {
-                        currentList[idx] = currentList[idx].copy(hoursPerDay = hours)
-                        preferences[EMPLOYER_PROFILES_KEY] = json.encodeToString(currentList)
-                    }
-                } catch (_: Exception) {}
+                    json.decodeFromString<List<EmployerProfile>>(jsonStr).toMutableList()
+                } catch (_: Exception) {
+                    mutableListOf()
+                }
+            } else {
+                mutableListOf()
             }
+            val activeId = preferences[ACTIVE_PROFILE_ID_KEY] ?: "primary_default"
+            val idx = currentList.indexOfFirst { it.id == activeId }.let { if (it >= 0) it else currentList.indexOfFirst { p -> p.isPrimary } }
+            if (idx >= 0) {
+                currentList[idx] = currentList[idx].copy(hoursPerDay = hours)
+            } else {
+                val defRate = preferences[DEFAULT_HOURLY_RATE_KEY] ?: 12.82
+                currentList.add(
+                    EmployerProfile(
+                        id = activeId,
+                        name = "Primary Employment",
+                        employerName = "Main Employer",
+                        taxCode = preferences[TAX_CODE_KEY] ?: "1257L",
+                        hourlyRate = defRate,
+                        hoursPerDay = hours,
+                        isPrimary = true
+                    )
+                )
+            }
+            preferences[EMPLOYER_PROFILES_KEY] = json.encodeToString(currentList)
         }
     }
 

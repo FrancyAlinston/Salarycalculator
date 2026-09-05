@@ -264,7 +264,8 @@ object PayScheduleEngine {
         month: Int,
         currentMonthShifts: Map<Int, Double>,
         previousMonthShifts: Map<Int, Double> = emptyMap(),
-        config: PayScheduleConfig = PayScheduleConfig()
+        config: PayScheduleConfig = PayScheduleConfig(),
+        standardHoursPerShift: Double = 8.0
     ): ShiftPayrollSplit {
         val payPeriod = calculatePayPeriod(year, month, config)
         val cutoffDay = payPeriod.cutoffDay
@@ -280,8 +281,8 @@ object PayScheduleEngine {
 
         currentMonthShifts.forEach { (day, hours) ->
             if (hours > 0) {
-                val std = minOf(8.0, hours)
-                val ot = maxOf(0.0, hours - 8.0)
+                val std = minOf(standardHoursPerShift, hours)
+                val ot = maxOf(0.0, hours - standardHoursPerShift)
 
                 if (day <= cutoffDay) {
                     inCycleDays++
@@ -310,8 +311,8 @@ object PayScheduleEngine {
 
             previousMonthShifts.forEach { (day, hours) ->
                 if (day > prevCutoffDay && hours > 0) {
-                    val std = minOf(8.0, hours)
-                    val ot = maxOf(0.0, hours - 8.0)
+                    val std = minOf(standardHoursPerShift, hours)
+                    val ot = maxOf(0.0, hours - standardHoursPerShift)
                     prevRolloverDays++
                     prevRolloverHours += hours
                     prevRolloverStdHours += std

@@ -17,6 +17,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.CompareArrows
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -82,19 +83,37 @@ fun CalculatorScreen(
     var bonusInput by remember { mutableStateOf("") }
     var commissionInput by remember { mutableStateOf("") }
 
+    val activeProfile = remember(profiles, activeProfileId) {
+        profiles.find { it.id == activeProfileId } ?: profiles.firstOrNull()
+    }
+    val effectiveHourlyRate = activeProfile?.hourlyRate ?: defaultHourlyRate
+    val effectiveHoursPerDay = activeProfile?.hoursPerDay ?: defaultHoursPerDay
+
+    // Clear stale overrides whenever user updates standard shift length or changes active profile in Settings
+    LaunchedEffect(defaultHoursPerDay, activeProfileId) {
+        hoursPerDayOverride = null
+    }
+
     // Live Sync with Shift Heatmap for current month (incorporating post-cutoff rollover from previous month)
-    LaunchedEffect(currentMonthShifts, prevMonthShifts, defaultHoursPerDay, payScheduleConfig) {
-        if (currentMonthShifts.isNotEmpty() || prevMonthShifts.isNotEmpty()) {
-            val split = PayScheduleEngine.calculateShiftPayrollSplit(curYear, curMonth, currentMonthShifts, prevMonthShifts, payScheduleConfig)
+    LaunchedEffect(currentMonthShifts, prevMonthShifts, effectiveHoursPerDay, payScheduleConfig) {
+        if (currentMonthShifts.isNotEmpty()) {
+            val split = PayScheduleEngine.calculateShiftPayrollSplit(
+                year = curYear,
+                month = curMonth,
+                currentMonthShifts = currentMonthShifts,
+                previousMonthShifts = prevMonthShifts,
+                config = payScheduleConfig,
+                standardHoursPerShift = effectiveHoursPerDay
+            )
             if (split.totalPaidDays > 0) {
                 daysWorkedInput = split.totalPaidDays.toString()
                 hoursPerDayOverride = split.totalPaidHours / split.totalPaidDays
                 overtimeHoursInput = if (split.totalPaidOtHours > 0) "%.1f".format(split.totalPaidOtHours) else ""
-            } else if (currentMonthShifts.isNotEmpty()) {
+            } else {
                 val dCount = currentMonthShifts.count { it.value > 0 }
                 val totHrs = currentMonthShifts.values.sum()
-                val otHrs = currentMonthShifts.values.sumOf { maxOf(0.0, it - defaultHoursPerDay) }
-                val avgHrs = if (dCount > 0) totHrs / dCount else defaultHoursPerDay
+                val otHrs = currentMonthShifts.values.sumOf { maxOf(0.0, it - effectiveHoursPerDay) }
+                val avgHrs = if (dCount > 0) totHrs / dCount else effectiveHoursPerDay
                 daysWorkedInput = dCount.toString()
                 hoursPerDayOverride = avgHrs
                 overtimeHoursInput = if (otHrs > 0) "%.1f".format(otHrs) else ""
@@ -137,18 +156,13 @@ fun CalculatorScreen(
     var selectedTaxMonth by remember { mutableStateOf(5) } // Default to Month 5 (August) per care worker calibration
     var showTaxMonthDialog by remember { mutableStateOf(false) }
 
-    val activeProfile = remember(profiles, activeProfileId) {
-        profiles.find { it.id == activeProfileId } ?: profiles.firstOrNull()
-    }
-
     // Memoize input numbers
     val daysWorked = remember(daysWorkedInput) { daysWorkedInput.toDoubleOrNull() ?: 0.0 }
-    val hoursPerDay = hoursPerDayOverride ?: defaultHoursPerDay
+    val hoursPerDay = hoursPerDayOverride ?: effectiveHoursPerDay
     val overtimeHours = remember(overtimeHoursInput) { overtimeHoursInput.toDoubleOrNull() ?: 0.0 }
     val bonusAmount = remember(bonusInput) { bonusInput.toDoubleOrNull() ?: 0.0 }
     val commissionAmount = remember(commissionInput) { commissionInput.toDoubleOrNull() ?: 0.0 }
     val salarySacrificeAmount = remember(salarySacrificeInput) { salarySacrificeInput.toDoubleOrNull() ?: 0.0 }
-    val effectiveHourlyRate = activeProfile?.hourlyRate ?: defaultHourlyRate
 
     // Selected UK tax year month (Month 1 = April, Month 5 = August, Month 6 = September, etc.)
     val taxMonth = selectedTaxMonth
@@ -241,7 +255,7 @@ fun CalculatorScreen(
                             taxRegion = taxRegion,
                             taxCode = taxCode,
                             defaultHourlyRate = effectiveHourlyRate,
-                            defaultHoursPerDay = hoursPerDay,
+                            defaultHoursPerDay = effectiveHoursPerDay,
                             pensionRate = pensionRate,
                             studentLoanPlan = studentLoanPlan,
                             standardPay = standardPay,
@@ -289,7 +303,7 @@ fun CalculatorScreen(
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
                             onDaysWorkedChange = { daysWorkedInput = it },
-                            defaultHoursPerDay = hoursPerDay,
+                            defaultHoursPerDay = effectiveHoursPerDay,
                             defaultHourlyRate = effectiveHourlyRate,
                             overtimeHoursInput = overtimeHoursInput,
                             onOvertimeHoursChange = { overtimeHoursInput = it },
@@ -429,7 +443,7 @@ fun CalculatorScreen(
                             taxRegion = taxRegion,
                             taxCode = taxCode,
                             defaultHourlyRate = effectiveHourlyRate,
-                            defaultHoursPerDay = hoursPerDay,
+                            defaultHoursPerDay = effectiveHoursPerDay,
                             pensionRate = pensionRate,
                             studentLoanPlan = studentLoanPlan,
                             standardPay = standardPay,
@@ -492,7 +506,7 @@ fun CalculatorScreen(
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
                             onDaysWorkedChange = { daysWorkedInput = it },
-                            defaultHoursPerDay = hoursPerDay,
+                            defaultHoursPerDay = effectiveHoursPerDay,
                             defaultHourlyRate = effectiveHourlyRate,
                             overtimeHoursInput = overtimeHoursInput,
                             onOvertimeHoursChange = { overtimeHoursInput = it },
@@ -2135,7 +2149,7 @@ private fun MultiPeriodCard(report: SalaryReport) {
                     color = MaterialTheme.colorScheme.primary
                 )
                 Icon(
-                    Icons.Default.CompareArrows,
+                    Icons.AutoMirrored.Filled.CompareArrows,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.primary

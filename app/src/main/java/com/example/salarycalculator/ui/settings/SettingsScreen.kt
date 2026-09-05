@@ -51,7 +51,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
     val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
     val payScheduleConfig by salaryRepository.getPayScheduleConfig().collectAsState(initial = PayScheduleConfig())
-    val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 8.0)
+    val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 12.0)
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
@@ -349,7 +349,13 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
 
                         OutlinedTextField(
                             value = inputTaxCode,
-                            onValueChange = { inputTaxCode = it.uppercase() },
+                            onValueChange = {
+                                val upper = it.uppercase()
+                                inputTaxCode = upper
+                                if (upper.isNotBlank()) {
+                                    scope.launch { salaryRepository.setTaxCode(upper) }
+                                }
+                            },
                             label = { Text("UK Tax Code") },
                             placeholder = { Text("e.g. 1257L") },
                             supportingText = {
@@ -368,17 +374,26 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             SuggestionChip(
-                                onClick = { inputTaxCode = "1257L" },
+                                onClick = {
+                                    inputTaxCode = "1257L"
+                                    scope.launch { salaryRepository.setTaxCode("1257L") }
+                                },
                                 label = { Text("1257L (Standard)") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                             SuggestionChip(
-                                onClick = { inputTaxCode = "BR" },
+                                onClick = {
+                                    inputTaxCode = "BR"
+                                    scope.launch { salaryRepository.setTaxCode("BR") }
+                                },
                                 label = { Text("BR (Flat 20%)") },
                                 shape = RoundedCornerShape(10.dp)
                             )
                             SuggestionChip(
-                                onClick = { inputTaxCode = "0T" },
+                                onClick = {
+                                    inputTaxCode = "0T"
+                                    scope.launch { salaryRepository.setTaxCode("0T") }
+                                },
                                 label = { Text("0T (No Allowance)") },
                                 shape = RoundedCornerShape(10.dp)
                             )
@@ -417,7 +432,10 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             }
                             Switch(
                                 checked = switchMarriageAllowance,
-                                onCheckedChange = { switchMarriageAllowance = it }
+                                onCheckedChange = {
+                                    switchMarriageAllowance = it
+                                    scope.launch { salaryRepository.setHasMarriageAllowance(it) }
+                                }
                             )
                         }
 
@@ -435,7 +453,10 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             }
                             Switch(
                                 checked = switchBlindAllowance,
-                                onCheckedChange = { switchBlindAllowance = it }
+                                onCheckedChange = {
+                                    switchBlindAllowance = it
+                                    scope.launch { salaryRepository.setHasBlindPersonsAllowance(it) }
+                                }
                             )
                         }
                     }
@@ -495,7 +516,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
 
                         OutlinedTextField(
                             value = inputPensionRate,
-                            onValueChange = { inputPensionRate = it },
+                            onValueChange = {
+                                inputPensionRate = it
+                                it.toDoubleOrNull()?.let { rate ->
+                                    if (rate >= 0.0) {
+                                        scope.launch { salaryRepository.setPensionRate(rate) }
+                                    }
+                                }
+                            },
                             label = { Text("Employee Pension Contribution (%)") },
                             placeholder = { Text("e.g. 0.0 or 5.0") },
                             suffix = { Text("%") },
@@ -584,7 +612,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
 
                         OutlinedTextField(
                             value = inputHourlyRate,
-                            onValueChange = { inputHourlyRate = it },
+                            onValueChange = {
+                                inputHourlyRate = it
+                                it.toDoubleOrNull()?.let { rate ->
+                                    if (rate > 0.0) {
+                                        scope.launch { salaryRepository.setDefaultHourlyRate(rate) }
+                                    }
+                                }
+                            },
                             label = { Text("Standard Hourly Rate (£)") },
                             placeholder = { Text("e.g. 12.82") },
                             prefix = { Text("£ ") },
@@ -638,7 +673,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                         // Base Hours per Day / Shift Setting
                         OutlinedTextField(
                             value = inputHoursPerDay,
-                            onValueChange = { inputHoursPerDay = it },
+                            onValueChange = {
+                                inputHoursPerDay = it
+                                it.toDoubleOrNull()?.let { hours ->
+                                    if (hours > 0.0) {
+                                        scope.launch { salaryRepository.setDefaultHoursPerDay(hours) }
+                                    }
+                                }
+                            },
                             label = { Text("Standard Shift Length (Hours per Job/Shift)") },
                             placeholder = { Text("e.g. 12.0") },
                             suffix = { Text("hrs/shift") },
@@ -709,7 +751,10 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                 listOf(1.0 to "1.0x (Standard)", 1.25 to "1.25x", 1.5 to "1.5x (Time & Half)", 1.75 to "1.75x", 2.0 to "2.0x (Double)").forEach { (rate, label) ->
                                     FilterChip(
                                         selected = selectedOvertimeMultiplier == rate,
-                                        onClick = { selectedOvertimeMultiplier = rate },
+                                        onClick = {
+                                            selectedOvertimeMultiplier = rate
+                                            scope.launch { salaryRepository.setOvertimeMultiplier(rate) }
+                                        },
                                         label = { Text(label) },
                                         shape = RoundedCornerShape(10.dp)
                                     )
@@ -736,7 +781,10 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                 listOf(1.0 to "1.0x (Standard)", 1.25 to "1.25x", 1.5 to "1.5x (Time & Half)", 1.75 to "1.75x", 2.0 to "2.0x (Double)", 2.25 to "2.25x", 2.5 to "2.5x").forEach { (rate, label) ->
                                     FilterChip(
                                         selected = selectedWeekendOvertime == rate,
-                                        onClick = { selectedWeekendOvertime = rate },
+                                        onClick = {
+                                            selectedWeekendOvertime = rate
+                                            scope.launch { salaryRepository.setWeekendOvertimeMultiplier(rate) }
+                                        },
                                         label = { Text(label) },
                                         shape = RoundedCornerShape(10.dp)
                                     )
@@ -763,7 +811,10 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                 listOf(1.0 to "1.0x (Standard)", 1.5 to "1.5x (Time & Half)", 2.0 to "2.0x (Double)", 2.5 to "2.5x (Double & Half)", 3.0 to "3.0x (Triple)").forEach { (rate, label) ->
                                     FilterChip(
                                         selected = selectedBankHolidayOvertime == rate,
-                                        onClick = { selectedBankHolidayOvertime = rate },
+                                        onClick = {
+                                            selectedBankHolidayOvertime = rate
+                                            scope.launch { salaryRepository.setBankHolidayOvertimeMultiplier(rate) }
+                                        },
                                         label = { Text(label) },
                                         shape = RoundedCornerShape(10.dp)
                                     )
