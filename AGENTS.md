@@ -109,6 +109,9 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - Verify that screens render cleanly in both portrait and landscape/foldable modes with edge-to-edge system insets properly observed.
 - **Mandatory Emulator Teardown on Completion (`@rules:emulator_auto_close_on_completion`)**:
   - Once live UI inspection and emulator testing are completed, the agent MUST immediately close the emulator (`adb emu kill` or kill the emulator process) and never leave it running in the background.
+- **Mandatory Screenshot & Temporary Media Cleanup (`@rules:Always delete the screenshots taken from the Project dir after user`)**:
+  - Whenever screenshots or media captures are taken during emulator inspection or UI verification (e.g. `adb exec-out screencap -p > ...`), the agent MUST always delete and clean up all generated image files from the project workspace directory immediately after inspection.
+  - Never leave temporary screenshots, screen recordings, or dump files inside the repository or workspace root.
 - **Post-Implementation Functional Testing**:
   - Upon finishing any new implementation, bugfix, or refactoring, the agent MUST always test that the changes work exactly as intended across all screen orientations and states.
 - **Periodic Full-Battery Tax Engine Verification**:
