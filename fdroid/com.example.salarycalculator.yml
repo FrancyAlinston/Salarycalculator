@@ -1,0 +1,38 @@
+Categories:
+  - Money
+  - Office
+License: MIT
+AuthorName: FrancyAlinston
+AuthorEmail: francyalinston@gmail.com
+SourceCode: https://forgejo.449100.xyz/francyalinston/Salarycalculator
+IssueTracker: https://forgejo.449100.xyz/francyalinston/Salarycalculator/issues
+Changelog: https://forgejo.449100.xyz/francyalinston/Salarycalculator/src/branch/main/CHANGELOG.md
+
+Summary: UK PAYE tax, NI, overtime, and net salary calculator
+Description: |-
+  Salary Calculator is an open-source, privacy-first Android application
+  for computing UK net salary, PAYE income tax, Class 1 National Insurance,
+  pension deductions, statutory childcare subsidies, and umbrella payroll.
+
+  Features:
+  * UK Standard & Scottish 6-Tier PAYE income tax calculation
+  * Class 1 Primary National Insurance thresholds
+  * Tax-Free Childcare & 30-Hours free childcare subsidy calculator
+  * Overtime tax headroom and threshold monitor
+  * Multi-employer shift schedule and visual monthly heatmap
+  * Dual-job cumulative tax aggregator
+  * Contractor Inside-IR35 umbrella payroll modeling
+  * 100% offline, zero ads, zero tracking, biometric security
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 20.0
+CurrentVersionCode: 28
+
+Builds:
+  - versionName: '20.0'
+    versionCode: 28
+    commit: v20.0
+    subdir: app
+    gradle:
+      - yes
