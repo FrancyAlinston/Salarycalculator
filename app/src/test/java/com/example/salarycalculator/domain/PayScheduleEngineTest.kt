@@ -96,7 +96,7 @@ class PayScheduleEngineTest {
         val split = PayScheduleEngine.calculateShiftPayrollSplit(
             year = 2025,
             month = 10,
-            dayShifts = shifts,
+            currentMonthShifts = shifts,
             config = config
         )
 
@@ -114,9 +114,59 @@ class PayScheduleEngineTest {
         assertEquals(20.0, split.rolloverHours, 0.01)
         assertEquals(4.0, split.rolloverOtHours, 0.01)
 
-        // Total
+        // Total Month (recorded in Oct calendar)
         assertEquals(6, split.totalMonthDays)
         assertEquals(54.0, split.totalMonthHours, 0.01)
+
+        // Total Paid (no previous rollover)
+        assertEquals(4, split.totalPaidDays)
+        assertEquals(34.0, split.totalPaidHours, 0.01)
+    }
+
+    @Test
+    fun testShiftPayrollSplit_IncludesPreviousMonthRollover() {
+        val config = PayScheduleConfig(type = PayScheduleType.LAST_FRIDAY_OF_MONTH)
+        // Oct 2025 cutoff is 26th. Shifts on 27th (8h) and 28th (10h: 8h std + 2h ot) roll into Nov 2025
+        val octShifts = mapOf(
+            20 to 8.0, // <= Oct 26 cutoff, so not rolled over
+            27 to 8.0, // > Oct 26 cutoff -> rolls into Nov
+            28 to 10.0 // > Oct 26 cutoff -> rolls into Nov (8h std + 2h ot)
+        )
+
+        // Nov 2025 cutoff is Nov 23 (Sun before Nov 28 Fri)
+        val novShifts = mapOf(
+            5 to 8.0,  // in Nov cycle
+            10 to 8.0, // in Nov cycle
+            24 to 8.0  // post Nov cutoff -> rolls into Dec
+        )
+
+        val novSplit = PayScheduleEngine.calculateShiftPayrollSplit(
+            year = 2025,
+            month = 11,
+            currentMonthShifts = novShifts,
+            previousMonthShifts = octShifts,
+            config = config
+        )
+
+        // Nov in-cycle: days 5 and 10 (2 days, 16h std, 0h ot)
+        assertEquals(2, novSplit.inCycleDays)
+        assertEquals(16.0, novSplit.inCycleHours, 0.01)
+
+        // Oct rollover into Nov: 2 days (Oct 27 & 28), 18h (16h std + 2h ot)
+        assertEquals(2, novSplit.previousRolloverDays)
+        assertEquals(18.0, novSplit.previousRolloverHours, 0.01)
+        assertEquals(2.0, novSplit.previousRolloverOtHours, 0.01)
+        assertEquals(16.0, novSplit.previousRolloverStandardHours, 0.01)
+
+        // Total paid in Nov payslip: In-cycle (2 days, 16h) + Oct rollover (2 days, 18h) = 4 days, 34h, 2h ot
+        assertEquals(4, novSplit.totalPaidDays)
+        assertEquals(34.0, novSplit.totalPaidHours, 0.01)
+        assertEquals(2.0, novSplit.totalPaidOtHours, 0.01)
+        assertEquals(32.0, novSplit.totalPaidStandardHours, 0.01)
+
+        // Post-Nov cutoff rolling into Dec: Nov 24 (1 day, 8h)
+        assertEquals(1, novSplit.rolloverDays)
+        assertEquals(8.0, novSplit.rolloverHours, 0.01)
     }
 
     @Test

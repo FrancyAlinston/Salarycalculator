@@ -267,4 +267,90 @@ object TaxCalculator {
             annualNet = annualNet
         )
     }
+
+    // CRITICAL: TAX_ENGINE
+    /**
+     * Identifies UK tax bracket headroom and warns when overtime / variable bonuses trigger the Higher Rate (40%) or 60% Marginal Tax Trap (£100k-£125k).
+     */
+    fun calculateTaxBracketAlerts(annualGross: Double): TaxBracketAlertInfo {
+        val safeAnnual = max(0.0, annualGross)
+        return when {
+            safeAnnual > 125140.0 -> {
+                val excess = safeAnnual - 125140.0
+                val sacrifice = safeAnnual - 100000.0
+                val taxSaved = sacrifice * 0.45
+                TaxBracketAlertInfo(
+                    currentBracket = "Additional Rate (45%)",
+                    isHigherRate = true,
+                    isMarginalTrap = false,
+                    isAdditionalRate = true,
+                    thresholdCrossed = "£125,140 Additional Rate Threshold",
+                    excessOverThreshold = excess,
+                    suggestedPensionSacrifice = sacrifice,
+                    estimatedTaxSavedWithSacrifice = taxSaved,
+                    alertMessage = "Annual earnings exceed £125,140. Income above this is taxed at 45% with £0 Personal Allowance."
+                )
+            }
+            safeAnnual > 100000.0 -> {
+                val excess = safeAnnual - 100000.0
+                val sacrifice = excess
+                // 40% income tax + 20% personal allowance loss = 60% marginal tax saving
+                val taxSaved = sacrifice * 0.60
+                TaxBracketAlertInfo(
+                    currentBracket = "60% Marginal Tax Trap",
+                    isHigherRate = true,
+                    isMarginalTrap = true,
+                    isAdditionalRate = false,
+                    thresholdCrossed = "£100,000 Personal Allowance Tapering",
+                    excessOverThreshold = excess,
+                    suggestedPensionSacrifice = sacrifice,
+                    estimatedTaxSavedWithSacrifice = taxSaved,
+                    alertMessage = "⚠️ 60% Marginal Tax Trap: Every £2 earned above £100k loses £1 of tax-free personal allowance. Sacrificing £${"%,.0f".format(sacrifice)} into pension saves ~£${"%,.0f".format(taxSaved)} in tax."
+                )
+            }
+            safeAnnual > 50270.0 -> {
+                val excess = safeAnnual - 50270.0
+                val sacrifice = excess
+                val taxSaved = sacrifice * 0.40
+                TaxBracketAlertInfo(
+                    currentBracket = "Higher Rate (40%)",
+                    isHigherRate = true,
+                    isMarginalTrap = false,
+                    isAdditionalRate = false,
+                    thresholdCrossed = "£50,270 Higher Rate Threshold",
+                    excessOverThreshold = excess,
+                    suggestedPensionSacrifice = sacrifice,
+                    estimatedTaxSavedWithSacrifice = taxSaved,
+                    alertMessage = "Higher Rate: Earnings above £50,270 are taxed at 40% PAYE + 2% NI (42% marginal rate)."
+                )
+            }
+            else -> {
+                val headroom = 50270.0 - safeAnnual
+                TaxBracketAlertInfo(
+                    currentBracket = "Basic Rate (20%)",
+                    isHigherRate = false,
+                    isMarginalTrap = false,
+                    isAdditionalRate = false,
+                    thresholdCrossed = null,
+                    excessOverThreshold = 0.0,
+                    suggestedPensionSacrifice = 0.0,
+                    estimatedTaxSavedWithSacrifice = 0.0,
+                    alertMessage = "Basic Rate: You have £${"%,.0f".format(headroom)} headroom before entering the 40% Higher Rate band."
+                )
+            }
+        }
+    }
 }
+
+data class TaxBracketAlertInfo(
+    val currentBracket: String,
+    val isHigherRate: Boolean,
+    val isMarginalTrap: Boolean,
+    val isAdditionalRate: Boolean,
+    val thresholdCrossed: String?,
+    val excessOverThreshold: Double,
+    val suggestedPensionSacrifice: Double,
+    val estimatedTaxSavedWithSacrifice: Double,
+    val alertMessage: String
+)
+

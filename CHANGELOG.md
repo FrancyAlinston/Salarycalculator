@@ -4,6 +4,27 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [17.2] - 2026-09-05 (VersionCode: 25)
+### Added
+- **Post-Cutoff Rollover Payroll Ingestion Engine (`PayScheduleEngine.kt`, `ShiftCalendarDialog.kt`, `CalculatorScreen.kt`)**: Modeled strict UK payroll rollover rule where shifts logged after the cutoff date in Month $M-1$ are automatically brought forward and included in Month $M$'s payslip calculation (`totalPaidDays`, `totalPaidHours`, `totalPaidOtHours`), while shifts after Month $M$'s cutoff roll into Month $M+1$.
+- **Automated Rotational Shift Pattern Generator (`ShiftPatternGenerator.kt` & `ShiftPatternGeneratorDialog.kt`)**: Instant 1-tap generation of industrial rotational shift schedules across 1, 3, or 12 months with anchor date synchronization. Supported patterns:
+  - **4-On 4-Off** (8-day repeating cycle)
+  - **Continental 2-2-3** (28-day 2D / 2N / 3Off / 2D / 3N / 2Off rotation)
+  - **Pitman 2-3-2** (14-day cycle with alternating 3-day weekends)
+  - **3-Shift Rotating** (28-day Early / Late / Night rotation)
+  - **Mon–Fri Standard** (5-On 2-Off working week)
+- **Overtime Tax Bracket & 60% Marginal Tax Trap Alerts (`TaxCalculator.kt`, `SandboxCalculatorDialog.kt`, `ShiftCalendarDialog.kt`)**: Real-time tax threshold detection identifying when cumulative or overtime earnings push annual income into the 40% Higher Rate band (> £50,270) or the 60% Marginal Tax Trap (£100,000 – £125,140 Personal Allowance tapering zone). Features instant pension salary sacrifice recommendations to eliminate marginal penalty and preserve personal allowance.
+- **Comprehensive v17.2 Unit Test Suite (`ShiftPatternAndTaxAlertTest.kt` & `PayScheduleEngineTest.kt`)**: 100% automated test coverage validating previous-month rollover addition, rotational pattern algorithms, and exact tax trap sacrifice math.
+
+### Bugs Found & Fixed
+- **Cutoff Rollover Month-to-Month Omission**: Fixed payroll calculation omitting hours worked after the previous month's cutoff date by integrating multi-month shift retrieval and rollover aggregation in `PayScheduleEngine.calculateShiftPayrollSplit`.
+
+### What Needs to Be Fixed / Pending
+- Multi-Employer Shift Color Coding and overlay scheduling in calendar view.
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [17.1] - 2026-09-05 (VersionCode: 24)
 ### Added
 - **Isolated "What-If" Scenario Sandbox Calculator (`SandboxCalculatorDialog.kt`)**: Decoupled variable earnings and scenario modeling from the live Shift Heatmap into a dedicated sandbox environment. Supports standard working days/hours, independent Overtime multiplier pills (`1.0x`, `1.25x`, `1.5x`, `1.75x`, `2.0x`, `2.5x`), dedicated Bank Holiday multiplier pills (`1.5x`, `2.0x`, `2.5x`, `3.0x`), variable bonus/commission inputs, quick scenario presets (+2 Weekend OT, +1 Bank Holiday, +£500 Bonus), and real-time net take-home pay comparison vs baseline actual payslip.

@@ -54,6 +54,7 @@ fun ShiftCalendarDialog(
     var selectedYear by remember { mutableIntStateOf(cal.get(Calendar.YEAR)) }
     var selectedMonth by remember { mutableIntStateOf(cal.get(Calendar.MONTH) + 1) } // 1..12
     var showYearPicker by remember { mutableStateOf(false) }
+    var showPatternWizardDialog by remember { mutableStateOf(false) }
 
     val monthNames = remember { DateFormatSymbols().shortMonths.filter { it.isNotBlank() } }
     val fullMonthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
@@ -102,6 +103,12 @@ fun ShiftCalendarDialog(
     val currentMonthKey = "$selectedYear-$selectedMonth"
     val currentMonthMap = multiYearShifts.getOrPut(currentMonthKey) { mutableStateMapOf() }
 
+    // Previous month reference for post-cutoff rollover calculation
+    val prevMonth = if (selectedMonth == 1) 12 else selectedMonth - 1
+    val prevYear = if (selectedMonth == 1) selectedYear - 1 else selectedYear
+    val prevMonthKey = "$prevYear-$prevMonth"
+    val prevMonthMap = multiYearShifts[prevMonthKey] ?: emptyMap()
+
     // Days in current selected month/year
     val daysInCurrentMonth = remember(selectedYear, selectedMonth) {
         val c = Calendar.getInstance()
@@ -127,8 +134,15 @@ fun ShiftCalendarDialog(
         PayScheduleEngine.calculatePayPeriod(selectedYear, selectedMonth, payScheduleConfig)
     }
 
-    val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), payScheduleConfig) {
-        PayScheduleEngine.calculateShiftPayrollSplit(selectedYear, selectedMonth, currentMonthMap, payScheduleConfig)
+    // Includes current month shifts AND previous month post-cutoff rollover shifts
+    val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), prevMonthMap.toMap(), payScheduleConfig) {
+        PayScheduleEngine.calculateShiftPayrollSplit(
+            year = selectedYear,
+            month = selectedMonth,
+            currentMonthShifts = currentMonthMap,
+            previousMonthShifts = prevMonthMap,
+            config = payScheduleConfig
+        )
     }
 
     val monthDaysWorked = currentMonthMap.values.count { it > 0 }
@@ -136,7 +150,9 @@ fun ShiftCalendarDialog(
     val monthStandardHours = currentMonthMap.values.sumOf { minOf(8.0, it) }
     val monthOvertimeHours = currentMonthMap.values.sumOf { maxOf(0.0, it - 8.0) }
     val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else 8.0
-    val inCycleAvgHours = if (payrollSplit.inCycleDays > 0) payrollSplit.inCycleHours / payrollSplit.inCycleDays else 8.0
+
+    // Paid in this payslip (in-cycle current month + post-cutoff rollover from previous month)
+    val totalPaidAvgHours = if (payrollSplit.totalPaidDays > 0) payrollSplit.totalPaidHours / payrollSplit.totalPaidDays else 8.0
 
     // Exact Monthly Estimated Gross Calculation (Strict £0.00 zero-state if no shifts)
     val monthEstimatedGross = if (monthDaysWorked == 0 || monthTotalHours == 0.0) {
@@ -145,10 +161,10 @@ fun ShiftCalendarDialog(
         (monthStandardHours * hourlyRate) + (monthOvertimeHours * hourlyRate * overtimeMultiplier)
     }
 
-    val inCycleEstimatedGross = if (payrollSplit.inCycleDays == 0 || payrollSplit.inCycleHours == 0.0) {
+    val payslipEstimatedGross = if (payrollSplit.totalPaidDays == 0 || payrollSplit.totalPaidHours == 0.0) {
         0.0
     } else {
-        (payrollSplit.inCycleStandardHours * hourlyRate) + (payrollSplit.inCycleOtHours * hourlyRate * overtimeMultiplier)
+        (payrollSplit.totalPaidStandardHours * hourlyRate) + (payrollSplit.totalPaidOtHours * hourlyRate * overtimeMultiplier)
     }
 
     // Annual Aggregate Calculations for selectedYear
@@ -156,6 +172,9 @@ fun ShiftCalendarDialog(
     val annualTotalHours = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.sum() ?: 0.0 }
     val annualOvertimeHours = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.sumOf { maxOf(0.0, it - 8.0) } ?: 0.0 }
     val annualEstimatedGross = if (annualTotalHours == 0.0) 0.0 else (annualTotalHours * hourlyRate)
+
+    // Tax bracket and 60% marginal trap warning
+    val taxAlert = remember(annualEstimatedGross) { TaxCalculator.calculateTaxBracketAlerts(annualEstimatedGross) }
 
     AlertDialog(
         onDismissRequest = {
@@ -175,7 +194,13 @@ fun ShiftCalendarDialog(
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Text("Shift Heatmap & Cutoffs", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    IconButton(
+                        onClick = { showPatternWizardDialog = true }
+                    ) {
+                        Icon(Icons.Default.AutoFixHigh, contentDescription = "Rotational Pattern Wizard", tint = Emerald60)
+                    }
+
                     IconButton(
                         onClick = {
                             val fullSchedule = (1..12).associateWith { m ->
@@ -214,7 +239,7 @@ fun ShiftCalendarDialog(
                             val ics = IcsCalendarExporter.generatePayScheduleIcsContent(
                                 year = selectedYear,
                                 config = payScheduleConfig,
-                                estimatedNetPay = monthEstimatedGross * 0.8
+                                estimatedNetPay = payslipEstimatedGross * 0.8
                             )
                             IcsCalendarExporter.shareIcsFile(context, ics, "Pay_and_Cutoff_Schedule_${selectedYear}.ics")
                         }
@@ -387,7 +412,7 @@ fun ShiftCalendarDialog(
                     }
                 }
 
-                // 3. Payroll Cutoff & Pay Cycle Banner Card
+                // 3. Payroll Cutoff & Pay Cycle Banner Card (with Previous Month Rollover Addition)
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
@@ -435,30 +460,37 @@ fun ShiftCalendarDialog(
                             }
 
                             Text(
-                                text = "Est. Gross: £${"%,.2f".format(monthEstimatedGross)}",
+                                text = "Payslip Gross: £${"%,.2f".format(payslipEstimatedGross)}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (monthEstimatedGross > 0) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (payslipEstimatedGross > 0) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        // Detailed In-Payslip Partitioning
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(
-                                text = "In This Payslip: ${payrollSplit.inCycleDays}d (${"%.0f".format(payrollSplit.inCycleHours)}h) · OT: ${"%.0f".format(payrollSplit.inCycleOtHours)}h",
+                                text = "Paid in This Payslip: ${payrollSplit.totalPaidDays}d (${"%.0f".format(payrollSplit.totalPaidHours)}h) · OT: ${"%.0f".format(payrollSplit.totalPaidOtHours)}h",
                                 style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = if (payrollSplit.inCycleDays > 0) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
+                                fontWeight = FontWeight.Bold,
+                                color = if (payrollSplit.totalPaidDays > 0) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
+
+                            if (payrollSplit.previousRolloverDays > 0) {
+                                Text(
+                                    text = "↳ Includes +${payrollSplit.previousRolloverDays}d (${"%.0f".format(payrollSplit.previousRolloverHours)}h) rolled over from ${monthNames.getOrElse(prevMonth - 1) { "" }} post-cutoff",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Emerald60,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
                             if (payrollSplit.rolloverDays > 0) {
                                 Text(
-                                    text = "Rollover: +${payrollSplit.rolloverDays}d (${"%.0f".format(payrollSplit.rolloverHours)}h)",
+                                    text = "↳ +${payrollSplit.rolloverDays}d (${"%.0f".format(payrollSplit.rolloverHours)}h) logged after Sun ${payPeriod.cutoffDay} will roll over to ${monthNames.getOrElse((selectedMonth % 12)) { "" }}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Amber60,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
@@ -581,6 +613,12 @@ fun ShiftCalendarDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     AssistChip(
+                        onClick = { showPatternWizardDialog = true },
+                        label = { Text("Pattern Wizard", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.AutoFixHigh, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) }
+                    )
+
+                    AssistChip(
                         onClick = {
                             // Fill all Monday to Friday with 8h
                             val c = Calendar.getInstance()
@@ -639,6 +677,44 @@ fun ShiftCalendarDialog(
                         },
                         label = { Text("Clear Month", style = MaterialTheme.typography.labelSmall) }
                     )
+                }
+
+                // Tax Alert Banner if entering higher tax bands
+                if (taxAlert.isHigherRate || taxAlert.isMarginalTrap) {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (taxAlert.isMarginalTrap) Rose60.copy(alpha = 0.18f) else Amber60.copy(alpha = 0.18f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                if (taxAlert.isMarginalTrap) Icons.Default.Warning else Icons.Default.Info,
+                                contentDescription = null,
+                                tint = if (taxAlert.isMarginalTrap) Rose60 else Amber60,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = taxAlert.currentBracket,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (taxAlert.isMarginalTrap) Rose60 else Amber60
+                                )
+                                Text(
+                                    text = "Annual projected gross: £${"%,.0f".format(annualEstimatedGross)}. ${taxAlert.alertMessage}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
                 }
 
                 // Annual Full Year Outlook Card
@@ -701,26 +777,17 @@ fun ShiftCalendarDialog(
                             onDismiss()
                         }
                     ) {
-                        Text("Apply All (${monthDaysWorked}d)")
+                        Text("Apply Month (${monthDaysWorked}d)")
                     }
                 }
                 Button(
                     onClick = {
                         saveSchedule()
-                        if (payrollSplit.rolloverDays > 0) {
-                            onApply(payrollSplit.inCycleDays.toDouble(), inCycleAvgHours, payrollSplit.inCycleOtHours)
-                        } else {
-                            onApply(monthDaysWorked.toDouble(), monthAvgHoursPerDay, monthOvertimeHours)
-                        }
+                        onApply(payrollSplit.totalPaidDays.toDouble(), totalPaidAvgHours, payrollSplit.totalPaidOtHours)
                         onDismiss()
                     }
                 ) {
-                    Text(
-                        if (payrollSplit.rolloverDays > 0)
-                            "Apply Cutoff (${payrollSplit.inCycleDays}d · ${"%.0f".format(payrollSplit.inCycleHours)}h)"
-                        else
-                            "Apply Month (${monthDaysWorked}d · ${"%.1f".format(monthAvgHoursPerDay)}h)"
-                    )
+                    Text("Apply Cutoff Payslip (${payrollSplit.totalPaidDays}d · ${"%.0f".format(payrollSplit.totalPaidHours)}h)")
                 }
             }
         },
@@ -735,4 +802,24 @@ fun ShiftCalendarDialog(
             }
         }
     )
+
+    // Rotational Pattern Generator Wizard Dialog
+    if (showPatternWizardDialog) {
+        ShiftPatternGeneratorDialog(
+            currentYear = selectedYear,
+            currentMonth = selectedMonth,
+            hourlyRate = hourlyRate,
+            onApplyPattern = { generatedShifts ->
+                generatedShifts.forEach { (ymKey, dayMap) ->
+                    val target = multiYearShifts.getOrPut(ymKey) { mutableStateMapOf() }
+                    target.clear()
+                    dayMap.forEach { (d, h) ->
+                        if (h > 0) target[d] = h
+                    }
+                }
+                saveSchedule()
+            },
+            onDismiss = { showPatternWizardDialog = false }
+        )
+    }
 }

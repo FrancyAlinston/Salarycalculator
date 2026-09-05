@@ -84,6 +84,10 @@ data class ShiftPayrollSplit(
     val inCycleHours: Double,
     val inCycleOtHours: Double,
     val inCycleStandardHours: Double,
+    val previousRolloverDays: Int = 0,
+    val previousRolloverHours: Double = 0.0,
+    val previousRolloverOtHours: Double = 0.0,
+    val previousRolloverStandardHours: Double = 0.0,
     val rolloverDays: Int,
     val rolloverHours: Double,
     val rolloverOtHours: Double,
@@ -91,7 +95,12 @@ data class ShiftPayrollSplit(
     val totalMonthHours: Double,
     val cutoffDay: Int,
     val payDay: Int
-)
+) {
+    val totalPaidDays: Int get() = inCycleDays + previousRolloverDays
+    val totalPaidHours: Double get() = inCycleHours + previousRolloverHours
+    val totalPaidStandardHours: Double get() = inCycleStandardHours + previousRolloverStandardHours
+    val totalPaidOtHours: Double get() = inCycleOtHours + previousRolloverOtHours
+}
 
 // CRITICAL: TAX_ENGINE
 object PayScheduleEngine {
@@ -246,13 +255,15 @@ object PayScheduleEngine {
 
     /**
      * Splits shift entries for a given month into:
-     * 1. Hours falling on or before the Cutoff Date (included in current month's payroll)
-     * 2. Hours worked after Cutoff Date (roll over into following month's payroll)
+     * 1. Hours falling on or before the Cutoff Date in the current month.
+     * 2. Rollover hours brought forward from AFTER the previous month's cutoff date.
+     * 3. Hours worked after current month's Cutoff Date (rolling over into the next month's payroll).
      */
     fun calculateShiftPayrollSplit(
         year: Int,
         month: Int,
-        dayShifts: Map<Int, Double>,
+        currentMonthShifts: Map<Int, Double>,
+        previousMonthShifts: Map<Int, Double> = emptyMap(),
         config: PayScheduleConfig = PayScheduleConfig()
     ): ShiftPayrollSplit {
         val payPeriod = calculatePayPeriod(year, month, config)
@@ -267,7 +278,7 @@ object PayScheduleEngine {
         var rolloverHours = 0.0
         var rolloverOtHours = 0.0
 
-        dayShifts.forEach { (day, hours) ->
+        currentMonthShifts.forEach { (day, hours) ->
             if (hours > 0) {
                 val std = minOf(8.0, hours)
                 val ot = maxOf(0.0, hours - 8.0)
@@ -285,6 +296,30 @@ object PayScheduleEngine {
             }
         }
 
+        // Process previous month's post-cutoff rollover into this month
+        var prevRolloverDays = 0
+        var prevRolloverHours = 0.0
+        var prevRolloverOtHours = 0.0
+        var prevRolloverStdHours = 0.0
+
+        if (previousMonthShifts.isNotEmpty()) {
+            val prevMonth = if (month == 1) 12 else month - 1
+            val prevYear = if (month == 1) year - 1 else year
+            val prevPayPeriod = calculatePayPeriod(prevYear, prevMonth, config)
+            val prevCutoffDay = prevPayPeriod.cutoffDay
+
+            previousMonthShifts.forEach { (day, hours) ->
+                if (day > prevCutoffDay && hours > 0) {
+                    val std = minOf(8.0, hours)
+                    val ot = maxOf(0.0, hours - 8.0)
+                    prevRolloverDays++
+                    prevRolloverHours += hours
+                    prevRolloverStdHours += std
+                    prevRolloverOtHours += ot
+                }
+            }
+        }
+
         val totalMonthDays = inCycleDays + rolloverDays
         val totalMonthHours = inCycleHours + rolloverHours
 
@@ -293,6 +328,10 @@ object PayScheduleEngine {
             inCycleHours = inCycleHours,
             inCycleOtHours = inCycleOtHours,
             inCycleStandardHours = inCycleStdHours,
+            previousRolloverDays = prevRolloverDays,
+            previousRolloverHours = prevRolloverHours,
+            previousRolloverOtHours = prevRolloverOtHours,
+            previousRolloverStandardHours = prevRolloverStdHours,
             rolloverDays = rolloverDays,
             rolloverHours = rolloverHours,
             rolloverOtHours = rolloverOtHours,

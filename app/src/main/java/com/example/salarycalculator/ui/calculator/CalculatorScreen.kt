@@ -58,11 +58,14 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
     val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
     val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 8.0)
-
-    val curCal = remember { java.util.Calendar.getInstance() }
-    val curYear = remember { curCal.get(java.util.Calendar.YEAR) }
-    val curMonth = remember { curCal.get(java.util.Calendar.MONTH) + 1 }
+    val today = remember { java.util.Calendar.getInstance() }
+    val curYear = today.get(java.util.Calendar.YEAR)
+    val curMonth = today.get(java.util.Calendar.MONTH) + 1
+    val prevMonth = if (curMonth == 1) 12 else curMonth - 1
+    val prevYear = if (curMonth == 1) curYear - 1 else curYear
     val currentMonthShifts by salaryRepository.getMonthShiftSchedule(curYear, curMonth).collectAsState(initial = emptyMap())
+    val prevMonthShifts by salaryRepository.getMonthShiftSchedule(prevYear, prevMonth).collectAsState(initial = emptyMap())
+    val payScheduleConfig by salaryRepository.getPayScheduleConfig().collectAsState(initial = PayScheduleConfig())
 
     var selectedFrequency by remember { mutableStateOf(PayFrequency.MONTHLY) }
     var selectedOvertimeMultiplier by remember(defaultOvertimeMultiplier) { mutableStateOf(defaultOvertimeMultiplier) }
@@ -76,16 +79,23 @@ fun CalculatorScreen(salaryRepository: SalaryRepository, modifier: Modifier = Mo
     var bonusInput by remember { mutableStateOf("") }
     var commissionInput by remember { mutableStateOf("") }
 
-    // Live Sync with Shift Heatmap for current month
-    LaunchedEffect(currentMonthShifts, defaultHoursPerDay) {
-        if (currentMonthShifts.isNotEmpty()) {
-            val dCount = currentMonthShifts.count { it.value > 0 }
-            val totHrs = currentMonthShifts.values.sum()
-            val otHrs = currentMonthShifts.values.sumOf { maxOf(0.0, it - 8.0) }
-            val avgHrs = if (dCount > 0) totHrs / dCount else defaultHoursPerDay
-            daysWorkedInput = dCount.toString()
-            hoursPerDayInput = "%.1f".format(avgHrs)
-            overtimeHoursInput = if (otHrs > 0) "%.1f".format(otHrs) else ""
+    // Live Sync with Shift Heatmap for current month (incorporating post-cutoff rollover from previous month)
+    LaunchedEffect(currentMonthShifts, prevMonthShifts, defaultHoursPerDay, payScheduleConfig) {
+        if (currentMonthShifts.isNotEmpty() || prevMonthShifts.isNotEmpty()) {
+            val split = PayScheduleEngine.calculateShiftPayrollSplit(curYear, curMonth, currentMonthShifts, prevMonthShifts, payScheduleConfig)
+            if (split.totalPaidDays > 0) {
+                daysWorkedInput = split.totalPaidDays.toString()
+                hoursPerDayInput = "%.1f".format(split.totalPaidHours / split.totalPaidDays)
+                overtimeHoursInput = if (split.totalPaidOtHours > 0) "%.1f".format(split.totalPaidOtHours) else ""
+            } else if (currentMonthShifts.isNotEmpty()) {
+                val dCount = currentMonthShifts.count { it.value > 0 }
+                val totHrs = currentMonthShifts.values.sum()
+                val otHrs = currentMonthShifts.values.sumOf { maxOf(0.0, it - 8.0) }
+                val avgHrs = if (dCount > 0) totHrs / dCount else defaultHoursPerDay
+                daysWorkedInput = dCount.toString()
+                hoursPerDayInput = "%.1f".format(avgHrs)
+                overtimeHoursInput = if (otHrs > 0) "%.1f".format(otHrs) else ""
+            }
         } else {
             hoursPerDayInput = "%.1f".format(defaultHoursPerDay)
         }

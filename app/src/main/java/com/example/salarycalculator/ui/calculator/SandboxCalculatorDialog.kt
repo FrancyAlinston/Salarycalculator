@@ -190,6 +190,54 @@ fun SandboxCalculatorDialog(
                     }
                 }
 
+                // Tax Bracket & 60% Marginal Trap Alert Card
+                val annualExtrapolatedGross = scenarioReport.grossPay * 12.0
+                val taxAlert = remember(annualExtrapolatedGross) { TaxCalculator.calculateTaxBracketAlerts(annualExtrapolatedGross) }
+                if (taxAlert.isHigherRate || taxAlert.isMarginalTrap) {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (taxAlert.isMarginalTrap) Rose60.copy(alpha = 0.18f) else Amber60.copy(alpha = 0.18f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    if (taxAlert.isMarginalTrap) Icons.Default.Warning else Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = if (taxAlert.isMarginalTrap) Rose60 else Amber60,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = taxAlert.currentBracket,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (taxAlert.isMarginalTrap) Rose60 else Amber60
+                                )
+                            }
+                            Text(
+                                text = taxAlert.alertMessage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            if (taxAlert.suggestedPensionSacrifice > 0) {
+                                Text(
+                                    text = "💡 Potential Remedy: Salary sacrificing £${"%,.0f".format(taxAlert.suggestedPensionSacrifice / 12.0)}/month into pension reclaims your full tax-free allowance and saves ~£${"%,.0f".format(taxAlert.estimatedTaxSavedWithSacrifice)}/year.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Emerald60
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // 2. Scenario Presets
                 Row(
                     modifier = Modifier
