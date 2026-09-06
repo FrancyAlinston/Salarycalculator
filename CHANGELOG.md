@@ -4,6 +4,26 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.0] - 2026-09-06 (VersionCode: 33)
+### Added
+- **Quick-Shift Length Presets on Home Screen (`CalculatorScreen.kt`)**: Added interactive shift preset chips directly to `WorkingHoursCard` (`12h Care`, `8h Standard`, `7.5h Office`, `10h Extended`). Tapping any preset immediately recomputes monthly gross and net salary, clears local overrides, and synchronizes with DataStore preferences and active employer profiles.
+- **UK Statutory Sick Pay (SSP) & 12.07% Holiday Pay Accrual Engine (`SspHolidayEngine.kt` & `SspHolidayDialog.kt`)**: Comprehensive statutory leave module implementing UK 2024/2025 & 2025/2026 statutory rates:
+  - Standard SSP Rate of £116.75/week with qualifying days waiting period (first 3 days unpaid unless linked period within 8 weeks).
+  - Statutory 12.07% holiday pay accrual calculation for shift workers and irregular hours staff under April 2024 reforms.
+  - Interactive Material 3 dialog with steppers, presets, and real-time statutory pay breakdowns accessible from the Tools Hub.
+- **Multi-Rate Shift Differentials & Enhancements Engine (`ShiftRateDifferentialEngine.kt` & `ShiftRateDifferentialDialog.kt`)**: Full payroll calculation engine modeling unsocial hours uplifts, night enhancements (hourly addition or multipliers), weekend premiums (Saturday/Sunday multipliers), bank holiday rates (up to 2.0x Double Time), and flat sleep-in duty allowances (e.g. £50/shift). Computes blended effective hourly rates and net take-home gains.
+- **Corporate PDF Payslip Generator Redesign (`PdfPayslipGenerator.kt`)**: Overhauled the vector PDF payslip document with HMRC tax month period indicators (M1–M12), professional layout hierarchy, and an integrated Year-to-Date (YTD) Estimates summary container (Gross, Tax, NI, Net).
+- **Comprehensive Automated Test Suite (`SspHolidayEngineTest.kt` & `ShiftRateDifferentialEngineTest.kt`)**: 100% test coverage validating SSP qualifying day rates, waiting days bypass on linked periods, 12.07% statutory holiday accrual, and multi-tier shift differential mathematics.
+
+### Bugs Found & Fixed
+- **Floating-Point Binary Rounding Tolerance**: Aligned test assertions for floating-point binary representation variances on 12.82 × 1.25 rates.
+- **Shift Override Persistence Cleanup**: Resolved local state retention on quick shift length switches, ensuring immediate dynamic UI updates.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [23.1] - 2026-09-05 (VersionCode: 32)
 ### Added
 - **Instant Two-Way Synchronization for Settings & Home Screen Work Hours (`SettingsScreen.kt` & `CalculatorScreen.kt`)**: Resolved a synchronization gap where shift length modified in Preferences & Settings did not immediately reflect in the Home calculator. The calculator screen now automatically invalidates stale shift hour overrides and seamlessly pulls the live `effectiveHoursPerDay` whenever settings or active employer profiles change.

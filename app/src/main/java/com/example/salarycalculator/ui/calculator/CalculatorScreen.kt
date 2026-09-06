@@ -151,6 +151,8 @@ fun CalculatorScreen(
     var showOvertimeBracketDialog by remember { mutableStateOf(false) }
     var showHicbcDialog by remember { mutableStateOf(false) }
     var showMultiCurrencyDialog by remember { mutableStateOf(false) }
+    var showSspHolidayDialog by remember { mutableStateOf(false) }
+    var showShiftRateDifferentialDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("August 2026") }
     var saveNote by remember { mutableStateOf("") }
     var selectedTaxMonth by remember { mutableStateOf(5) } // Default to Month 5 (August) per care worker calibration
@@ -298,13 +300,21 @@ fun CalculatorScreen(
                             onTaxFreeChildcareClick = { showTaxFreeChildcareDialog = true },
                             onOvertimeBracketClick = { showOvertimeBracketDialog = true },
                             onHicbcClick = { showHicbcDialog = true },
-                            onMultiCurrencyClick = { showMultiCurrencyDialog = true }
+                            onMultiCurrencyClick = { showMultiCurrencyDialog = true },
+                            onSspHolidayClick = { showSspHolidayDialog = true },
+                            onShiftRateDifferentialClick = { showShiftRateDifferentialDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
                             onDaysWorkedChange = { daysWorkedInput = it },
                             defaultHoursPerDay = effectiveHoursPerDay,
                             defaultHourlyRate = effectiveHourlyRate,
+                            onQuickShiftChange = { hrs ->
+                                scope.launch {
+                                    salaryRepository.setDefaultHoursPerDay(hrs)
+                                    hoursPerDayOverride = null
+                                }
+                            },
                             overtimeHoursInput = overtimeHoursInput,
                             onOvertimeHoursChange = { overtimeHoursInput = it },
                             selectedOvertimeMultiplier = selectedOvertimeMultiplier,
@@ -501,13 +511,21 @@ fun CalculatorScreen(
                             onTaxFreeChildcareClick = { showTaxFreeChildcareDialog = true },
                             onOvertimeBracketClick = { showOvertimeBracketDialog = true },
                             onHicbcClick = { showHicbcDialog = true },
-                            onMultiCurrencyClick = { showMultiCurrencyDialog = true }
+                            onMultiCurrencyClick = { showMultiCurrencyDialog = true },
+                            onSspHolidayClick = { showSspHolidayDialog = true },
+                            onShiftRateDifferentialClick = { showShiftRateDifferentialDialog = true }
                         )
                         WorkingHoursCard(
                             daysWorkedInput = daysWorkedInput,
                             onDaysWorkedChange = { daysWorkedInput = it },
                             defaultHoursPerDay = effectiveHoursPerDay,
                             defaultHourlyRate = effectiveHourlyRate,
+                            onQuickShiftChange = { hrs ->
+                                scope.launch {
+                                    salaryRepository.setDefaultHoursPerDay(hrs)
+                                    hoursPerDayOverride = null
+                                }
+                            },
                             overtimeHoursInput = overtimeHoursInput,
                             onOvertimeHoursChange = { overtimeHoursInput = it },
                             selectedOvertimeMultiplier = selectedOvertimeMultiplier,
@@ -835,6 +853,24 @@ fun CalculatorScreen(
                 initialWeeklyGross = weeklyGross,
                 taxRegion = taxRegion,
                 onDismiss = { showStatutoryLeaveDialog = false }
+            )
+        }
+        // Statutory Sick Pay & Holiday Pay Accrual Dialog (FEAT-242)
+        if (showSspHolidayDialog) {
+            SspHolidayDialog(
+                currentHourlyRate = effectiveHourlyRate,
+                currentStandardHours = hoursPerDay,
+                totalLoggedHours = totalHours,
+                onDismiss = { showSspHolidayDialog = false }
+            )
+        }
+        // Shift Rate Differentials & Enhancements Dialog (FEAT-243)
+        if (showShiftRateDifferentialDialog) {
+            ShiftRateDifferentialDialog(
+                currentHourlyRate = effectiveHourlyRate,
+                currentStandardHours = hoursPerDay,
+                totalLoggedHours = totalHours,
+                onDismiss = { showShiftRateDifferentialDialog = false }
             )
         }
         // Mortgage Borrowing Capacity Dialog
@@ -1401,7 +1437,9 @@ private fun SchedulePresetsSection(
     onTaxFreeChildcareClick: () -> Unit = {},
     onOvertimeBracketClick: () -> Unit = {},
     onHicbcClick: () -> Unit = {},
-    onMultiCurrencyClick: () -> Unit = {}
+    onMultiCurrencyClick: () -> Unit = {},
+    onSspHolidayClick: () -> Unit = {},
+    onShiftRateDifferentialClick: () -> Unit = {}
 ) {
     var selectedCategory by remember { mutableStateOf(ToolCategory.ALL) }
 
@@ -1551,9 +1589,21 @@ private fun SchedulePresetsSection(
                         shape = RoundedCornerShape(10.dp)
                     )
                     AssistChip(
+                        onClick = onSspHolidayClick,
+                        label = { Text("Statutory Sick & Holiday Pay", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.Healing, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
+                        onClick = onShiftRateDifferentialClick,
+                        label = { Text("Shift Differentials (Nights/Weekends)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.NightsStay, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) },
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    AssistChip(
                         onClick = onStatutoryLeaveClick,
                         label = { Text("Statutory Leave", style = MaterialTheme.typography.labelSmall) },
-                        leadingIcon = { Icon(Icons.Default.Healing, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
+                        leadingIcon = { Icon(Icons.Default.MedicalServices, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) },
                         shape = RoundedCornerShape(10.dp)
                     )
                 }
@@ -1673,6 +1723,7 @@ private fun WorkingHoursCard(
     onDaysWorkedChange: (String) -> Unit,
     defaultHoursPerDay: Double,
     defaultHourlyRate: Double,
+    onQuickShiftChange: (Double) -> Unit = {},
     overtimeHoursInput: String,
     onOvertimeHoursChange: (String) -> Unit,
     selectedOvertimeMultiplier: Double,
@@ -1747,6 +1798,35 @@ private fun WorkingHoursCard(
                         Icon(Icons.Outlined.Settings, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Settings", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+
+            // Quick Shift Presets Chips (FEAT-241)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Quick Shift Length",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf(
+                        12.0 to "12h Care",
+                        8.0 to "8h Standard",
+                        7.5 to "7.5h Office",
+                        10.0 to "10h Extended"
+                    ).forEach { (hrs, label) ->
+                        FilterChip(
+                            selected = defaultHoursPerDay == hrs,
+                            onClick = { onQuickShiftChange(hrs) },
+                            label = { Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1) },
+                            shape = RoundedCornerShape(10.dp)
+                        )
                     }
                 }
             }

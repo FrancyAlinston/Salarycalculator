@@ -107,10 +107,41 @@ object PdfPayslipGenerator {
         paint.isFakeBoldText = true
         canvas.drawText("TAX & PENSION PROFILE", 317f, currentY + 22f, paint)
 
+        val taxMonthName = when {
+            record.monthYear.contains("Apr", ignoreCase = true) -> "M1 (Apr)"
+            record.monthYear.contains("May", ignoreCase = true) -> "M2 (May)"
+            record.monthYear.contains("Jun", ignoreCase = true) -> "M3 (Jun)"
+            record.monthYear.contains("Jul", ignoreCase = true) -> "M4 (Jul)"
+            record.monthYear.contains("Aug", ignoreCase = true) -> "M5 (Aug)"
+            record.monthYear.contains("Sep", ignoreCase = true) -> "M6 (Sep)"
+            record.monthYear.contains("Oct", ignoreCase = true) -> "M7 (Oct)"
+            record.monthYear.contains("Nov", ignoreCase = true) -> "M8 (Nov)"
+            record.monthYear.contains("Dec", ignoreCase = true) -> "M9 (Dec)"
+            record.monthYear.contains("Jan", ignoreCase = true) -> "M10 (Jan)"
+            record.monthYear.contains("Feb", ignoreCase = true) -> "M11 (Feb)"
+            record.monthYear.contains("Mar", ignoreCase = true) -> "M12 (Mar)"
+            else -> "M5 (Aug)"
+        }
+        val taxMonthMultiplier = when {
+            record.monthYear.contains("Apr", ignoreCase = true) -> 1
+            record.monthYear.contains("May", ignoreCase = true) -> 2
+            record.monthYear.contains("Jun", ignoreCase = true) -> 3
+            record.monthYear.contains("Jul", ignoreCase = true) -> 4
+            record.monthYear.contains("Aug", ignoreCase = true) -> 5
+            record.monthYear.contains("Sep", ignoreCase = true) -> 6
+            record.monthYear.contains("Oct", ignoreCase = true) -> 7
+            record.monthYear.contains("Nov", ignoreCase = true) -> 8
+            record.monthYear.contains("Dec", ignoreCase = true) -> 9
+            record.monthYear.contains("Jan", ignoreCase = true) -> 10
+            record.monthYear.contains("Feb", ignoreCase = true) -> 11
+            record.monthYear.contains("Mar", ignoreCase = true) -> 12
+            else -> 5
+        }
+
         paint.color = colorSecondary
         paint.textSize = 10f
         paint.isFakeBoldText = false
-        canvas.drawText("Tax Code: ${record.taxCode}", 317f, currentY + 40f, paint)
+        canvas.drawText("Tax Code: ${record.taxCode} · Period: $taxMonthName", 317f, currentY + 40f, paint)
         canvas.drawText("Tax Region: ${if (record.taxRegion == TaxRegion.SCOTLAND) "Scotland (6 Rates)" else "UK Standard"}", 317f, currentY + 56f, paint)
         canvas.drawText("Employee Pension: ${"%.1f".format(record.pensionRate)}%", 317f, currentY + 72f, paint)
         canvas.drawText("Student Loan: ${if (record.studentLoanPlan == StudentLoanPlan.NONE) "None" else record.studentLoanPlan.name.replace("_", " ")}", 317f, currentY + 86f, paint)
@@ -215,9 +246,41 @@ object PdfPayslipGenerator {
         val netTextWidth = paint.measureText(netText)
         canvas.drawText(netText, 559f - 20f - netTextWidth, currentY + 45f, paint)
 
-        currentY += 95f
+        currentY += 90f
 
-        // 5. Employer Contribution & Custom Note
+        // 5. Year-to-Date (YTD) Estimates Card
+        val ytdCardRect = RectF(36f, currentY, 559f, currentY + 48f)
+        paint.color = Color.rgb(241, 245, 249)
+        paint.style = Paint.Style.FILL
+        canvas.drawRoundRect(ytdCardRect, 6f, 6f, paint)
+
+        paint.color = colorBorder
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1f
+        canvas.drawRoundRect(ytdCardRect, 6f, 6f, paint)
+
+        paint.style = Paint.Style.FILL
+        paint.color = colorPrimary
+        paint.textSize = 9f
+        paint.isFakeBoldText = true
+        canvas.drawText("YEAR-TO-DATE (YTD) ESTIMATES · $taxMonthName", 48f, currentY + 16f, paint)
+
+        paint.color = colorSecondary
+        paint.textSize = 9f
+        paint.isFakeBoldText = false
+        val ytdGross = record.grossPay * taxMonthMultiplier
+        val ytdTax = record.incomeTax * taxMonthMultiplier
+        val ytdNi = record.nationalInsurance * taxMonthMultiplier
+        val ytdNet = record.netPay * taxMonthMultiplier
+
+        canvas.drawText("Gross: £${"%,.2f".format(ytdGross)}", 48f, currentY + 34f, paint)
+        canvas.drawText("Tax: £${"%,.2f".format(ytdTax)}", 180f, currentY + 34f, paint)
+        canvas.drawText("NI: £${"%,.2f".format(ytdNi)}", 300f, currentY + 34f, paint)
+        canvas.drawText("Net: £${"%,.2f".format(ytdNet)}", 430f, currentY + 34f, paint)
+
+        currentY += 60f
+
+        // 6. Employer Contribution & Custom Note
         if (record.employerPension > 0) {
             paint.color = colorSecondary
             paint.textSize = 10f
