@@ -18,4 +18,5 @@ salary_app*.png
 .venv/
 __pycache__/
 *.py[cod]
+Salarycalculator.code-workspace
 
