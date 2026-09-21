@@ -4,6 +4,20 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.8-alpha] - 2026-09-21 (VersionCode: 41)
+### Added / Changed
+- **Dispute Email Cutoff Scope Purification (`PayslipAuditEngine.kt`)**:
+  - Removed post-cutoff rollover details and footnotes from the generated payroll dispute email body (`generateDiscrepancyEmailText`), keeping the dispute letter strictly focused on the in-cycle pay window (`payCycleStartDate` to `payCycleCutoffDate`) and qualifying shifts without cluttering the correspondence with future cycle details.
+
+### Bugs Found & Fixed
+- **Email Content Scope**: Resolved user-reported issue where post-cutoff shifts (e.g. shifts rolling over to the next month) were still being listed in the dispute email footnote.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+- Biometric authentication auto-lock grace period customization.
+
+---
+
 ## [24.7-alpha] - 2026-09-21 (VersionCode: 40)
 ### Added / Changed
 - **Cutoff-Window-Aware Payslip Auditor & Dispute Email Generator (`PayslipAuditEngine.kt` & `PayslipAuditDialog.kt`)**:

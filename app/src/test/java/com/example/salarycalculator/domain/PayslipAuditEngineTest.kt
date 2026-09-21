@@ -110,13 +110,16 @@ class PayslipAuditEngineTest {
         assertEquals(192.0, report.timesheetTotalHours, 0.01)
         assertEquals(3, report.postCutoffRolloverDays.size)
 
-        // Verify dispute email generation mentions the exact cutoff window
+        // Verify dispute email generation mentions strictly the in-cycle cutoff window
         val emailBody = PayslipAuditEngine.generateDiscrepancyEmailText(report)
         assertTrue(emailBody.contains("Francy Alinston D'Silva"))
         assertTrue(emailBody.contains("910"))
         assertTrue(emailBody.contains("24 Aug 2026 to 20 Sep 2026"))
-        assertTrue(emailBody.contains("POST-CUTOFF SHIFTS WORKED"))
-        assertTrue(emailBody.contains("22 Sep 2026"))
+        assertTrue(emailBody.contains("Mon 24 Aug 2026"))
+        assertTrue(emailBody.contains("Tue 01 Sep 2026"))
+        // Assert that post-cutoff details are NOT included in the email
+        assertFalse(emailBody.contains("POST-CUTOFF SHIFTS WORKED"))
+        assertFalse(emailBody.contains("22 Sep 2026"))
 
         val subject = PayslipAuditEngine.generateDisputeEmailSubject(report)
         assertTrue(subject.contains("24 Aug 2026 to 20 Sep 2026"))

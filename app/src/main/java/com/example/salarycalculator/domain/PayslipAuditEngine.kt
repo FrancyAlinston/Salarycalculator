@@ -419,15 +419,6 @@ object PayslipAuditEngine {
         }
         sb.append("\nTotal In-Cycle Worked: ${report.workedDays.size} shifts (${ "%.2f".format(report.timesheetTotalHours) } hours)\n\n")
 
-        if (report.postCutoffRolloverDays.isNotEmpty()) {
-            sb.append("=== POST-CUTOFF SHIFTS WORKED (ROLLING OVER TO NEXT PAYSLIP) ===\n")
-            sb.append("For full transparency, the following ${report.postCutoffRolloverDays.size} shift(s) worked after the ${report.payCycleCutoffDate} cutoff are acknowledged to roll over into the subsequent pay cycle:\n")
-            report.postCutoffRolloverDays.forEach { day ->
-                sb.append("• ${day.dateFormatted} (${day.hours}h)\n")
-            }
-            sb.append("\n")
-        }
-
         sb.append("=== REQUEST FOR RESOLUTION ===\n")
         sb.append("Could you kindly cross-check your timesheet records against the in-cycle dates listed above and arrange a supplementary BACS adjustment payment or include the outstanding £${ "%.2f".format(report.grossShortfall) } gross in the upcoming payroll run?\n\n")
         sb.append("Please let me know if you need any additional timesheet sign-off sheets from my ward / unit manager.\n\n")
