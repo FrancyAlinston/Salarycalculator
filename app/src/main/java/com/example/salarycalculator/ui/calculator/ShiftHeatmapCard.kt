@@ -58,6 +58,7 @@ fun ShiftHeatmapCard(
     var selectedMonth by remember { mutableIntStateOf(cal.get(Calendar.MONTH) + 1) } // 1..12
     var showYearPicker by remember { mutableStateOf(false) }
     var showPatternWizardDialog by remember { mutableStateOf(false) }
+    var showDutyRotaImportDialog by remember { mutableStateOf(false) }
 
     val monthNames = remember { DateFormatSymbols().shortMonths.filter { it.isNotBlank() } }
     val fullMonthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
@@ -242,6 +243,13 @@ fun ShiftHeatmapCard(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    IconButton(
+                        onClick = { showDutyRotaImportDialog = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Default.DocumentScanner, contentDescription = "Scan & Import Duty Rota (OCR)", tint = MaterialTheme.colorScheme.primary)
+                    }
+
                     IconButton(
                         onClick = { showPatternWizardDialog = true },
                         modifier = Modifier.size(36.dp)
@@ -835,6 +843,26 @@ fun ShiftHeatmapCard(
                 saveScheduleAndNotify()
             },
             onDismiss = { showPatternWizardDialog = false }
+        )
+    }
+
+    // Duty Rota AI & Staff Roster Importer Dialog
+    if (showDutyRotaImportDialog) {
+        DutyRotaImportDialog(
+            hourlyRate = hourlyRate,
+            standardShiftHours = effectiveStandardHours,
+            onDismiss = { showDutyRotaImportDialog = false },
+            onApplyRotaSchedule = { rotaYear, rotaMonth, rotaShifts, _ ->
+                selectedYear = rotaYear
+                selectedMonth = rotaMonth
+                val targetKey = "$rotaYear-$rotaMonth"
+                val targetMap = multiYearShifts.getOrPut(targetKey) { mutableStateMapOf() }
+                targetMap.clear()
+                rotaShifts.forEach { (d, h) ->
+                    targetMap[d] = h
+                }
+                saveScheduleAndNotify()
+            }
         )
     }
 }

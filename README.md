@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **OCR Duty Rota Shift Analyzer & Staff Member Importer (`DutyRotaOcrEngine.kt`, `DutyRotaImportDialog.kt`, `ShiftHeatmapCard.kt`):**
+  - **Care Rota OCR Engine & Grid Alignment:** ML Kit Text Recognition with 2D spatial coordinate table clustering to parse healthcare and care worker duty rotas directly from photo captures, gallery images, and scans.
+  - **Full Shift Code Taxonomy:** Accurately maps Day shifts (`D`), Night shifts (`N`), Annual Leave (`A/L`), Training Days (`TD`), Off duty (`-`), and unknown/custom markings verbatim as `Custom(code)`.
+  - **Searchable Roster Selector:** Renders all detected staff members (e.g. `Francy D'Silva` 15 Nights, `Cecilia` 13 Days, `Vanessa` 15 Days, `Oyebolu` 16 Nights + 5 AL, `Francis Alabi`, `Rajeev Raju`, `Alan Pascua`, `Michelle Prust`, etc.) with quick name/role search.
+  - **Interactive Next Month Heatmap Preview & Customizer:** High-fidelity calendar preview with distinct shift color badges (Night Indigo, Day Emerald, Annual Leave Amber, Training Teal), interactive tap-to-edit cell overrides, and instant 1-tap "Confirm & Apply to Heatmap" DataStore sync.
 - **Dynamic Shift Duration Heatmap & UK Care Worker Overtime Tax Engine (`ShiftHeatmapCard.kt`, `OvertimeOptimizerEngine.kt`, `CalculatorScreen.kt`):**
   - **Dynamic Configured Shift Calibration:** Shift Heatmap and calendar dynamically adopt the worker's configured shift length (`12.0h` for care workers or custom hours) across legends (`12h Standard`, `12h OT`), cell tap cycles (`0h -> 12h Std -> 12h OT -> 0h`), and rota presets (`Mon-Fri 12h`, `4-On 4-Off 12h`, `Convert 8h to 12h`).
   - **UK Care Worker Overtime Tax Breakdown:** Exact statutory HMRC marginal taxation analysis for care worker overtime. Itemizes 20% Basic PAYE, 8% Class 1 NI, statutory 28% marginal tax rate, and 72% net cash-in-pocket retention rate (£13.85/hr net, +£166.15 net cash per 12h shift). Features an interactive "Apply Rota to Calculator" button and a dedicated Care Worker Overtime Tax card embedded directly in the monthly payslip breakdown.

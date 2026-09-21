@@ -4,6 +4,29 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.3-alpha] - 2026-09-21 (VersionCode: 36)
+### Added / Changed
+- **OCR Duty Rota Shift Analyzer & Staff Member Importer (`DutyRotaOcrEngine.kt` & `DutyRotaImportDialog.kt`)**:
+  - Implemented ML Kit Text Recognition with 2D spatial coordinate table clustering to parse care worker duty rotas directly from camera captures, gallery images, or digital rota exports.
+  - Comprehensive Shift Marking Support: Recognizes Day shifts (`D`), Night shifts (`N`), Annual Leave (`A/L` / `AL`), Training Days (`TD`), Off duty (`-` / `X` / `OFF`), and preserves custom or unknown markings verbatim as `Custom(code)`.
+  - Searchable Staff Name Selector: Displays all rostered staff members from the duty table with shift summary badges (e.g. `15N`, `13D`, `5 AL`, `1 TD`), searchable by name or job role.
+  - Preloaded High-Fidelity October 2026 Reference Roster: Built-in verified care roster containing all 36 staff members (e.g., `Francy D'Silva` with 15 night shifts, `Cecilia` with 13 day shifts, `Vanessa` with 15 day shifts, `Oyebolu` with 16 night shifts & 5 AL, `Francis Alabi`, `Rajeev Raju`, `Alan Pascua`, `Michelle Prust`, etc.).
+  - Interactive Next Month Heatmap Preview: Full calendar month preview (October 2026 / 31 days) with distinct visual color coding (Indigo for Night, Emerald for Day, Amber for Annual Leave, Teal for Training Days, Rose for Custom).
+  - Quick-Cell Interactive Editor: Allows tapping any calendar cell in the preview to cycle shift types or customize hours prior to confirmation.
+  - 1-Tap DataStore Heatmap Sync: "Confirm & Apply to Heatmap" button writes the confirmed schedule into DataStore and triggers immediate home screen payslip recalculation.
+- **Header OCR Integration (`ShiftHeatmapCard.kt`)**: Added a dedicated `Scan Duty Rota (OCR)` document scanner action icon button to the Shift Heatmap header.
+
+### Bugs Found & Fixed
+- **Play Services Tasks Await**: Replaced missing coroutine extension with standard `com.google.android.gms.tasks.Tasks.await` for robust background ML Kit OCR processing.
+- **Color Token Case**: Fixed `Color.white` reference to `Color.White` in staff member avatar styling.
+- **DataStore Schedule Persistence**: Ensured mapped rota shifts seamlessly write to multi-year persistent keys (`"2026-10"`) and notify parent calculators without requiring manual re-entry.
+
+### What Needs to Be Fixed / Pending
+- Multi-month bulk PDF rota parsing.
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+
+---
+
 ## [24.2] - 2026-09-21 (VersionCode: 35)
 ### Added / Changed
 - **Dynamic Configured Shift Duration Heatmap Calibration (`ShiftHeatmapCard.kt`, `ShiftCalendarDialog.kt`, `AnnualShiftPdfGenerator.kt`)**: Fully eliminated hardcoded 8h shift assumptions. The Shift Heatmap and calendar dialog now dynamically adapt to the user's configured shift duration (`effectiveHoursPerDay` / `standardShiftHours`, e.g. 12.0h for care workers):
