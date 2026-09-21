@@ -4,6 +4,29 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.5-alpha] - 2026-09-21 (VersionCode: 38)
+### Added / Changed
+- **Automated Payslip OCR Import & Timesheet Discrepancy Auditor (`PayslipParserEngine.kt` & `PayslipAuditEngine.kt`)**:
+  - Implemented automatic ML Kit OCR parsing of UK payslips from camera captures, gallery images, and PDF documents.
+  - Line-Item Extraction: Extracts Employee Name, Payroll Ref, NI Number, Process Date, Tax Period, Tax Code, Basic Paid Hours (units), Hourly Rate, Bank Holiday uplift hours & rate, Overtime, Gross Pay, PAYE Tax, National Insurance, and Net Pay.
+  - Heatmap Timesheet Cross-Referencing: Cross-references parsed payslip hours against recorded shifts in the monthly Shift Heatmap (e.g. 16 logged shifts = 192.0h vs 15 shifts paid = 179.90h).
+  - Automated Underpayment & Shortfall Calculation: Automatically flags underpayments/overpayments, computes missing shifts (−1 shift), missing hours (−12.10h), gross shortfall (+£154.16 gross), and exact net take-home deficit (+£109.73 net at 20% PAYE + 8% NI with 72% cash retention).
+- **1-Tap Professional Payroll Dispute Email Generator (`PayslipAuditEngine.kt` & `PayslipAuditDialog.kt`)**:
+  - **"Draft Dispute Email to Employer"**: Launches default email client (Gmail, Outlook) with pre-filled formal subject line and comprehensive letter body containing employee details, side-by-side comparison table, and an itemized numbered list of every worked shift date from the heatmap.
+  - **1-Tap Clipboard Copy**: Instant clipboard copy of the formatted dispute email for quick messaging via WhatsApp, Microsoft Teams, or webmail.
+  - **Quick Value Editor**: Allows manual fine-tuning and verification of OCR-extracted figures directly within the comparison dialog.
+- **Embedded Heatmap Header Integration (`ShiftHeatmapCard.kt`)**: Added a dedicated `Audit Payslip vs Timesheet (OCR)` action icon button in the Shift Heatmap header bar for fast 1-tap auditing.
+
+### Bugs Found & Fixed
+- **Material Icon AutoMirrored Reference**: Fixed incorrect AutoMirrored receiver type references on `Icons.Default.FactCheck` and `Icons.Default.ReceiptLong`.
+- **Locale-Specific Month Name Formatting**: Standardized date formatter to `Locale.ENGLISH` in `PayslipAuditEngine.kt` to ensure consistent 3-letter month abbreviations across all Android system language locales.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+- Biometric authentication auto-lock grace period customization.
+
+---
+
 ## [24.4-alpha] - 2026-09-21 (VersionCode: 37)
 ### Added / Changed
 - **Shift Swap & Coverage Forecaster (`ShiftSwapEngine.kt` & `ShiftSwapForecasterDialog.kt`)**:

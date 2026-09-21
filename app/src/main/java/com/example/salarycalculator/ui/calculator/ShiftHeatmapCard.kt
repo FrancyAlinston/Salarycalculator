@@ -60,6 +60,7 @@ fun ShiftHeatmapCard(
     var showPatternWizardDialog by remember { mutableStateOf(false) }
     var showDutyRotaImportDialog by remember { mutableStateOf(false) }
     var showShiftSwapDialog by remember { mutableStateOf(false) }
+    var showPayslipAuditDialog by remember { mutableStateOf(false) }
 
     val monthNames = remember { DateFormatSymbols().shortMonths.filter { it.isNotBlank() } }
     val fullMonthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
@@ -244,6 +245,13 @@ fun ShiftHeatmapCard(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    IconButton(
+                        onClick = { showPayslipAuditDialog = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Default.FactCheck, contentDescription = "Audit Payslip vs Timesheet (OCR)", tint = Rose60)
+                    }
+
                     IconButton(
                         onClick = { showDutyRotaImportDialog = true },
                         modifier = Modifier.size(36.dp)
@@ -890,6 +898,18 @@ fun ShiftHeatmapCard(
                 }
                 saveScheduleAndNotify()
             }
+        )
+    }
+
+    // Payslip Timesheet Auditor & Discrepancy Emailer Dialog
+    if (showPayslipAuditDialog) {
+        PayslipAuditDialog(
+            initialYear = selectedYear,
+            initialMonth = selectedMonth,
+            monthShifts = currentMonthMap.toMap(),
+            configuredHourlyRate = hourlyRate,
+            standardShiftHours = effectiveStandardHours,
+            onDismiss = { showPayslipAuditDialog = false }
         )
     }
 }

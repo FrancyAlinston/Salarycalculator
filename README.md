@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Payslip Timesheet Auditor & 1-Tap Payroll Dispute Emailer (`PayslipParserEngine.kt`, `PayslipAuditEngine.kt`, `PayslipAuditDialog.kt`, `ShiftHeatmapCard.kt`):**
+  - **Automated Payslip OCR Import:** Scans payslips from camera captures, gallery photos, and multi-page PDFs with on-device ML Kit OCR to extract Employee Name, Payroll Ref, NI Number, Process Date, Tax Period, Tax Code, Basic Paid Hours (units), Hourly Rate, Bank Holiday uplift hours & rate, Gross, PAYE, NI, and Net Pay.
+  - **Timesheet Heatmap Cross-Referencing:** Automatically cross-references paid basic hours against logged shifts in the monthly Shift Heatmap (e.g. 16 shifts / 192.0h worked vs 15 shifts / 179.90h paid), detecting exact underpayments, missing shifts (−1 shift), missing hours (−12.10h), gross shortfall (+£154.16), and net take-home deficit (+£109.73 net at 72% cash retention).
+  - **1-Tap Formal Dispute Email Generator:** Automatically generates a courteous, fully itemized dispute email with subject line, employee reference, hours comparison, and a numbered list of all dates worked from the heatmap for instant dispatch to employer payroll departments via default mail apps or clipboard.
+
 - **Shift Swap & Coverage Forecaster (`ShiftSwapEngine.kt`, `ShiftSwapForecasterDialog.kt`, `ShiftHeatmapCard.kt`):**
   - **Statutory Net Take-Home Simulation:** Evaluates before-and-after gross earnings, PAYE Income Tax (20%/40%), Class 1 NI (8%), and net cash-in-hand yield when care workers swap shifts, pick up overtime cover (+12h @ 1.5x), or give away shifts.
   - **Roster Colleague Integration:** Automatically pulls colleagues from the parsed duty rota (*Francy D'Silva*, *Cecilia*, *Vanessa*, *Oyebolu*, etc.) and applies simulated shift changes directly to the live monthly heatmap schedule.

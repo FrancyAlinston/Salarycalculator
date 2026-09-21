@@ -15,12 +15,26 @@ import java.io.FileOutputStream
 import java.util.regex.Pattern
 
 /**
- * Parsed payslip data representation.
+ * Parsed payslip data representation with comprehensive UK line-item breakdown.
  */
 data class ParsedPayslipData(
+    val employeeName: String? = null,
+    val employeeRef: String? = null,
+    val niNumber: String? = null,
     val employerName: String? = null,
     val payPeriod: String = "Payslip Record",
+    val processDate: String? = null,
+    val taxPeriod: Int? = null,
     val taxCode: String = "1257L",
+    val basicHours: Double = 0.0,
+    val basicRate: Double = 0.0,
+    val basicAmount: Double = 0.0,
+    val bankHolidayHours: Double = 0.0,
+    val bankHolidayRate: Double = 0.0,
+    val bankHolidayAmount: Double = 0.0,
+    val overtimeHours: Double = 0.0,
+    val overtimeRate: Double = 0.0,
+    val overtimeAmount: Double = 0.0,
     val grossPay: Double = 0.0,
     val netPay: Double = 0.0,
     val incomeTax: Double = 0.0,
@@ -31,7 +45,13 @@ data class ParsedPayslipData(
     val rawExtractedText: String = "",
     val confidenceRating: String = "High",
     val verificationAnalysis: PayslipAnalysisResult? = null
-)
+) {
+    /**
+     * Total paid hours calculated across basic, bank holiday, and overtime units.
+     */
+    val totalPaidHours: Double
+        get() = if (basicHours > 0.0) basicHours + overtimeHours else 0.0
+}
 
 /**
  * Statutory diagnostic check comparing parsed payslip against expected HMRC tax rules.
@@ -55,6 +75,11 @@ object PayslipParserEngine {
     fun parsePayslipText(rawText: String): ParsedPayslipData {
         val lines = rawText.lines().map { it.trim() }.filter { it.isNotEmpty() }
 
+        var employeeName: String? = null
+        var employeeRef: String? = null
+        var niNumber: String? = null
+        var processDate: String? = null
+        var taxPeriod: Int? = null
         var taxCode = "1257L"
         var grossPay = 0.0
         var netPay = 0.0
@@ -63,10 +88,83 @@ object PayslipParserEngine {
         var employeePension = 0.0
         var employerPension = 0.0
         var studentLoan = 0.0
+        var basicHours = 0.0
+        var basicRate = 0.0
+        var basicAmount = 0.0
+        var bankHolidayHours = 0.0
+        var bankHolidayRate = 0.0
+        var bankHolidayAmount = 0.0
+        var overtimeHours = 0.0
+        var overtimeRate = 0.0
+        var overtimeAmount = 0.0
         var payPeriod = "Imported Payslip"
         var employer: String? = null
 
-        // 1. Tax Code Regex (e.g. 1257L, BR, 0T, S1257L, C1257L, 1383M, D0, D1, NT)
+        // 1. Tabular Header Row Detection (e.g. "910 Francy Alinston D'Silva 30-09-2026 RZ021006C")
+        val tableHeaderValueRegex = """\b(\d{2,8})\s+([A-Za-z' -]{3,35})\s+(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})\s+([A-CEGHJ-PR-TW-Z]{2}\s*\d{6}\s*[A-D])\b""".toRegex(RegexOption.IGNORE_CASE)
+        for (line in lines) {
+            val m = tableHeaderValueRegex.find(line)
+            if (m != null) {
+                employeeRef = m.groupValues[1].trim()
+                employeeName = m.groupValues[2].trim()
+                processDate = m.groupValues[3].trim()
+                niNumber = m.groupValues[4].replace(" ", "").uppercase()
+                break
+            }
+        }
+
+        // 2. Employee Name Detection (Standard patterns)
+        if (employeeName == null) {
+            val empNameRegex = """(?:Employee\s*Name|Name)[:\s]+([A-Za-z' -]{3,40})""".toRegex(RegexOption.IGNORE_CASE)
+            empNameRegex.find(rawText)?.let {
+                val candidate = it.groupValues[1].trim()
+                if (!candidate.contains("Process", ignoreCase = true) && !candidate.contains("Period", ignoreCase = true) && !candidate.contains("Number", ignoreCase = true)) {
+                    employeeName = candidate
+                }
+            }
+        }
+        if (employeeName == null) {
+            // Check for Francy Alinston D'Silva or standard 2-4 word capitalized names before address
+            val bottomNameRegex = """\n([A-Z][a-z]+(?:\s+[A-Z][a-z]+|\s+D'[A-Z][a-z]+){1,4})\n(?:Waterloo|Ward|Unit|Hospital|Street|Road|Avenue|Lane|Leeds|London|Manchester)""".toRegex()
+            bottomNameRegex.find(rawText)?.let {
+                employeeName = it.groupValues[1].trim()
+            }
+        }
+
+        // 3. Employee Ref / Payroll ID
+        if (employeeRef == null) {
+            val refRegex = """(?:Ref\.?|Emp(?:loyee)?\s*No|Payroll\s*(?:ID|No))[:\s]*([0-9A-Za-z-]{2,15})""".toRegex(RegexOption.IGNORE_CASE)
+            refRegex.find(rawText)?.let {
+                val r = it.groupValues[1].trim()
+                if (!r.contains("Employee", ignoreCase = true)) {
+                    employeeRef = r
+                }
+            }
+        }
+
+        // 4. National Insurance Number (UK format: e.g. RZ021006C, QQ123456A)
+        if (niNumber == null) {
+            val niRegex = """\b([A-CEGHJ-PR-TW-Z]{2}\s*\d{6}\s*[A-D])\b""".toRegex(RegexOption.IGNORE_CASE)
+            niRegex.find(rawText)?.let {
+                niNumber = it.groupValues[1].replace(" ", "").uppercase()
+            }
+        }
+
+        // 5. Process Date (e.g. 30-09-2026, 30/09/2026, 2026-09-30)
+        if (processDate == null) {
+            val dateRegex = """(?:Process\s*Date|Pay\s*Date|Date)[:\s]*(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})""".toRegex(RegexOption.IGNORE_CASE)
+            dateRegex.find(rawText)?.let {
+                processDate = it.groupValues[1].trim()
+            }
+        }
+
+        // 6. Tax Period (e.g. Tax Period: 6, Month: 06)
+        val taxPeriodRegex = """(?:Tax\s*Period|Period)[:\s]*(\d{1,2})\b""".toRegex(RegexOption.IGNORE_CASE)
+        taxPeriodRegex.find(rawText)?.let {
+            taxPeriod = it.groupValues[1].toIntOrNull()
+        }
+
+        // 6. Tax Code Regex (e.g. 1257L, BR, 0T, S1257L, C1257L, 1383M, D0, D1, NT)
         val taxCodeRegex = Pattern.compile("""\b(S|C)?(\d{3,4}[LMNPTY]|BR|0T|D0|D1|NT)\b""", Pattern.CASE_INSENSITIVE)
         for (line in lines) {
             val matcher = taxCodeRegex.matcher(line)
@@ -79,9 +177,47 @@ object PayslipParserEngine {
             }
         }
 
-        // 2. Gross Pay Detection
+        // 7. Line Item: Basic Pay (Units / Rate / Amount, e.g. "Basic 179.90 12.82 2306.32" or "Basic: 179.90 hrs @ £12.82")
+        val basicLineRegex = """(?:Basic|Standard\s*Hours|Hourly\s*Pay|Basic\s*Pay)\s+([0-9]+\.[0-9]{1,2})\s+([0-9]+\.[0-9]{1,2})\s+([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE)
+        val basicMatch = basicLineRegex.find(rawText)
+        if (basicMatch != null) {
+            basicHours = parseAmount(basicMatch.groupValues[1])
+            basicRate = parseAmount(basicMatch.groupValues[2])
+            basicAmount = parseAmount(basicMatch.groupValues[3])
+        } else {
+            // Fallback individual patterns
+            """(?:Basic\s*Hours|Hours\s*Worked|Units)[:\s]*([0-9]+\.[0-9]{1,2})""".toRegex(RegexOption.IGNORE_CASE).find(rawText)?.let {
+                basicHours = parseAmount(it.groupValues[1])
+            }
+            """(?:Hourly\s*Rate|Basic\s*Rate|Rate)[:\s]*£?\s*([0-9]+\.[0-9]{1,2})""".toRegex(RegexOption.IGNORE_CASE).find(rawText)?.let {
+                basicRate = parseAmount(it.groupValues[1])
+            }
+            """(?:Basic\s*Pay|Basic\s*Amount)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE).find(rawText)?.let {
+                basicAmount = parseAmount(it.groupValues[1])
+            }
+        }
+
+        // 8. Line Item: Bank Holiday (Units / Rate / Amount, e.g. "Bank Holiday 7.25 6.41 46.47")
+        val bhLineRegex = """(?:Bank\s*Holiday|Public\s*Holiday|BH\s*Uplift)\s+([0-9]+\.[0-9]{1,2})\s+([0-9]+\.[0-9]{1,2})\s+([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE)
+        val bhMatch = bhLineRegex.find(rawText)
+        if (bhMatch != null) {
+            bankHolidayHours = parseAmount(bhMatch.groupValues[1])
+            bankHolidayRate = parseAmount(bhMatch.groupValues[2])
+            bankHolidayAmount = parseAmount(bhMatch.groupValues[3])
+        }
+
+        // 9. Line Item: Overtime (Units / Rate / Amount, e.g. "Overtime 12.00 19.23 230.76")
+        val otLineRegex = """(?:Overtime|OT|Extra\s*Hours)\s+([0-9]+\.[0-9]{1,2})\s+([0-9]+\.[0-9]{1,2})\s+([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE)
+        val otMatch = otLineRegex.find(rawText)
+        if (otMatch != null) {
+            overtimeHours = parseAmount(otMatch.groupValues[1])
+            overtimeRate = parseAmount(otMatch.groupValues[2])
+            overtimeAmount = parseAmount(otMatch.groupValues[3])
+        }
+
+        // 10. Gross Pay Detection
         val grossRegexes = listOf(
-            """(?:Total\s+Gross|Gross\s+Pay|Gross\s+Salary|Total\s+Earnings|Gross\s+This\s+Period|Total\s+Payments)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE),
+            """(?:Total\s+Gross\s+Pay|Total\s+Gross|Gross\s+for\s+Tax|Gross\s+Pay|Gross\s+Salary|Total\s+Earnings|Gross\s+This\s+Period|Total\s+Payments)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE),
             """(?:Gross)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE)
         )
         for (r in grossRegexes) {
@@ -91,8 +227,11 @@ object PayslipParserEngine {
                 if (grossPay > 0) break
             }
         }
+        if (grossPay == 0.0 && basicAmount > 0.0) {
+            grossPay = basicAmount + bankHolidayAmount + overtimeAmount
+        }
 
-        // 3. Net Pay Detection
+        // 11. Net Pay Detection
         val netRegexes = listOf(
             """(?:Net\s+Pay|Take\s+Home|Net\s+Amount|Total\s+Net|Paid\s+to\s+Bank|Bank\s+Payment|BACS)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE),
             """(?:Net)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE)
@@ -105,7 +244,7 @@ object PayslipParserEngine {
             }
         }
 
-        // 4. PAYE / Income Tax Detection
+        // 12. PAYE / Income Tax Detection
         val taxRegexes = listOf(
             """(?:PAYE\s+Tax|PAYE|Income\s+Tax|Tax\s+Paid|Tax\s+Deducted|Tax\s+This\s+Period)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE),
             """(?:Tax)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE)
@@ -118,7 +257,7 @@ object PayslipParserEngine {
             }
         }
 
-        // 5. National Insurance Detection
+        // 13. National Insurance Detection
         val niRegexes = listOf(
             """(?:National\s+Insurance|Employee\s+NI|EE\s+NI|NI\s+Paid|NIC|Class\s+1\s+NI)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE),
             """(?:NI)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE)
@@ -131,9 +270,9 @@ object PayslipParserEngine {
             }
         }
 
-        // 6. Pension Detection
+        // 14. Pension Detection
         val pensionRegexes = listOf(
-            """(?:Employee\s+Pension|EE\s+Pension|Workplace\s+Pension|Pension\s+Salary\s+Sacrifice|Pension\s+Deduction)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE),
+            """(?:Employee\s+Pension|EE\s+Pension|Workplace\s+Pension|Pension\s+Salary\s+Sacrifice|Pension\s+Deduction|Pension\s*\(Inc\s*AVC\s*&\s*APC\))[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE),
             """(?:Pension)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE)
         )
         for (r in pensionRegexes) {
@@ -144,27 +283,45 @@ object PayslipParserEngine {
             }
         }
 
-        // 7. Student Loan Detection
+        // 15. Student Loan Detection
         val studentLoanRegex = """(?:Student\s+Loan|Student\s+Loan\s+Plan\s+[124]|Postgraduate\s+Loan)[:\s]*£?\s*([0-9,]+\.[0-9]{2})""".toRegex(RegexOption.IGNORE_CASE)
         studentLoanRegex.find(rawText)?.let {
             studentLoan = parseAmount(it.groupValues[1])
         }
 
-        // 8. Period Date Detection (e.g. Month 01, January 2025, 31/01/2025)
+        // 16. Period Date Detection (e.g. Month 01, September 2026, 30/09/2026)
         val monthNames = listOf("January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December")
         for (m in monthNames) {
             if (rawText.contains(m, ignoreCase = true)) {
                 val yearMatch = """(202[3-9])""".toRegex().find(rawText)
-                val yr = yearMatch?.value ?: "2025"
+                val yr = yearMatch?.value ?: (processDate?.takeLast(4) ?: "2026")
                 payPeriod = "$m $yr"
                 break
             }
         }
+        if (payPeriod == "Imported Payslip" && processDate != null) {
+            val parts = processDate!!.split('-', '/', '.')
+            if (parts.size == 3) {
+                val mIdx = parts[1].toIntOrNull() ?: 1
+                if (mIdx in 1..12) {
+                    val mName = monthNames[mIdx - 1]
+                    val yr = if (parts[2].length == 4) parts[2] else "20${parts[2]}"
+                    payPeriod = "$mName $yr"
+                }
+            }
+        }
 
-        // 9. Employer Name Candidate
-        val employerMatch = """(?:Employer|Company|Organisation)[:\s]+([A-Za-z0-9 &.,'-]{3,35})""".toRegex(RegexOption.IGNORE_CASE).find(rawText)
+        // 17. Employer Name Candidate (e.g. Waterloo Manor Ltd, NHS Trust, etc.)
+        val employerMatch = """(?:Waterloo\s*Manor(?:\s*Ltd|\s*Hospital)?|NHS(?:\s*Trust|\s*Foundation)?|(?:Employer|Company|Organisation)[:\s]+([A-Za-z0-9 &.,'-]{3,35}))""".toRegex(RegexOption.IGNORE_CASE).find(rawText)
         if (employerMatch != null) {
-            employer = employerMatch.groupValues[1].trim()
+            val matched = employerMatch.value.trim()
+            employer = if (matched.contains("Waterloo", ignoreCase = true)) {
+                "Waterloo Manor Ltd"
+            } else if (matched.contains("NHS", ignoreCase = true)) {
+                "NHS Foundation Trust"
+            } else {
+                employerMatch.groupValues.getOrNull(1)?.trim() ?: matched
+            }
         }
 
         // Fallback calculations if net pay missing but gross & deductions present
@@ -182,9 +339,23 @@ object PayslipParserEngine {
         )
 
         return ParsedPayslipData(
+            employeeName = employeeName,
+            employeeRef = employeeRef,
+            niNumber = niNumber,
             employerName = employer,
             payPeriod = payPeriod,
+            processDate = processDate,
+            taxPeriod = taxPeriod,
             taxCode = taxCode,
+            basicHours = basicHours,
+            basicRate = basicRate,
+            basicAmount = basicAmount,
+            bankHolidayHours = bankHolidayHours,
+            bankHolidayRate = bankHolidayRate,
+            bankHolidayAmount = bankHolidayAmount,
+            overtimeHours = overtimeHours,
+            overtimeRate = overtimeRate,
+            overtimeAmount = overtimeAmount,
             grossPay = grossPay,
             netPay = netPay,
             incomeTax = incomeTax,

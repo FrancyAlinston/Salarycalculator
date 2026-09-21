@@ -12,8 +12,8 @@ android {
         applicationId = "com.example.salarycalculator"
         minSdk = 24
         targetSdk = 36
-        versionCode = 37
-        versionName = "24.4-alpha"
+        versionCode = 38
+        versionName = "24.5-alpha"
     }
 
     signingConfigs {
