@@ -46,6 +46,7 @@ import java.util.Calendar
 fun ShiftHeatmapCard(
     salaryRepository: SalaryRepository,
     hourlyRate: Double = 15.0,
+    standardShiftHours: Double = 12.0,
     overtimeMultiplier: Double = 1.5,
     onApplyToCalculator: ((days: Double, hoursPerDay: Double, overtimeHours: Double) -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -65,6 +66,7 @@ fun ShiftHeatmapCard(
     val employerProfiles by salaryRepository.getEmployerProfiles().collectAsState(initial = emptyList())
     val shiftAssignments by salaryRepository.getShiftEmployerAssignments().collectAsState(initial = emptyMap())
     val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 12.0)
+    val effectiveStandardHours = if (standardShiftHours > 0.0) standardShiftHours else defaultHoursPerDay
     var selectedEmployerFilterId by remember { mutableStateOf<String?>(null) }
 
     // Multi-Year Persistent Shift Store: Key = "$year-$month" -> Map(Day -> Hours)
@@ -81,7 +83,7 @@ fun ShiftHeatmapCard(
                         val targetMap = multiYearShifts.getOrPut(targetKey) { mutableStateMapOf() }
                         dayMap.forEach { (dStr, hrs) ->
                             val d = dStr.toIntOrNull()
-                            if (d != null && d in 1..31 && hrs > 0.0) {
+                            if (d != null && d in 1..31 && hrs != 0.0) {
                                 targetMap[d] = hrs
                             }
                         }
@@ -126,24 +128,25 @@ fun ShiftHeatmapCard(
     }
 
     // Payroll split including rollover
-    val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), prevMonthMap.toMap(), payScheduleConfig, defaultHoursPerDay) {
+    val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), prevMonthMap.toMap(), payScheduleConfig, effectiveStandardHours) {
         PayScheduleEngine.calculateShiftPayrollSplit(
             year = selectedYear,
             month = selectedMonth,
             currentMonthShifts = currentMonthMap,
             previousMonthShifts = prevMonthMap,
             config = payScheduleConfig,
-            standardHoursPerShift = defaultHoursPerDay
+            standardHoursPerShift = effectiveStandardHours
         )
     }
 
-    val monthDaysWorked = currentMonthMap.values.count { it > 0 }
-    val monthTotalHours = currentMonthMap.values.sum()
-    val monthStandardHours = currentMonthMap.values.sumOf { minOf(defaultHoursPerDay, it) }
-    val monthOvertimeHours = currentMonthMap.values.sumOf { maxOf(0.0, it - defaultHoursPerDay) }
-    val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else defaultHoursPerDay
+    val monthDaysWorked = currentMonthMap.values.count { it != 0.0 }
+    val monthTotalHours = currentMonthMap.values.sumOf { kotlin.math.abs(it) }
+    val monthStandardHours = currentMonthMap.values.sumOf { if (it < 0.0) 0.0 else minOf(effectiveStandardHours, it) }
+    val monthOvertimeHours = currentMonthMap.values.sumOf { if (it < 0.0) kotlin.math.abs(it) else maxOf(0.0, it - effectiveStandardHours) }
+    val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else effectiveStandardHours
 
-    val totalPaidAvgHours = if (payrollSplit.totalPaidDays > 0) payrollSplit.totalPaidHours / payrollSplit.totalPaidDays else defaultHoursPerDay
+    val totalPaidStdDays = if (effectiveStandardHours > 0) payrollSplit.totalPaidStandardHours / effectiveStandardHours else payrollSplit.totalPaidDays.toDouble()
+    val totalPaidAvgHours = effectiveStandardHours
 
     val payslipEstimatedGross = if (payrollSplit.totalPaidDays == 0 || payrollSplit.totalPaidHours == 0.0) {
         0.0
@@ -151,20 +154,44 @@ fun ShiftHeatmapCard(
         (payrollSplit.totalPaidStandardHours * hourlyRate) + (payrollSplit.totalPaidOtHours * hourlyRate * overtimeMultiplier)
     }
 
+    // Care Worker Overtime UK Tax & Take-Home Calculation for this schedule
+    val otTaxBreakdown = remember(payslipEstimatedGross, payrollSplit.totalPaidStandardHours, payrollSplit.totalPaidOtHours, hourlyRate, overtimeMultiplier) {
+        if (payrollSplit.totalPaidOtHours > 0.0) {
+            val stdGross = payrollSplit.totalPaidStandardHours * hourlyRate
+            OvertimeOptimizerEngine.calculateCareWorkerOvertimeTaxBreakdown(
+                standardGrossMonthly = stdGross,
+                baseHourlyRate = hourlyRate,
+                overtimeHours = payrollSplit.totalPaidOtHours,
+                overtimeMultiplier = overtimeMultiplier
+            )
+        } else null
+    }
+
     fun saveScheduleAndNotify() {
         scope.launch {
             try {
                 val exportMap = multiYearShifts.mapValues { (_, dayMap) ->
-                    dayMap.filterValues { it > 0.0 }.mapKeys { it.key.toString() }
+                    dayMap.filterValues { it != 0.0 }.mapKeys { it.key.toString() }
                 }.filterValues { it.isNotEmpty() }
                 val jsonStr = Json.encodeToString(exportMap)
                 salaryRepository.setAnnualShiftSchedule(jsonStr)
 
-                // Notify parent calculator of updated payroll parameters
+                // Calculate split fresh with latest state
+                val freshSplit = PayScheduleEngine.calculateShiftPayrollSplit(
+                    year = selectedYear,
+                    month = selectedMonth,
+                    currentMonthShifts = currentMonthMap.toMap(),
+                    previousMonthShifts = prevMonthMap.toMap(),
+                    config = payScheduleConfig,
+                    standardHoursPerShift = effectiveStandardHours
+                )
+                val freshStdDays = if (effectiveStandardHours > 0) freshSplit.totalPaidStandardHours / effectiveStandardHours else freshSplit.totalPaidDays.toDouble()
+
+                // Notify parent calculator of updated payroll parameters:
                 onApplyToCalculator?.invoke(
-                    payrollSplit.totalPaidDays.toDouble(),
-                    totalPaidAvgHours,
-                    payrollSplit.totalPaidOtHours
+                    freshStdDays,
+                    effectiveStandardHours,
+                    freshSplit.totalPaidOtHours
                 )
             } catch (_: Exception) {}
         }
@@ -403,7 +430,8 @@ fun ShiftHeatmapCard(
                 }
             }
 
-            // 2. Color Legend Row (Calibrated: OT is 12h, not 10h)
+            // 2. Color Legend Row (Calibrated dynamically to configured standard shift duration)
+            val stdHoursLabel = if (effectiveStandardHours % 1.0 == 0.0) "${effectiveStandardHours.toInt()}" else "%.1f".format(effectiveStandardHours)
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
@@ -417,20 +445,20 @@ fun ShiftHeatmapCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Standard 8h
+                    // Standard Shift
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Emerald60))
-                        Text("8h Standard", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        Text("${stdHoursLabel}h Standard", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                     }
-                    // Overtime 12h (Explicitly 12h OT, not 10h)
+                    // Overtime Shift
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Amber60))
-                        Text("12h OT", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text("${stdHoursLabel}h OT", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
-                    // Part-time <8h
+                    // Part-time < Standard
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Teal60))
-                        Text("<8h Part-Time", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                        Text("<${stdHoursLabel}h Part-Time", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                     }
                     // Day Off
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -492,6 +520,42 @@ fun ShiftHeatmapCard(
                         color = if (payslipEstimatedGross > 0) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    // Care Worker Overtime UK Tax & Take-Home Preview Banner
+                    if (otTaxBreakdown != null) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Amber60.copy(alpha = 0.15f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "⚡ Overtime (${"%.0f".format(otTaxBreakdown.overtimeHours)}h): +£${"%.2f".format(otTaxBreakdown.grossOvertimePay)} gross",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Take-Home: +£${"%.2f".format(otTaxBreakdown.netOvertimePay)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Emerald60
+                                    )
+                                }
+                                Text(
+                                    text = "↳ UK Marginal Deductions: -£${"%.2f".format(otTaxBreakdown.payeTaxOnOt)} Tax (20%) · -£${"%.2f".format(otTaxBreakdown.niOnOt)} NI (8%) · Retain ${"%.0f".format(otTaxBreakdown.retentionPercentage)}% in hand (£${"%.2f".format(otTaxBreakdown.netPerHour)}/hr net · £${"%.2f".format(otTaxBreakdown.netPer12hShift)}/12h shift)",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontSize = 9.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
                     // Detailed In-Payslip Partitioning
                     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(
@@ -527,24 +591,22 @@ fun ShiftHeatmapCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
-                dayOfWeekLabels.forEach { d ->
+                dayOfWeekLabels.forEach { label ->
                     Text(
-                        text = d,
+                        text = label,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.width(36.dp)
+                        modifier = Modifier.width(38.dp),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
 
-            // 4. Calendar Grid for Selected Month
-            val totalCells = startDayOffset + daysInCurrentMonth
-            val totalRows = (totalCells + 6) / 7
-
+            // 7-Column Interactive Shift Calendar Grid
+            val numRows = (startDayOffset + daysInCurrentMonth + 6) / 7
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (row in 0 until totalRows) {
+                for (row in 0 until numRows) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceAround
@@ -559,10 +621,13 @@ fun ShiftHeatmapCard(
                                 val isPayday = (dayNum == payPeriod.payDay && selectedMonth == payPeriod.payMonth && selectedYear == payPeriod.payYear)
                                 val isRollover = (dayNum > payPeriod.cutoffDay && selectedMonth == payPeriod.cutoffMonth && selectedYear == payPeriod.cutoffYear)
 
-                                // Calibrated: hours >= 12.0 is 12h OT (Amber60)
+                                val isOtShift = hours < 0.0
+                                val absHours = kotlin.math.abs(hours)
+
                                 val (bgColor, textColor, defaultLabel) = when {
-                                    hours >= 12.0 -> Triple(Amber60, Color.Black, "12h")
-                                    hours >= 8.0 -> Triple(Emerald60, Color.White, "8h")
+                                    isOtShift -> Triple(Amber60, Color.Black, "${absHours.toInt()}h OT")
+                                    hours > effectiveStandardHours -> Triple(Amber60, Color.Black, "${hours.toInt()}h OT")
+                                    hours >= effectiveStandardHours -> Triple(Emerald60, Color.White, "${hours.toInt()}h")
                                     hours > 0.0 -> Triple(Teal60, Color.White, "${hours.toInt()}h")
                                     else -> Triple(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), MaterialTheme.colorScheme.onSurface, "")
                                 }
@@ -576,7 +641,7 @@ fun ShiftHeatmapCard(
                                 val cellLabel = when {
                                     isCutoff && hours == 0.0 -> "Cutoff"
                                     isPayday && hours == 0.0 -> "Payday"
-                                    isRollover && hours > 0.0 -> "+Roll"
+                                    isRollover && hours != 0.0 -> "+Roll"
                                     else -> defaultLabel
                                 }
 
@@ -593,13 +658,14 @@ fun ShiftHeatmapCard(
                                         .background(bgColor)
                                         .then(if (cellBorder != null) Modifier.border(cellBorder, RoundedCornerShape(8.dp)) else Modifier)
                                         .clickable {
-                                            // Calibrated Cycle: 0h -> 8h (Standard) -> 12h (OT) -> 0h
-                                            val next = when (hours) {
-                                                0.0 -> 8.0
-                                                8.0 -> 12.0
+                                            // Dynamic Calibrated Cycle:
+                                            // 0h -> Standard Shift (effectiveStandardHours) -> Overtime Shift (-effectiveStandardHours) -> 0h
+                                            val next = when {
+                                                hours == 0.0 -> effectiveStandardHours
+                                                hours == effectiveStandardHours -> -effectiveStandardHours
                                                 else -> 0.0
                                             }
-                                            if (next > 0.0) {
+                                            if (next != 0.0) {
                                                 currentMonthMap[dayNum] = next
                                                 if (selectedEmployerFilterId != null) {
                                                     scope.launch {
@@ -613,7 +679,7 @@ fun ShiftHeatmapCard(
                                         },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (profileColor != null && hours > 0.0) {
+                                    if (profileColor != null && hours != 0.0) {
                                         Box(
                                             modifier = Modifier
                                                 .size(6.dp)
@@ -665,37 +731,54 @@ fun ShiftHeatmapCard(
 
                 AssistChip(
                     onClick = {
-                        // Fill Mon-Fri with 8h
+                        // Fill Mon-Fri with configured standard shift hours (e.g. 12h)
                         val c = Calendar.getInstance()
                         for (d in 1..daysInCurrentMonth) {
                             c.set(selectedYear, selectedMonth - 1, d)
                             val dow = c.get(Calendar.DAY_OF_WEEK)
                             if (dow != Calendar.SATURDAY && dow != Calendar.SUNDAY) {
-                                currentMonthMap[d] = 8.0
+                                currentMonthMap[d] = effectiveStandardHours
                             } else {
                                 currentMonthMap.remove(d)
                             }
                         }
                         saveScheduleAndNotify()
                     },
-                    label = { Text("Mon–Fri (8h)", style = MaterialTheme.typography.labelSmall) }
+                    label = { Text("Mon–Fri (${stdHoursLabel}h)", style = MaterialTheme.typography.labelSmall) }
                 )
 
                 AssistChip(
                     onClick = {
-                        // 4 on 4 off pattern calibrated to 12.0h Overtime/Care shifts
+                        // 4 on 4 off pattern calibrated to configured shift duration (e.g. 12.0h Care shifts)
                         for (d in 1..daysInCurrentMonth) {
                             val cycle = ((d - 1) % 8)
                             if (cycle < 4) {
-                                currentMonthMap[d] = 12.0
+                                currentMonthMap[d] = effectiveStandardHours
                             } else {
                                 currentMonthMap.remove(d)
                             }
                         }
                         saveScheduleAndNotify()
                     },
-                    label = { Text("4-On 4-Off (12h)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                    label = { Text("4-On 4-Off (${stdHoursLabel}h)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                 )
+
+                // If existing month has 8h shifts but settings has 12h, provide 1-tap conversion chip
+                val hasLegacy8hShifts = currentMonthMap.values.any { it == 8.0 } && effectiveStandardHours != 8.0
+                if (hasLegacy8hShifts) {
+                    AssistChip(
+                        onClick = {
+                            currentMonthMap.keys.toList().forEach { d ->
+                                if (currentMonthMap[d] == 8.0) {
+                                    currentMonthMap[d] = effectiveStandardHours
+                                }
+                            }
+                            saveScheduleAndNotify()
+                        },
+                        label = { Text("⚡ Convert 8h to ${stdHoursLabel}h", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                        leadingIcon = { Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(14.dp), tint = Emerald60) }
+                    )
+                }
 
                 AssistChip(
                     onClick = {
@@ -722,6 +805,16 @@ fun ShiftHeatmapCard(
                     label = { Text("Clear Month", style = MaterialTheme.typography.labelSmall) }
                 )
             }
+
+            Button(
+                onClick = { saveScheduleAndNotify() },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Calculate, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Apply Rota to Calculator (${payrollSplit.totalPaidDays} shifts • £${"%,.2f".format(payslipEstimatedGross)})")
+            }
         }
     }
 
@@ -736,7 +829,7 @@ fun ShiftHeatmapCard(
                     val target = multiYearShifts.getOrPut(ymKey) { mutableStateMapOf() }
                     target.clear()
                     dayMap.forEach { (d, h) ->
-                        if (h > 0) target[d] = h
+                        if (h != 0.0) target[d] = h
                     }
                 }
                 saveScheduleAndNotify()

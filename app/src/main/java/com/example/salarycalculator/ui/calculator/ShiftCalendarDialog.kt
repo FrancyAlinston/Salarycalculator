@@ -40,8 +40,8 @@ import java.util.Calendar
 
 @Composable
 fun ShiftCalendarDialog(
-    initialDaysWorked: Double = 20.0,
-    initialHoursPerDay: Double = 8.0,
+    initialDaysWorked: Double = 16.0,
+    initialHoursPerDay: Double = 12.0,
     salaryRepository: SalaryRepository? = null,
     hourlyRate: Double = 15.0,
     overtimeMultiplier: Double = 1.5,
@@ -63,6 +63,7 @@ fun ShiftCalendarDialog(
     val employerProfiles by (salaryRepository?.getEmployerProfiles() ?: flowOf(emptyList())).collectAsState(initial = emptyList())
     val shiftAssignments by (salaryRepository?.getShiftEmployerAssignments() ?: flowOf(emptyMap())).collectAsState(initial = emptyMap())
     val defaultHoursPerDay by (salaryRepository?.getDefaultHoursPerDay() ?: flowOf(12.0)).collectAsState(initial = 12.0)
+    val effectiveStandardHours = if (initialHoursPerDay > 0.0) initialHoursPerDay else defaultHoursPerDay
     var selectedEmployerFilterId by remember { mutableStateOf<String?>(null) }
 
     // Multi-Year Persistent Shift Store: Key = "$year-$month" -> Map(Day -> Hours)
@@ -80,7 +81,7 @@ fun ShiftCalendarDialog(
                             val targetMap = multiYearShifts.getOrPut(targetKey) { mutableStateMapOf() }
                             dayMap.forEach { (dStr, hrs) ->
                                 val d = dStr.toIntOrNull()
-                                if (d != null && d in 1..31 && hrs > 0.0) {
+                                if (d != null && d in 1..31 && hrs != 0.0) {
                                     targetMap[d] = hrs
                                 }
                             }
@@ -96,7 +97,7 @@ fun ShiftCalendarDialog(
             scope.launch {
                 try {
                     val exportMap = multiYearShifts.mapValues { (_, dayMap) ->
-                        dayMap.filterValues { it > 0.0 }.mapKeys { it.key.toString() }
+                        dayMap.filterValues { it != 0.0 }.mapKeys { it.key.toString() }
                     }.filterValues { it.isNotEmpty() }
                     val jsonStr = Json.encodeToString(exportMap)
                     salaryRepository.setAnnualShiftSchedule(jsonStr)
@@ -140,25 +141,26 @@ fun ShiftCalendarDialog(
     }
 
     // Includes current month shifts AND previous month post-cutoff rollover shifts
-    val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), prevMonthMap.toMap(), payScheduleConfig, defaultHoursPerDay) {
+    val payrollSplit = remember(selectedYear, selectedMonth, currentMonthMap.toMap(), prevMonthMap.toMap(), payScheduleConfig, effectiveStandardHours) {
         PayScheduleEngine.calculateShiftPayrollSplit(
             year = selectedYear,
             month = selectedMonth,
             currentMonthShifts = currentMonthMap,
             previousMonthShifts = prevMonthMap,
             config = payScheduleConfig,
-            standardHoursPerShift = defaultHoursPerDay
+            standardHoursPerShift = effectiveStandardHours
         )
     }
 
-    val monthDaysWorked = currentMonthMap.values.count { it > 0 }
-    val monthTotalHours = currentMonthMap.values.sum()
-    val monthStandardHours = currentMonthMap.values.sumOf { minOf(defaultHoursPerDay, it) }
-    val monthOvertimeHours = currentMonthMap.values.sumOf { maxOf(0.0, it - defaultHoursPerDay) }
-    val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else defaultHoursPerDay
+    val monthDaysWorked = currentMonthMap.values.count { it != 0.0 }
+    val monthTotalHours = currentMonthMap.values.sumOf { kotlin.math.abs(it) }
+    val monthStandardHours = currentMonthMap.values.sumOf { if (it < 0.0) 0.0 else minOf(effectiveStandardHours, it) }
+    val monthOvertimeHours = currentMonthMap.values.sumOf { if (it < 0.0) kotlin.math.abs(it) else maxOf(0.0, it - effectiveStandardHours) }
+    val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else effectiveStandardHours
 
     // Paid in this payslip (in-cycle current month + post-cutoff rollover from previous month)
-    val totalPaidAvgHours = if (payrollSplit.totalPaidDays > 0) payrollSplit.totalPaidHours / payrollSplit.totalPaidDays else defaultHoursPerDay
+    val totalPaidAvgHours = effectiveStandardHours
+    val stdHoursLabel = if (effectiveStandardHours % 1.0 == 0.0) "${effectiveStandardHours.toInt()}" else "%.1f".format(effectiveStandardHours)
 
     // Exact Monthly Estimated Gross Calculation (Strict £0.00 zero-state if no shifts)
     val monthEstimatedGross = if (monthDaysWorked == 0 || monthTotalHours == 0.0) {
@@ -174,9 +176,9 @@ fun ShiftCalendarDialog(
     }
 
     // Annual Aggregate Calculations for selectedYear
-    val annualDaysWorked = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.count { it > 0 } ?: 0 }
-    val annualTotalHours = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.sum() ?: 0.0 }
-    val annualOvertimeHours = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.sumOf { maxOf(0.0, it - 8.0) } ?: 0.0 }
+    val annualDaysWorked = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.count { it != 0.0 } ?: 0 }
+    val annualTotalHours = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.sumOf { kotlin.math.abs(it) } ?: 0.0 }
+    val annualOvertimeHours = (1..12).sumOf { m -> multiYearShifts["$selectedYear-$m"]?.values?.sumOf { if (it < 0.0) kotlin.math.abs(it) else maxOf(0.0, it - effectiveStandardHours) } ?: 0.0 }
     val annualEstimatedGross = if (annualTotalHours == 0.0) 0.0 else (annualTotalHours * hourlyRate)
 
     // Tax bracket and 60% marginal trap warning
@@ -412,6 +414,7 @@ fun ShiftCalendarDialog(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    // 2. Color Legend Row (Calibrated dynamically to configured standard shift duration)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -420,20 +423,20 @@ fun ShiftCalendarDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Standard 8h
+                        // Standard Shift
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Emerald60))
-                            Text("8h Standard", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                            Text("${stdHoursLabel}h Standard", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                         }
-                        // Overtime 12h
+                        // Overtime Shift
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Amber60))
-                            Text("12h OT", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("${stdHoursLabel}h OT", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                         // Part time
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Teal60))
-                            Text("<8h Part-Time", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                            Text("<${stdHoursLabel}h Part-Time", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                         }
                         // Off
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -565,9 +568,13 @@ fun ShiftCalendarDialog(
                                     val isPayday = (dayNum == payPeriod.payDay && selectedMonth == payPeriod.payMonth && selectedYear == payPeriod.payYear)
                                     val isRollover = (dayNum > payPeriod.cutoffDay && selectedMonth == payPeriod.cutoffMonth && selectedYear == payPeriod.cutoffYear)
 
+                                    val isOtShift = hours < 0.0
+                                    val absHours = kotlin.math.abs(hours)
+
                                     val (bgColor, textColor, defaultLabel) = when {
-                                        hours >= 12.0 -> Triple(Amber60, Color.Black, "12h")
-                                        hours >= 8.0 -> Triple(Emerald60, Color.White, "8h")
+                                        isOtShift -> Triple(Amber60, Color.Black, "${absHours.toInt()}h OT")
+                                        hours > effectiveStandardHours -> Triple(Amber60, Color.Black, "${hours.toInt()}h OT")
+                                        hours >= effectiveStandardHours -> Triple(Emerald60, Color.White, "${hours.toInt()}h")
                                         hours > 0.0 -> Triple(Teal60, Color.White, "${hours.toInt()}h")
                                         else -> Triple(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), MaterialTheme.colorScheme.onSurface, "")
                                     }
@@ -581,7 +588,7 @@ fun ShiftCalendarDialog(
                                     val cellLabel = when {
                                         isCutoff && hours == 0.0 -> "Cutoff"
                                         isPayday && hours == 0.0 -> "Payday"
-                                        isRollover && hours > 0.0 -> "+Roll"
+                                        isRollover && hours != 0.0 -> "+Roll"
                                         else -> defaultLabel
                                     }
 
@@ -598,13 +605,14 @@ fun ShiftCalendarDialog(
                                             .background(bgColor)
                                             .then(if (cellBorder != null) Modifier.border(cellBorder, RoundedCornerShape(8.dp)) else Modifier)
                                             .clickable {
-                                                // Calibrated Cycle: 0h -> 8h (Standard) -> 12h (OT) -> 0h
-                                                val next = when (hours) {
-                                                    0.0 -> 8.0
-                                                    8.0 -> 12.0
+                                                // Dynamic Calibrated Cycle:
+                                                // 0h -> Standard Shift (effectiveStandardHours) -> Overtime Shift (-effectiveStandardHours) -> 0h
+                                                val next = when {
+                                                    hours == 0.0 -> effectiveStandardHours
+                                                    hours == effectiveStandardHours -> -effectiveStandardHours
                                                     else -> 0.0
                                                 }
-                                                if (next > 0.0) {
+                                                if (next != 0.0) {
                                                     currentMonthMap[dayNum] = next
                                                     if (selectedEmployerFilterId != null && salaryRepository != null) {
                                                         scope.launch {
@@ -618,7 +626,7 @@ fun ShiftCalendarDialog(
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (profileColor != null && hours > 0.0) {
+                                        if (profileColor != null && hours != 0.0) {
                                             Box(
                                                 modifier = Modifier
                                                     .size(6.dp)
@@ -670,36 +678,36 @@ fun ShiftCalendarDialog(
 
                     AssistChip(
                         onClick = {
-                            // Fill all Monday to Friday with 8h
+                            // Fill all Monday to Friday with configured standard shift hours
                             val c = Calendar.getInstance()
                             for (d in 1..daysInCurrentMonth) {
                                 c.set(selectedYear, selectedMonth - 1, d)
                                 val dow = c.get(Calendar.DAY_OF_WEEK)
                                 if (dow != Calendar.SATURDAY && dow != Calendar.SUNDAY) {
-                                    currentMonthMap[d] = 8.0
+                                    currentMonthMap[d] = effectiveStandardHours
                                 } else {
                                     currentMonthMap.remove(d)
                                 }
                             }
                             saveSchedule()
                         },
-                        label = { Text("Mon–Fri (8h)", style = MaterialTheme.typography.labelSmall) }
+                        label = { Text("Mon–Fri (${stdHoursLabel}h)", style = MaterialTheme.typography.labelSmall) }
                     )
 
                     AssistChip(
                         onClick = {
-                            // 4 on 4 off pattern calibrated to 12.0h Overtime/Care shifts
+                            // 4 on 4 off pattern calibrated to configured standard shift duration
                             for (d in 1..daysInCurrentMonth) {
                                 val cycle = ((d - 1) % 8)
                                 if (cycle < 4) {
-                                    currentMonthMap[d] = 12.0
+                                    currentMonthMap[d] = effectiveStandardHours
                                 } else {
                                     currentMonthMap.remove(d)
                                 }
                             }
                             saveSchedule()
                         },
-                        label = { Text("4-On 4-Off (12h)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
+                        label = { Text("4-On 4-Off (${stdHoursLabel}h)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                     )
 
                     AssistChip(
@@ -830,14 +838,15 @@ fun ShiftCalendarDialog(
                         Text("Apply Month (${monthDaysWorked}d)")
                     }
                 }
+                val totalPaidStdDays = if (effectiveStandardHours > 0) payrollSplit.totalPaidStandardHours / effectiveStandardHours else payrollSplit.totalPaidDays.toDouble()
                 Button(
                     onClick = {
                         saveSchedule()
-                        onApply(payrollSplit.totalPaidDays.toDouble(), totalPaidAvgHours, payrollSplit.totalPaidOtHours)
+                        onApply(totalPaidStdDays, effectiveStandardHours, payrollSplit.totalPaidOtHours)
                         onDismiss()
                     }
                 ) {
-                    Text("Apply Cutoff Payslip (${payrollSplit.totalPaidDays}d · ${"%.0f".format(payrollSplit.totalPaidHours)}h)")
+                    Text("Apply Cutoff Payslip (${"%.0f".format(totalPaidStdDays)}d · ${"%.0f".format(payrollSplit.totalPaidHours)}h)")
                 }
             }
         },

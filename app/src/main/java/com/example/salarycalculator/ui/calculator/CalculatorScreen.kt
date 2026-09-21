@@ -106,16 +106,16 @@ fun CalculatorScreen(
                 standardHoursPerShift = effectiveHoursPerDay
             )
             if (split.totalPaidDays > 0) {
-                daysWorkedInput = split.totalPaidDays.toString()
-                hoursPerDayOverride = split.totalPaidHours / split.totalPaidDays
+                val stdDays = if (effectiveHoursPerDay > 0) split.totalPaidStandardHours / effectiveHoursPerDay else split.inCycleDays.toDouble()
+                daysWorkedInput = if (stdDays > 0) "%.0f".format(stdDays) else "0"
+                hoursPerDayOverride = effectiveHoursPerDay
                 overtimeHoursInput = if (split.totalPaidOtHours > 0) "%.1f".format(split.totalPaidOtHours) else ""
             } else {
-                val dCount = currentMonthShifts.count { it.value > 0 }
-                val totHrs = currentMonthShifts.values.sum()
-                val otHrs = currentMonthShifts.values.sumOf { maxOf(0.0, it - effectiveHoursPerDay) }
-                val avgHrs = if (dCount > 0) totHrs / dCount else effectiveHoursPerDay
-                daysWorkedInput = dCount.toString()
-                hoursPerDayOverride = avgHrs
+                val stdHrs = currentMonthShifts.values.sumOf { if (it < 0.0) 0.0 else minOf(effectiveHoursPerDay, it) }
+                val otHrs = currentMonthShifts.values.sumOf { if (it < 0.0) kotlin.math.abs(it) else maxOf(0.0, it - effectiveHoursPerDay) }
+                val stdDays = if (effectiveHoursPerDay > 0) stdHrs / effectiveHoursPerDay else 0.0
+                daysWorkedInput = if (stdDays > 0) "%.0f".format(stdDays) else "0"
+                hoursPerDayOverride = effectiveHoursPerDay
                 overtimeHoursInput = if (otHrs > 0) "%.1f".format(otHrs) else ""
             }
         }
@@ -216,6 +216,39 @@ fun CalculatorScreen(
         (daysWorked * hoursPerDay) + overtimeHours
     }
 
+    // Care Worker Overtime UK Tax & Take-Home Breakdown
+    val careWorkerOtTaxBreakdown = remember(
+        standardPay,
+        overtimeHours,
+        effectiveHourlyRate,
+        selectedOvertimeMultiplier,
+        taxCode,
+        taxRegion,
+        taxYear,
+        pensionRate,
+        studentLoanPlan,
+        hasMarriageAllowance,
+        hasBlindPersonsAllowance,
+        taxMonth
+    ) {
+        if (overtimeHours > 0.0) {
+            OvertimeOptimizerEngine.calculateCareWorkerOvertimeTaxBreakdown(
+                standardGrossMonthly = standardPay,
+                baseHourlyRate = effectiveHourlyRate,
+                overtimeHours = overtimeHours,
+                overtimeMultiplier = selectedOvertimeMultiplier,
+                taxCode = taxCode,
+                taxRegion = taxRegion,
+                taxYear = taxYear,
+                pensionRate = pensionRate,
+                studentLoanPlan = studentLoanPlan,
+                hasMarriageAllowance = hasMarriageAllowance,
+                hasBlindPersonsAllowance = hasBlindPersonsAllowance,
+                taxMonth = taxMonth
+            )
+        } else null
+    }
+
     // Active displayed net amount based on selected frequency
     val displayedNetAmount = remember(selectedFrequency, report) {
         when (selectedFrequency) {
@@ -236,22 +269,23 @@ fun CalculatorScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            val isWideScreen = maxWidth >= 900.dp
+            val isWide = maxWidth >= 720.dp
+            val isVeryWide = maxWidth >= 1100.dp
 
-            if (isWideScreen) {
-                // Adaptive 2-Column Dual-Pane Layout for Massive Screens
+            if (isWide) {
+                // Book-Style Dual-Pane Layout
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Left Pane: Inputs & Adjustments
+                    // Left Column: Calculator Inputs & Heatmap Rota
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(18.dp)
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         AppHeaderSection(
                             taxRegion = taxRegion,
@@ -271,6 +305,7 @@ fun CalculatorScreen(
                         ShiftHeatmapCard(
                             salaryRepository = salaryRepository,
                             hourlyRate = effectiveHourlyRate,
+                            standardShiftHours = effectiveHoursPerDay,
                             overtimeMultiplier = selectedOvertimeMultiplier,
                             onApplyToCalculator = { days, hours, otHours ->
                                 daysWorkedInput = if (days > 0) "%.0f".format(days) else "0"
@@ -373,7 +408,8 @@ fun CalculatorScreen(
                             totalHours = totalHours,
                             selectedPensionPercent = pensionRate,
                             selectedStudentLoan = studentLoanPlan,
-                            taxRegion = taxRegion
+                            taxRegion = taxRegion,
+                            otTaxBreakdown = careWorkerOtTaxBreakdown
                         )
                         MultiPeriodCard(report = report)
                         ActionButtonsRow(
@@ -488,6 +524,7 @@ fun CalculatorScreen(
                         ShiftHeatmapCard(
                             salaryRepository = salaryRepository,
                             hourlyRate = effectiveHourlyRate,
+                            standardShiftHours = effectiveHoursPerDay,
                             overtimeMultiplier = selectedOvertimeMultiplier,
                             onApplyToCalculator = { days, hours, otHours ->
                                 daysWorkedInput = if (days > 0) "%.0f".format(days) else "0"
@@ -575,7 +612,8 @@ fun CalculatorScreen(
                             totalHours = totalHours,
                             selectedPensionPercent = pensionRate,
                             selectedStudentLoan = studentLoanPlan,
-                            taxRegion = taxRegion
+                            taxRegion = taxRegion,
+                            otTaxBreakdown = careWorkerOtTaxBreakdown
                         )
                         MultiPeriodCard(report = report)
                         ActionButtonsRow(
@@ -2077,7 +2115,8 @@ private fun DetailedPayslipCard(
     totalHours: Double,
     selectedPensionPercent: Double,
     selectedStudentLoan: StudentLoanPlan,
-    taxRegion: TaxRegion
+    taxRegion: TaxRegion,
+    otTaxBreakdown: CareWorkerOtTaxBreakdown? = null
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -2187,6 +2226,162 @@ private fun DetailedPayslipCard(
                     value = "-£${"%.2f".format(report.studentLoanDeduction)}",
                     valueColor = Violet60
                 )
+            }
+
+            // Care Worker UK Overtime Tax Breakdown Card
+            AnimatedVisibility(
+                visible = otTaxBreakdown != null && overtimeHours > 0,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                otTaxBreakdown?.let { ot ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                        ),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f, fill = false),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Bolt,
+                                        contentDescription = null,
+                                        tint = Amber60,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        "Care Worker OT Tax",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    color = Emerald60.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        "${"%.0f".format(ot.retentionPercentage)}% in Pocket",
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Emerald60,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+
+                            Text(
+                                "HMRC Marginal Deduction: ${"%.0f".format(ot.marginalDeductionPercentage)}% (20% PAYE + 8% Class 1 NI)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Gross Overtime (${"%.1f".format(ot.overtimeHours)}h @ ${ot.overtimeMultiplier}x)", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f, fill = false))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("£${"%.2f".format(ot.grossOvertimePay)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("PAYE Income Tax (20%)", style = MaterialTheme.typography.bodySmall, color = Rose60, modifier = Modifier.weight(1f, fill = false))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("-£${"%.2f".format(ot.payeTaxOnOt)}", style = MaterialTheme.typography.bodySmall, color = Rose60, maxLines = 1)
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Class 1 NI (8%)", style = MaterialTheme.typography.bodySmall, color = Amber60, modifier = Modifier.weight(1f, fill = false))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("-£${"%.2f".format(ot.niOnOt)}", style = MaterialTheme.typography.bodySmall, color = Amber60, maxLines = 1)
+                            }
+                            if (ot.pensionOnOt > 0) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Pension on OT", style = MaterialTheme.typography.bodySmall, color = Teal60, modifier = Modifier.weight(1f, fill = false))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("-£${"%.2f".format(ot.pensionOnOt)}", style = MaterialTheme.typography.bodySmall, color = Teal60, maxLines = 1)
+                                }
+                            }
+                            if (ot.studentLoanOnOt > 0) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Student Loan on OT", style = MaterialTheme.typography.bodySmall, color = Violet60, modifier = Modifier.weight(1f, fill = false))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("-£${"%.2f".format(ot.studentLoanOnOt)}", style = MaterialTheme.typography.bodySmall, color = Violet60, maxLines = 1)
+                                }
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f, fill = false)) {
+                                    Text(
+                                        "Net Cash in Pocket",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        "£${"%.2f".format(ot.netPerHour)}/h net • +£${"%.2f".format(ot.netPer12hShift)}/12h",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Emerald60,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "+£${"%.2f".format(ot.netOvertimePay)}",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Emerald60,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             HorizontalDivider(thickness = 2.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))

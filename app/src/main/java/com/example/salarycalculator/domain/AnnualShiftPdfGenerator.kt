@@ -26,10 +26,11 @@ object AnnualShiftPdfGenerator {
         year: Int,
         annualShifts: Map<Int, Map<Int, Double>>,
         hourlyRate: Double = 15.0,
-        jobTitle: String = "Primary Employment"
+        jobTitle: String = "Shift Worker",
+        standardShiftHours: Double = 12.0
     ): File {
         val document = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // Standard A4 (595x842 pt)
+        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 at 72 DPI
         val page = document.startPage(pageInfo)
         val canvas: Canvas = page.canvas
 
@@ -61,9 +62,9 @@ object AnnualShiftPdfGenerator {
         canvas.drawText("Salary Calculator — Annual Shift Schedule $year", 35f, 48f, paint)
 
         // Annual Aggregates
-        val totalDays = annualShifts.values.sumOf { m -> m.values.count { it > 0 } }
-        val totalHours = annualShifts.values.sumOf { m -> m.values.sum() }
-        val totalOt = annualShifts.values.sumOf { m -> m.values.sumOf { maxOf(0.0, it - 8.0) } }
+        val totalDays = annualShifts.values.sumOf { m -> m.values.count { it != 0.0 } }
+        val totalHours = annualShifts.values.sumOf { m -> m.values.sumOf { kotlin.math.abs(it) } }
+        val totalOt = annualShifts.values.sumOf { m -> m.values.sumOf { if (it < 0.0) kotlin.math.abs(it) else maxOf(0.0, it - standardShiftHours) } }
         val totalGross = totalHours * hourlyRate
 
         paint.color = colorDark
@@ -149,8 +150,8 @@ object AnnualShiftPdfGenerator {
                         val hrs = monthShifts[dayNum] ?: 0.0
 
                         val cellColor = when {
-                            hrs >= 12.0 -> colorOt12
-                            hrs >= 8.0 -> colorRegular
+                            hrs < 0.0 || hrs > standardShiftHours -> colorOt10
+                            hrs >= standardShiftHours -> colorRegular
                             hrs > 0.0 -> colorPrimary
                             else -> colorOff
                         }
@@ -159,9 +160,9 @@ object AnnualShiftPdfGenerator {
                         val dayBox = RectF(cx + 1f, cy + 1f, cx + cellW - 1f, cy + cellH - 1f)
                         canvas.drawRoundRect(dayBox, 3f, 3f, paint)
 
-                        paint.color = if (hrs > 0) Color.WHITE else colorMuted
+                        paint.color = if (hrs != 0.0) Color.WHITE else colorMuted
                         paint.textSize = 6.5f
-                        paint.isFakeBoldText = hrs > 0
+                        paint.isFakeBoldText = hrs != 0.0
                         val textX = cx + (cellW / 2f) - (if (dayNum >= 10) 4f else 2f)
                         canvas.drawText("$dayNum", textX, cy + 10f, paint)
                     }
@@ -176,9 +177,10 @@ object AnnualShiftPdfGenerator {
         paint.isFakeBoldText = false
         canvas.drawText("Legend: ", 30f, legendY, paint)
 
+        val stdHoursStr = if (standardShiftHours % 1.0 == 0.0) "${standardShiftHours.toInt()}" else "%.1f".format(standardShiftHours)
         val legendItems = listOf(
-            Triple(colorRegular, "8h Regular", 75f),
-            Triple(colorOt12, "12h Overtime", 180f),
+            Triple(colorRegular, "${stdHoursStr}h Standard", 75f),
+            Triple(colorOt10, "${stdHoursStr}h Overtime", 180f),
             Triple(colorOff, "Day Off", 300f)
         )
 

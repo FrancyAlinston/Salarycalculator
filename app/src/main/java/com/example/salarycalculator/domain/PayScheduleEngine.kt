@@ -280,18 +280,25 @@ object PayScheduleEngine {
         var rolloverOtHours = 0.0
 
         currentMonthShifts.forEach { (day, hours) ->
-            if (hours > 0) {
-                val std = minOf(standardHoursPerShift, hours)
-                val ot = maxOf(0.0, hours - standardHoursPerShift)
+            if (hours != 0.0) {
+                val (std, ot, totalEffectiveHrs) = if (hours < 0.0) {
+                    // Dedicated Overtime Shift (e.g. -12.0 for 12h OT shift)
+                    val absH = kotlin.math.abs(hours)
+                    Triple(0.0, absH, absH)
+                } else {
+                    val s = minOf(standardHoursPerShift, hours)
+                    val o = maxOf(0.0, hours - standardHoursPerShift)
+                    Triple(s, o, hours)
+                }
 
                 if (day <= cutoffDay) {
                     inCycleDays++
-                    inCycleHours += hours
+                    inCycleHours += totalEffectiveHrs
                     inCycleStdHours += std
                     inCycleOtHours += ot
                 } else {
                     rolloverDays++
-                    rolloverHours += hours
+                    rolloverHours += totalEffectiveHrs
                     rolloverOtHours += ot
                 }
             }
@@ -310,11 +317,17 @@ object PayScheduleEngine {
             val prevCutoffDay = prevPayPeriod.cutoffDay
 
             previousMonthShifts.forEach { (day, hours) ->
-                if (day > prevCutoffDay && hours > 0) {
-                    val std = minOf(standardHoursPerShift, hours)
-                    val ot = maxOf(0.0, hours - standardHoursPerShift)
+                if (day > prevCutoffDay && hours != 0.0) {
+                    val (std, ot, totalEffectiveHrs) = if (hours < 0.0) {
+                        val absH = kotlin.math.abs(hours)
+                        Triple(0.0, absH, absH)
+                    } else {
+                        val s = minOf(standardHoursPerShift, hours)
+                        val o = maxOf(0.0, hours - standardHoursPerShift)
+                        Triple(s, o, hours)
+                    }
                     prevRolloverDays++
-                    prevRolloverHours += hours
+                    prevRolloverHours += totalEffectiveHrs
                     prevRolloverStdHours += std
                     prevRolloverOtHours += ot
                 }

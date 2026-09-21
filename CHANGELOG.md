@@ -4,6 +4,35 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.2] - 2026-09-21 (VersionCode: 35)
+### Added / Changed
+- **Dynamic Configured Shift Duration Heatmap Calibration (`ShiftHeatmapCard.kt`, `ShiftCalendarDialog.kt`, `AnnualShiftPdfGenerator.kt`)**: Fully eliminated hardcoded 8h shift assumptions. The Shift Heatmap and calendar dialog now dynamically adapt to the user's configured shift duration (`effectiveHoursPerDay` / `standardShiftHours`, e.g. 12.0h for care workers):
+  - Dynamic Legend: Automatically labels `${stdHoursLabel}h Standard`, `${stdHoursLabel}h OT`, `<${stdHoursLabel}h Part-Time`, and `0h Off`.
+  - Dynamic Shift Tap Cycle: Cycles cleanly `0h` $\rightarrow$ `12h Std` (Emerald) $\rightarrow$ `12h OT` (Amber) $\rightarrow$ `0h`.
+  - Dynamic Rota Presets: `Mon-Fri (12h)` and `4-On 4-Off (12h)` now automatically populate with the user's configured standard shift length (12.0h).
+  - 1-Tap Legacy Migration: Added `⚡ Convert 8h to 12h` chip whenever legacy 8h shifts exist in a month under a 12h configuration.
+  - Dedicated Overtime Shift Encoding: Dedicated overtime shifts (e.g. working an extra 12h shift) are supported via negative values (`-12.0h`) in `PayScheduleEngine.kt`, allocating 100% of the shift's hours to overtime without conflating them with standard basic pay.
+- **UK Care Worker Overtime Tax Calculation Engine (`OvertimeOptimizerEngine.kt` & `CalculatorScreen.kt`)**: Researched and implemented exact UK PAYE marginal tax and National Insurance calculations for care worker overtime:
+  - Marginal PAYE Rate: Correctly itemizes 20% Basic PAYE rate (or 40% Higher Rate).
+  - Class 1 National Insurance: Exactly computes 8% primary employee NI contribution.
+  - Marginal Tax Drag & Retention: Demonstrates the statutory 28% marginal tax rate and 72% net cash-in-pocket retention rate (£13.85/hr net take-home at £12.82/hr @ 1.5x, yielding +£166.15 net cash in hand per 12h shift).
+  - Dedicated Payslip Card: Embedded a dedicated **Care Worker Overtime Tax Breakdown Card** inside the monthly payslip breakdown, detailing gross overtime pay, PAYE tax on OT, Class 1 NI on OT, pension/student loan effects, net cash in hand, net rate per hour, and net cash per 12h shift.
+  - Compact Screen Layout Optimization: Ensured all financial rows, labels, and badges render cleanly with zero vertical character wrapping on compact mobile devices (e.g. 320dp width).
+- **Interactive "Apply Rota to Calculator" Home Screen Button (`ShiftHeatmapCard.kt`)**: Added an immediate 1-tap action button below the calendar rota presets showing total shifts and estimated gross pay (e.g. `Apply Rota to Calculator (2 shifts · £384.60)`). Immediately computes a fresh split and syncs standard days worked and overtime hours to the calculator.
+
+### Bugs Found & Fixed
+- **Persistent 8h Display Despite 12h Settings Configuration**: Resolved root cause where `ShiftHeatmapCard.kt` and `ShiftCalendarDialog.kt` had hardcoded `"8h Standard"` strings, static `when (hours) { 0.0 -> 8.0; 8.0 -> 12.0 }` tap transitions, and static `hours >= 8.0` cell styling.
+- **Negative Hours DataStore Filter Bug (`SalaryRepository.kt`)**: Fixed an issue where `getMonthShiftSchedule` discarded negative shift values (`hrs > 0.0`), inadvertently erasing dedicated overtime shifts (`-12.0h`) upon background sync. Updated to `hrs != 0.0`.
+- **Shift Synchronization Overtime Double-Counting (`CalculatorScreen.kt`)**: Fixed `LaunchedEffect(currentMonthShifts)` assigning `daysWorkedInput = split.totalPaidDays` and `hoursPerDayOverride = totalPaidHours / totalPaidDays`, which previously caused overtime shifts to be double-counted as both basic and overtime hours. Corrected to allocate standard days (`split.totalPaidStandardHours / effectiveHoursPerDay`) and overtime hours independently.
+- **Dual-Pane ProfileHeaderBar Reference**: Fixed compilation error in `CalculatorScreen.kt` dual-pane layout calling undefined `ProfileHeaderBar` instead of `AppHeaderSection`.
+- **ShiftCalendarDialog stdHoursLabel Scope**: Resolved unresolved reference compilation error in `ShiftCalendarDialog.kt` by hoisting `stdHoursLabel` to the composable scope.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+- Biometric authentication auto-lock grace period customization.
+
+---
+
 ## [24.1] - 2026-09-21 (VersionCode: 34)
 ### Added / Changed
 - **Default Home Screen Shift Heatmap (`ShiftHeatmapCard.kt` & `CalculatorScreen.kt`)**: Embedded the full interactive monthly Shift Heatmap directly on the Home Screen as the primary, default view rather than being hidden behind a dialog button. Features sequential `< Month Year >` navigation, quick year picker, 12-month scrollable chip bar with logged shift counts, multi-employer profile filtering, payroll cutoff & payday status banner, interactive 7-column calendar grid, and 1-tap rota presets (`Mon-Fri 8h`, `4-On 4-Off 12h`, `Pattern Wizard`).

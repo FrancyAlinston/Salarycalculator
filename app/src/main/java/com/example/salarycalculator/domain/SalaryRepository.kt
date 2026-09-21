@@ -763,7 +763,7 @@ class SalaryRepository(private val context: Context) {
                     val result = mutableMapOf<Int, Double>()
                     dayMap.forEach { (dStr, hrs) ->
                         val d = dStr.toIntOrNull()
-                        if (d != null && d in 1..31 && hrs > 0.0) {
+                        if (d != null && d in 1..31 && hrs != 0.0) {
                             result[d] = hrs
                         }
                     }

@@ -206,4 +206,40 @@ class PayScheduleEngineTest {
         assertTrue(ics.contains("BEGIN:VALARM"))
         assertTrue(ics.contains("TRIGGER:-PT4H"))
     }
+
+    @Test
+    fun testShiftPayrollSplit_CareWorker12HourShiftsAndDedicatedOt() {
+        val config = PayScheduleConfig(type = PayScheduleType.LAST_FRIDAY_OF_MONTH)
+        // Oct 2025 cutoff is 26th
+        // Care worker logs:
+        // Day 1: 12h standard shift
+        // Day 2: 12h standard shift
+        // Day 3: -12.0h dedicated overtime shift (100% overtime, 0% standard)
+        // Day 27 (post-cutoff): -12.0h dedicated overtime shift (rolls over to Nov)
+        val shifts = mapOf(
+            1 to 12.0,
+            2 to 12.0,
+            3 to -12.0,
+            27 to -12.0
+        )
+
+        val split = PayScheduleEngine.calculateShiftPayrollSplit(
+            year = 2025,
+            month = 10,
+            currentMonthShifts = shifts,
+            config = config,
+            standardHoursPerShift = 12.0
+        )
+
+        // In-cycle: days 1, 2, 3 -> 3 shifts, 36 hours total (24h std + 12h ot)
+        assertEquals(3, split.inCycleDays)
+        assertEquals(36.0, split.inCycleHours, 0.01)
+        assertEquals(24.0, split.inCycleStandardHours, 0.01)
+        assertEquals(12.0, split.inCycleOtHours, 0.01)
+
+        // Post-cutoff rollover: day 27 -> 1 shift, 12h ot
+        assertEquals(1, split.rolloverDays)
+        assertEquals(12.0, split.rolloverHours, 0.01)
+        assertEquals(12.0, split.rolloverOtHours, 0.01)
+    }
 }

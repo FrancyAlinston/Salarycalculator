@@ -122,4 +122,112 @@ object OvertimeOptimizerEngine {
             taxTrapWarning = taxTrapWarning
         )
     }
+
+    /**
+     * Specialized UK HMRC Tax Breakdown for Care Worker Overtime.
+     * Computes exact marginal PAYE (20%/40%), Class 1 NI (8%), and net cash take-home per hour & per 12h OT shift.
+     */
+    fun calculateCareWorkerOvertimeTaxBreakdown(
+        standardGrossMonthly: Double,
+        baseHourlyRate: Double,
+        overtimeHours: Double,
+        overtimeMultiplier: Double = 1.5,
+        taxCode: String = "1257L",
+        taxRegion: TaxRegion = TaxRegion.UK_STANDARD,
+        taxYear: TaxYear = TaxYear.YEAR_2024_2025,
+        pensionRate: Double = 0.0,
+        studentLoanPlan: StudentLoanPlan = StudentLoanPlan.NONE,
+        hasMarriageAllowance: Boolean = false,
+        hasBlindPersonsAllowance: Boolean = false,
+        taxMonth: Int = 0
+    ): CareWorkerOtTaxBreakdown {
+        val safeBaseGross = max(0.0, standardGrossMonthly)
+        val safeOtHours = max(0.0, overtimeHours)
+        val safeMultiplier = max(1.0, overtimeMultiplier)
+
+        val baselineReport = TaxCalculator.calculateTax(
+            grossPay = safeBaseGross,
+            taxCode = taxCode,
+            isMonthly = true,
+            region = taxRegion,
+            taxYear = taxYear,
+            pensionRatePercent = pensionRate,
+            studentLoanPlan = studentLoanPlan,
+            hasMarriageAllowance = hasMarriageAllowance,
+            hasBlindPersonsAllowance = hasBlindPersonsAllowance,
+            taxMonth = taxMonth
+        )
+
+        val grossOvertimePay = safeOtHours * (baseHourlyRate * safeMultiplier)
+        val totalGrossWithOt = safeBaseGross + grossOvertimePay
+
+        val withOtReport = TaxCalculator.calculateTax(
+            grossPay = totalGrossWithOt,
+            taxCode = taxCode,
+            isMonthly = true,
+            region = taxRegion,
+            taxYear = taxYear,
+            pensionRatePercent = pensionRate,
+            studentLoanPlan = studentLoanPlan,
+            hasMarriageAllowance = hasMarriageAllowance,
+            hasBlindPersonsAllowance = hasBlindPersonsAllowance,
+            taxMonth = taxMonth
+        )
+
+        val payeTaxOnOt = max(0.0, withOtReport.incomeTax - baselineReport.incomeTax)
+        val niOnOt = max(0.0, withOtReport.nationalInsurance - baselineReport.nationalInsurance)
+        val pensionOnOt = max(0.0, withOtReport.pensionContribution - baselineReport.pensionContribution)
+        val studentLoanOnOt = max(0.0, withOtReport.studentLoanDeduction - baselineReport.studentLoanDeduction)
+        val totalOtDeductions = payeTaxOnOt + niOnOt + pensionOnOt + studentLoanOnOt
+        val netOvertimePay = max(0.0, grossOvertimePay - totalOtDeductions)
+
+        val retentionPercentage = if (grossOvertimePay > 0.0) {
+            (netOvertimePay / grossOvertimePay) * 100.0
+        } else {
+            72.0 // UK Standard marginal retention: 100% - 20% Tax - 8% NI = 72%
+        }
+        val marginalDeductionPercentage = 100.0 - retentionPercentage
+        val netPerHour = if (safeOtHours > 0.0) {
+            netOvertimePay / safeOtHours
+        } else {
+            (baseHourlyRate * safeMultiplier) * (retentionPercentage / 100.0)
+        }
+        val netPer12hShift = netPerHour * 12.0
+
+        return CareWorkerOtTaxBreakdown(
+            overtimeHours = safeOtHours,
+            overtimeMultiplier = safeMultiplier,
+            hourlyRate = baseHourlyRate,
+            grossOvertimePay = grossOvertimePay,
+            payeTaxOnOt = payeTaxOnOt,
+            niOnOt = niOnOt,
+            pensionOnOt = pensionOnOt,
+            studentLoanOnOt = studentLoanOnOt,
+            totalOtDeductions = totalOtDeductions,
+            netOvertimePay = netOvertimePay,
+            retentionPercentage = retentionPercentage,
+            marginalDeductionPercentage = marginalDeductionPercentage,
+            netPerHour = netPerHour,
+            netPer12hShift = netPer12hShift,
+            isHigherRateTaxTrap = totalGrossWithOt * 12.0 > 50270.0
+        )
+    }
 }
+
+data class CareWorkerOtTaxBreakdown(
+    val overtimeHours: Double,
+    val overtimeMultiplier: Double,
+    val hourlyRate: Double,
+    val grossOvertimePay: Double,
+    val payeTaxOnOt: Double,
+    val niOnOt: Double,
+    val pensionOnOt: Double,
+    val studentLoanOnOt: Double,
+    val totalOtDeductions: Double,
+    val netOvertimePay: Double,
+    val retentionPercentage: Double,
+    val marginalDeductionPercentage: Double,
+    val netPerHour: Double,
+    val netPer12hShift: Double,
+    val isHigherRateTaxTrap: Boolean
+)
