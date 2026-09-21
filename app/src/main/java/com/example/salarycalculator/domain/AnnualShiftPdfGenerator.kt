@@ -150,7 +150,6 @@ object AnnualShiftPdfGenerator {
 
                         val cellColor = when {
                             hrs >= 12.0 -> colorOt12
-                            hrs >= 10.0 -> colorOt10
                             hrs >= 8.0 -> colorRegular
                             hrs > 0.0 -> colorPrimary
                             else -> colorOff
@@ -179,9 +178,8 @@ object AnnualShiftPdfGenerator {
 
         val legendItems = listOf(
             Triple(colorRegular, "8h Regular", 75f),
-            Triple(colorOt10, "10h Overtime", 160f),
-            Triple(colorOt12, "12h Max Shift", 250f),
-            Triple(colorOff, "Day Off", 340f)
+            Triple(colorOt12, "12h Overtime", 180f),
+            Triple(colorOff, "Day Off", 300f)
         )
 
         legendItems.forEach { (col, label, lx) ->

@@ -425,15 +425,10 @@ fun ShiftCalendarDialog(
                             Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Emerald60))
                             Text("8h Standard", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
                         }
-                        // Overtime 10h
+                        // Overtime 12h
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Amber60))
-                            Text("10h OT", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
-                        }
-                        // Long Shift 12h
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Rose60))
-                            Text("12h Long/Night", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp)
+                            Text("12h OT", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                         // Part time
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -571,8 +566,7 @@ fun ShiftCalendarDialog(
                                     val isRollover = (dayNum > payPeriod.cutoffDay && selectedMonth == payPeriod.cutoffMonth && selectedYear == payPeriod.cutoffYear)
 
                                     val (bgColor, textColor, defaultLabel) = when {
-                                        hours >= 12.0 -> Triple(Rose60, Color.White, "12h")
-                                        hours >= 10.0 -> Triple(Amber60, Color.Black, "10h")
+                                        hours >= 12.0 -> Triple(Amber60, Color.Black, "12h")
                                         hours >= 8.0 -> Triple(Emerald60, Color.White, "8h")
                                         hours > 0.0 -> Triple(Teal60, Color.White, "${hours.toInt()}h")
                                         else -> Triple(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), MaterialTheme.colorScheme.onSurface, "")
@@ -604,11 +598,10 @@ fun ShiftCalendarDialog(
                                             .background(bgColor)
                                             .then(if (cellBorder != null) Modifier.border(cellBorder, RoundedCornerShape(8.dp)) else Modifier)
                                             .clickable {
-                                                // Cycle: 0h -> 8h -> 10h -> 12h -> 0h
+                                                // Calibrated Cycle: 0h -> 8h (Standard) -> 12h (OT) -> 0h
                                                 val next = when (hours) {
                                                     0.0 -> 8.0
-                                                    8.0 -> 10.0
-                                                    10.0 -> 12.0
+                                                    8.0 -> 12.0
                                                     else -> 0.0
                                                 }
                                                 if (next > 0.0) {
@@ -695,18 +688,18 @@ fun ShiftCalendarDialog(
 
                     AssistChip(
                         onClick = {
-                            // 4 on 4 off pattern
+                            // 4 on 4 off pattern calibrated to 12.0h Overtime/Care shifts
                             for (d in 1..daysInCurrentMonth) {
                                 val cycle = ((d - 1) % 8)
                                 if (cycle < 4) {
-                                    currentMonthMap[d] = 10.0
+                                    currentMonthMap[d] = 12.0
                                 } else {
                                     currentMonthMap.remove(d)
                                 }
                             }
                             saveSchedule()
                         },
-                        label = { Text("4-On 4-Off", style = MaterialTheme.typography.labelSmall) }
+                        label = { Text("4-On 4-Off (12h)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) }
                     )
 
                     AssistChip(

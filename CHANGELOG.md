@@ -4,6 +4,29 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.1] - 2026-09-21 (VersionCode: 34)
+### Added / Changed
+- **Default Home Screen Shift Heatmap (`ShiftHeatmapCard.kt` & `CalculatorScreen.kt`)**: Embedded the full interactive monthly Shift Heatmap directly on the Home Screen as the primary, default view rather than being hidden behind a dialog button. Features sequential `< Month Year >` navigation, quick year picker, 12-month scrollable chip bar with logged shift counts, multi-employer profile filtering, payroll cutoff & payday status banner, interactive 7-column calendar grid, and 1-tap rota presets (`Mon-Fri 8h`, `4-On 4-Off 12h`, `Pattern Wizard`).
+- **12h Overtime Shift Calibration Across UI & Calculations (`ShiftHeatmapCard.kt`, `ShiftCalendarDialog.kt`, `AnnualShiftPdfGenerator.kt`)**: Re-calibrated overtime shift length from 10h to 12h across the entire application:
+  - Visual Legend updated to 🟢 `8h Standard`, 🟠 `12h OT` (`Amber60`), 🔵 `<8h Part-Time`, and ⚪ `0h Off`.
+  - Shift cell cycling updated to `0h -> 8h -> 12h -> 0h` for fast 1-tap logging of standard and 12h overtime shifts.
+  - `4-On 4-Off` preset calibrated to populate 12.0h care/industrial overtime shifts.
+  - Cell background color mapping updated to render `>= 12.0h` in high-visibility amber (`Amber60`).
+  - Annual printable PDF poster legend calibrated to display `12h Overtime`.
+- **Instant Reactive Home Screen Calculations Sync (`CalculatorScreen.kt`)**: Shift alterations tapped on the embedded Home Screen heatmap immediately persist to DataStore and dynamically recompute basic pay, overtime pay, and take-home pay on `HeroNetPayCard` and `DetailedPayslipCard` in real time.
+- **Forgejo Private Repository & Release Parity**: Configured repository visibility to private (`private: true`) on Forgejo instance (`https://forgejo.449100.xyz`) and verified private API asset synchronization.
+
+### Bugs Found & Fixed
+- **Cutoff Banner Layout Overflow on Narrow Screens**: Fixed text wrapping glitch on compact mobile displays where Cutoff and Payday badges collided with `Payslip Gross: £...`.
+- **Shift Heatmap Accessibility**: Resolved user friction by elevating the Shift Heatmap from a secondary dialog button directly into the default home screen viewport.
+- **Overtime Shift Discrepancy**: Fixed shift duration mismatch where overtime shifts displayed 10h instead of the required 12h care/industrial overtime standard.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+- Biometric authentication auto-lock grace period customization.
+
+---
+
 ## [24.0] - 2026-09-06 (VersionCode: 33)
 ### Added
 - **Quick-Shift Length Presets on Home Screen (`CalculatorScreen.kt`)**: Added interactive shift preset chips directly to `WorkingHoursCard` (`12h Care`, `8h Standard`, `7.5h Office`, `10h Extended`). Tapping any preset immediately recomputes monthly gross and net salary, clears local overrides, and synchronizes with DataStore preferences and active employer profiles.

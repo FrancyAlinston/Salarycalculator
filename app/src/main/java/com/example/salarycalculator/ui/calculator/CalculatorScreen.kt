@@ -268,6 +268,16 @@ fun CalculatorScreen(
                             selectedTaxMonth = selectedTaxMonth,
                             onTaxMonthClick = { showTaxMonthDialog = true }
                         )
+                        ShiftHeatmapCard(
+                            salaryRepository = salaryRepository,
+                            hourlyRate = effectiveHourlyRate,
+                            overtimeMultiplier = selectedOvertimeMultiplier,
+                            onApplyToCalculator = { days, hours, otHours ->
+                                daysWorkedInput = if (days > 0) "%.0f".format(days) else "0"
+                                if (hours > 0) hoursPerDayOverride = hours
+                                overtimeHoursInput = if (otHours > 0) "%.1f".format(otHours) else ""
+                            }
+                        )
                         ShiftStopwatchCard(
                             salaryRepository = salaryRepository,
                             onApplyToCalculator = { days, hours ->
@@ -473,6 +483,17 @@ fun CalculatorScreen(
                             eurRate = customEurRate,
                             usdRate = customUsdRate,
                             onCurrencyClick = { showCurrencySettingsDialog = true }
+                        )
+                        // Shift Heatmap as Default Interactive View on Home Screen
+                        ShiftHeatmapCard(
+                            salaryRepository = salaryRepository,
+                            hourlyRate = effectiveHourlyRate,
+                            overtimeMultiplier = selectedOvertimeMultiplier,
+                            onApplyToCalculator = { days, hours, otHours ->
+                                daysWorkedInput = if (days > 0) "%.0f".format(days) else "0"
+                                if (hours > 0) hoursPerDayOverride = hours
+                                overtimeHoursInput = if (otHours > 0) "%.1f".format(otHours) else ""
+                            }
                         )
                         ShiftStopwatchCard(
                             salaryRepository = salaryRepository,
@@ -762,9 +783,7 @@ fun CalculatorScreen(
                 onApply = { days, hours, otHours ->
                     daysWorkedInput = if (days > 0) "%.0f".format(days) else "0"
                     if (hours > 0) hoursPerDayOverride = hours
-                    if (otHours > 0) {
-                        overtimeHoursInput = "%.1f".format(otHours)
-                    }
+                    overtimeHoursInput = if (otHours > 0) "%.1f".format(otHours) else ""
                 },
                 onDismiss = { showShiftCalendarDialog = false }
             )
