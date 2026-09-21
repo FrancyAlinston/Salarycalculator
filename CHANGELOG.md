@@ -4,6 +4,25 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.7-alpha] - 2026-09-21 (VersionCode: 40)
+### Added / Changed
+- **Cutoff-Window-Aware Payslip Auditor & Dispute Email Generator (`PayslipAuditEngine.kt` & `PayslipAuditDialog.kt`)**:
+  - **Exact Payroll Cutoff Window Partitioning**: Cross-references logged shifts strictly within the employer's pay cycle window (from the day following the previous month's cutoff date up to the current month's cutoff date, e.g. `24 Aug 2026 to 20 Sep 2026` for September 2026 payslip).
+  - **Previous Month Post-Cutoff Crossover**: Seamlessly ingests qualifying post-cutoff rollover shifts from the previous month (`previousMonthShifts`, dates in `startDay..31`) into the current payslip audit calculations.
+  - **Post-Cutoff Rollover Isolation**: Shifts worked after the current month's cutoff date (e.g. `21–30 Sep 2026`) are excluded from missing-hours underpayment calculations and presented separately as upcoming rollover shifts for the subsequent pay cycle.
+  - **Formal Dispute Email Refinement**: Pre-filled dispute email now explicitly specifies the exact payroll cut-off cycle dates (`24 Aug 2026 to 20 Sep 2026`), itemizes strictly in-cycle worked shifts, and appends a transparent footnote acknowledging post-cutoff rollover shifts.
+  - **UI Cutoff Status & Rollover Badges**: Added an in-dialog Pay Cycle Window banner (`Pay Cycle: 24 Aug 2026 → 20 Sep 2026 · Pay Day: 25 Sep 2026`) and dedicated "Post-Cutoff Shifts (Rolls to next month)" review section with distinct styling.
+
+### Bugs Found & Fixed
+- **Cutoff Boundary Discrepancy in Audit**: Fixed issue where post-cutoff shifts were incorrectly counted as missing/unpaid in the current month instead of being recognized as next-month rollovers.
+- **Previous Month Rollover Omission**: Fixed omission of previous month's post-cutoff shifts from qualifying in-cycle audit hours.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+- Biometric authentication auto-lock grace period customization.
+
+---
+
 ## [24.6-alpha] - 2026-09-21 (VersionCode: 39)
 ### Added / Changed
 - **Multi-Month Dynamic Timesheet Synchronization (`PayslipAuditDialog.kt` & `ShiftHeatmapCard.kt`)**:

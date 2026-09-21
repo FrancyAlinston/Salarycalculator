@@ -65,6 +65,7 @@ fun PayslipAuditDialog(
     allMultiYearShifts: Map<String, Map<Int, Double>> = emptyMap(),
     configuredHourlyRate: Double = 12.82,
     standardShiftHours: Double = 12.0,
+    payScheduleConfig: PayScheduleConfig = PayScheduleConfig(),
     onDismiss: () -> Unit,
     onUpdateMonthShifts: (year: Int, month: Int, shifts: Map<Int, Double>) -> Unit = { _, _, _ -> }
 ) {
@@ -92,6 +93,15 @@ fun PayslipAuditDialog(
         existing.forEach { (d, h) ->
             if (h != 0.0) liveMonthShifts[d] = h
         }
+    }
+
+    // Previous month shifts for cutoff window crossover
+    val prevMonth = if (selectedMonth == 1) 12 else selectedMonth - 1
+    val prevYear = if (selectedMonth == 1) selectedYear - 1 else selectedYear
+    val prevKey1 = "$prevYear-$prevMonth"
+    val prevKey2 = "$prevYear-${if (prevMonth < 10) "0$prevMonth" else "$prevMonth"}"
+    val prevMonthShifts = remember(selectedYear, selectedMonth, allMultiYearShifts) {
+        allMultiYearShifts[prevKey1] ?: allMultiYearShifts[prevKey2] ?: emptyMap()
     }
 
     // Preloaded with default parsed data for September 2026 Waterloo Manor Ltd reference
@@ -134,14 +144,17 @@ fun PayslipAuditDialog(
     var editProcessDate by remember(parsedPayslip) { mutableStateOf(parsedPayslip.processDate ?: "30-09-2026") }
 
     // Compute live audit report
-    val auditReport = remember(parsedPayslip, liveMonthShifts.toMap(), selectedYear, selectedMonth, configuredHourlyRate, standardShiftHours) {
+    val auditReport = remember(parsedPayslip, liveMonthShifts.toMap(), prevMonthShifts, selectedYear, selectedMonth, configuredHourlyRate, standardShiftHours, payScheduleConfig) {
         PayslipAuditEngine.auditPayslipAgainstTimesheet(
             payslip = parsedPayslip,
             monthShifts = liveMonthShifts.toMap(),
+            previousMonthShifts = prevMonthShifts,
             year = selectedYear,
             month = selectedMonth,
             configuredHourlyRate = configuredHourlyRate,
-            standardShiftDuration = standardShiftHours
+            standardShiftDuration = standardShiftHours,
+            payScheduleConfig = payScheduleConfig,
+            useCutoffWindow = true
         )
     }
 
@@ -671,6 +684,31 @@ fun PayslipAuditDialog(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
 
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+                                modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Pay Cycle: ${auditReport.payCycleStartDate} → ${auditReport.payCycleCutoffDate}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Pay Day: ${auditReport.payDate}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+
                             if (auditReport.status == AuditMismatchStatus.UNDERPAID) {
                                 HorizontalDivider(color = bannerColor.copy(alpha = 0.3f), modifier = Modifier.padding(vertical = 4.dp))
                                 Row(
@@ -710,7 +748,7 @@ fun PayslipAuditDialog(
                                     Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = Emerald60, modifier = Modifier.size(16.dp))
                                     Text("Heatmap Rota", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                                 }
-                                Text("${auditReport.timesheetShiftsCount} Shifts Logged", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Emerald60)
+                                Text("${auditReport.timesheetShiftsCount} In-Cycle Shifts", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Emerald60)
                                 Text("Total: ${ "%.1f".format(auditReport.timesheetTotalHours) } hrs", style = MaterialTheme.typography.bodySmall)
                                 Text("Std: ${ "%.1f".format(auditReport.timesheetStandardHours) }h · OT: ${ "%.1f".format(auditReport.timesheetOvertimeHours) }h", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
@@ -864,11 +902,18 @@ fun PayslipAuditDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "Dates Worked (${auditReport.workedDays.size} Shifts)",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Column {
+                                    Text(
+                                        text = "In-Cycle Worked Dates (${auditReport.workedDays.size} Shifts)",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Pay Cycle: ${auditReport.payCycleStartDate} to ${auditReport.payCycleCutoffDate}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                                 Text(
                                     text = "${ "%.1f".format(auditReport.timesheetTotalHours) } hrs total",
                                     style = MaterialTheme.typography.labelSmall,
@@ -879,7 +924,7 @@ fun PayslipAuditDialog(
 
                             if (auditReport.workedDays.isEmpty()) {
                                 Text(
-                                    text = "No shifts logged in heatmap for ${auditReport.payPeriod}.",
+                                    text = "No qualifying in-cycle shifts logged in heatmap for ${auditReport.payPeriod}.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -927,6 +972,72 @@ fun PayslipAuditDialog(
                                                 style = MaterialTheme.typography.labelSmall,
                                                 fontWeight = FontWeight.Bold,
                                                 color = if (day.isOvertime) Amber60 else Emerald60,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Post-Cutoff Rollover Shifts Section
+                            if (auditReport.postCutoffRolloverDays.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Icon(Icons.Default.Schedule, contentDescription = null, tint = Teal60, modifier = Modifier.size(16.dp))
+                                        Text(
+                                            text = "Post-Cutoff Shifts (${auditReport.postCutoffRolloverDays.size} Shifts)",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Teal60
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Teal60.copy(alpha = 0.15f)
+                                    ) {
+                                        Text(
+                                            text = "Rolls to next month",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Teal60,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Worked after cutoff date (${auditReport.payCycleCutoffDate}) — correctly paid in subsequent pay cycle.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                auditReport.postCutoffRolloverDays.forEach { day ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "• ${day.dateFormatted}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                        ) {
+                                            Text(
+                                                text = "${day.hours}h (Rollover)",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Teal60,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                             )
                                         }

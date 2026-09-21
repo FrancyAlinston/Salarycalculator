@@ -909,6 +909,7 @@ fun ShiftHeatmapCard(
             allMultiYearShifts = multiYearShifts.mapValues { it.value.toMap() },
             configuredHourlyRate = hourlyRate,
             standardShiftHours = effectiveStandardHours,
+            payScheduleConfig = payScheduleConfig,
             onDismiss = { showPayslipAuditDialog = false },
             onUpdateMonthShifts = { yr, mo, updatedMap ->
                 val targetKey = "$yr-$mo"

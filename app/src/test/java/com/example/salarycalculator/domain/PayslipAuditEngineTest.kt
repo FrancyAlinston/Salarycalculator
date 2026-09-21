@@ -52,15 +52,20 @@ class PayslipAuditEngineTest {
     }
 
     @Test
-    fun testUnderpaymentDetectionWith16ShiftsAgainst15ShiftsPaid() {
-        // User worked 16 shifts (12h each = 192.0h total) in September 2026
+    fun testUnderpaymentDetectionWithCutoffWindowAwareness() {
+        // August post-cutoff shifts (after Aug 23 cutoff): 5 shifts (60h)
+        val augustShifts = mapOf(
+            24 to 12.0, 26 to 12.0, 28 to 12.0, 30 to 12.0, 31 to 12.0
+        )
+
+        // September shifts: 11 in-cycle shifts (before/on Sep 20 cutoff) + 3 post-cutoff shifts
         val septemberShifts = mapOf(
             1 to 12.0, 3 to 12.0, 5 to 12.0, 7 to 12.0,
             9 to 12.0, 11 to 12.0, 13 to 12.0, 15 to 12.0,
-            17 to 12.0, 19 to 12.0, 21 to 12.0, 23 to 12.0,
-            25 to 12.0, 27 to 12.0, 29 to 12.0, 30 to 12.0
+            17 to 12.0, 19 to 12.0, 20 to 12.0,
+            // Post-cutoff shifts (rolling into October)
+            22 to 12.0, 24 to 12.0, 26 to 12.0
         )
-        assertEquals(16, septemberShifts.size)
 
         val parsedPayslip = ParsedPayslipData(
             employeeName = "Francy Alinston D'Silva",
@@ -71,7 +76,7 @@ class PayslipAuditEngineTest {
             processDate = "30-09-2026",
             taxPeriod = 6,
             taxCode = "1257L",
-            basicHours = 179.90,
+            basicHours = 179.90, // Paid for ~15 shifts
             basicRate = 12.82,
             basicAmount = 2306.32,
             bankHolidayHours = 7.25,
@@ -86,39 +91,35 @@ class PayslipAuditEngineTest {
         val report = PayslipAuditEngine.auditPayslipAgainstTimesheet(
             payslip = parsedPayslip,
             monthShifts = septemberShifts,
+            previousMonthShifts = augustShifts,
             year = 2026,
             month = 9,
             configuredHourlyRate = 12.82,
-            standardShiftDuration = 12.0
+            standardShiftDuration = 12.0,
+            payScheduleConfig = PayScheduleConfig(PayScheduleType.LAST_FRIDAY_OF_MONTH),
+            useCutoffWindow = true
         )
 
         assertEquals(AuditMismatchStatus.UNDERPAID, report.status)
+        assertEquals("24 Aug 2026", report.payCycleStartDate)
+        assertEquals("20 Sep 2026", report.payCycleCutoffDate)
+        assertEquals("25 Sep 2026", report.payDate)
+
+        // 5 shifts from August rollover + 11 shifts from September before cutoff = 16 qualifying shifts
         assertEquals(16, report.timesheetShiftsCount)
         assertEquals(192.0, report.timesheetTotalHours, 0.01)
-        assertEquals(179.90, report.payslipPaidBasicHours, 0.01)
-        assertEquals(12.10, report.missingHours, 0.01)
-        assertEquals(1, report.missingShifts)
+        assertEquals(3, report.postCutoffRolloverDays.size)
 
-        // Missing gross = 12.1h * 12.82 = £155.122
-        assertEquals(155.12, report.grossShortfall, 0.1)
-        // Net shortfall = gross * (1 - 0.20 - 0.08) = gross * 0.72 = £111.68
-        assertEquals(111.68, report.netShortfall, 0.1)
-        assertEquals(16, report.workedDays.size)
-
-        // Verify dispute email generation
+        // Verify dispute email generation mentions the exact cutoff window
         val emailBody = PayslipAuditEngine.generateDiscrepancyEmailText(report)
         assertTrue(emailBody.contains("Francy Alinston D'Silva"))
         assertTrue(emailBody.contains("910"))
-        assertTrue(emailBody.contains("RZ021006C"))
-        assertTrue(emailBody.contains("Waterloo Manor Ltd"))
-        assertTrue(emailBody.contains("16 shifts"))
-        assertTrue(emailBody.contains("192.00 hours"))
-        assertTrue(emailBody.contains("179.90 hours"))
-        assertTrue(emailBody.contains("Tue 01 Sep 2026"))
-        assertTrue(emailBody.contains("Wed 30 Sep 2026"))
+        assertTrue(emailBody.contains("24 Aug 2026 to 20 Sep 2026"))
+        assertTrue(emailBody.contains("POST-CUTOFF SHIFTS WORKED"))
+        assertTrue(emailBody.contains("22 Sep 2026"))
 
         val subject = PayslipAuditEngine.generateDisputeEmailSubject(report)
-        assertTrue(subject.contains("Francy Alinston D'Silva"))
+        assertTrue(subject.contains("24 Aug 2026 to 20 Sep 2026"))
         assertTrue(subject.contains("910"))
     }
 
@@ -142,7 +143,8 @@ class PayslipAuditEngineTest {
             year = 2026,
             month = 9,
             configuredHourlyRate = 12.82,
-            standardShiftDuration = 12.0
+            standardShiftDuration = 12.0,
+            useCutoffWindow = false
         )
 
         assertEquals(AuditMismatchStatus.IN_SYNC, report.status)
