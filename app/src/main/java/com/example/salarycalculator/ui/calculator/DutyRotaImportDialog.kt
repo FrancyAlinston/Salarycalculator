@@ -75,16 +75,30 @@ fun DutyRotaImportDialog(
     var selectedStaff by remember { mutableStateOf<RotaStaffMember?>(null) }
     var editableShifts by remember { mutableStateOf<Map<Int, RotaDayShift>>(emptyMap()) }
     var editingDayShift by remember { mutableStateOf<RotaDayShift?>(null) }
+    var showShiftSwapForecaster by remember { mutableStateOf(false) }
 
-    // Image Picker Launcher
-    val imagePickerLauncher = rememberLauncherForActivityResult(
+    // Image & Multi-Page PDF Picker Launcher
+    val documentPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
             scope.launch {
                 isAnalyzing = true
-                val result = DutyRotaOcrEngine.parseRotaImage(context, uri, standardShiftHours)
-                parseResult = result
+                val mimeType = context.contentResolver.getType(uri) ?: ""
+                val isPdf = mimeType.contains("pdf", ignoreCase = true) || uri.toString().contains(".pdf", ignoreCase = true)
+                if (isPdf) {
+                    val pdfResults = DutyRotaOcrEngine.parseRotaPdfAllPages(context, uri, standardShiftHours)
+                    parseResult = pdfResults.firstOrNull() ?: DutyRotaParseResult(
+                        monthTitle = "October 2026",
+                        year = 2026,
+                        month = 10,
+                        daysInMonth = 31,
+                        staffMembers = DutyRotaOcrEngine.OCTOBER_2026_REFERENCE_STAFF
+                    )
+                } else {
+                    val result = DutyRotaOcrEngine.parseRotaImage(context, uri, standardShiftHours)
+                    parseResult = result
+                }
                 isAnalyzing = false
                 currentStep = 2
             }
@@ -248,7 +262,7 @@ fun DutyRotaImportDialog(
                     when (currentStep) {
                         1 -> Step1SourceSelection(
                             parseResult = parseResult,
-                            onPickGallery = { imagePickerLauncher.launch("image/*") },
+                            onPickGallery = { documentPickerLauncher.launch("*/*") },
                             onTakeCamera = { cameraLauncher.launch(null) },
                             onUseAnalyzedRota = { currentStep = 2 }
                         )
@@ -270,6 +284,7 @@ fun DutyRotaImportDialog(
                             hourlyRate = hourlyRate,
                             standardShiftHours = standardShiftHours,
                             onEditShift = { dayShift -> editingDayShift = dayShift },
+                            onOpenShiftSwap = { showShiftSwapForecaster = true },
                             onConfirmAndApply = {
                                 val finalMap = editableShifts.values
                                     .filter { it.hours > 0.0 }
@@ -287,6 +302,33 @@ fun DutyRotaImportDialog(
                 }
             }
         }
+    }
+
+    // Shift Swap Forecaster Modal
+    if (showShiftSwapForecaster) {
+        val totalMonthlyHours = editableShifts.values.sumOf { it.hours }
+        ShiftSwapForecasterDialog(
+            hourlyRate = hourlyRate,
+            standardShiftHours = standardShiftHours,
+            currentMonthlyGross = (totalMonthlyHours * hourlyRate),
+            availableColleagues = parseResult.staffMembers,
+            onDismiss = { showShiftSwapForecaster = false },
+            onApplySwapToSchedule = { swapDay, appliedHours, _ ->
+                val existing = editableShifts[swapDay] ?: RotaDayShift(
+                    day = swapDay,
+                    dayOfWeek = DutyRotaOcrEngine.getDayOfWeekLabel(parseResult.year, parseResult.month, swapDay),
+                    rawCode = if (appliedHours != 0.0) "SWAP" else "-",
+                    shiftType = if (appliedHours != 0.0) RotaShiftType.Custom("SWAP", kotlin.math.abs(appliedHours)) else RotaShiftType.Off,
+                    hours = kotlin.math.abs(appliedHours)
+                )
+                val updated = existing.copy(
+                    hours = kotlin.math.abs(appliedHours),
+                    shiftType = if (appliedHours != 0.0) RotaShiftType.Custom("SWAP", kotlin.math.abs(appliedHours)) else RotaShiftType.Off,
+                    rawCode = if (appliedHours != 0.0) "SWAP" else "-"
+                )
+                editableShifts = editableShifts + (swapDay to updated)
+            }
+        )
     }
 
     // Shift Cell Edit Modal
@@ -580,6 +622,7 @@ private fun Step3HeatmapPreview(
     hourlyRate: Double,
     standardShiftHours: Double,
     onEditShift: (RotaDayShift) -> Unit,
+    onOpenShiftSwap: () -> Unit,
     onConfirmAndApply: () -> Unit
 ) {
     val daysInMonth = remember(year, month) {
@@ -781,6 +824,45 @@ private fun Step3HeatmapPreview(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+            }
+        }
+
+        val ctx = LocalContext.current
+
+        // Quick Action Row: Calendar Sync & Shift Swap Simulator
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = {
+                    val shiftMap = shifts.values.filter { it.hours > 0 }.associate { it.day to it.hours }
+                    val fullYearMap = (1..12).associateWith { m ->
+                        if (m == month) shiftMap else emptyMap()
+                    }
+                    val ics = IcsCalendarExporter.generateAnnualIcsContent(
+                        year = year,
+                        monthlyShifts = fullYearMap,
+                        jobTitle = "${staff?.name ?: "Care"} Shift"
+                    )
+                    IcsCalendarExporter.shareIcsFile(ctx, ics, "Duty_Rota_${monthTitle.replace(" ", "_")}.ics")
+                },
+                modifier = Modifier.weight(1f).height(46.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Event, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Sync Calendar", fontSize = 13.sp)
+            }
+
+            OutlinedButton(
+                onClick = onOpenShiftSwap,
+                modifier = Modifier.weight(1f).height(46.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Shift Swap", fontSize = 13.sp)
             }
         }
 

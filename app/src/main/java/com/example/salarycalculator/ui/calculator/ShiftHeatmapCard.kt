@@ -59,6 +59,7 @@ fun ShiftHeatmapCard(
     var showYearPicker by remember { mutableStateOf(false) }
     var showPatternWizardDialog by remember { mutableStateOf(false) }
     var showDutyRotaImportDialog by remember { mutableStateOf(false) }
+    var showShiftSwapDialog by remember { mutableStateOf(false) }
 
     val monthNames = remember { DateFormatSymbols().shortMonths.filter { it.isNotBlank() } }
     val fullMonthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
@@ -248,6 +249,13 @@ fun ShiftHeatmapCard(
                         modifier = Modifier.size(36.dp)
                     ) {
                         Icon(Icons.Default.DocumentScanner, contentDescription = "Scan & Import Duty Rota (OCR)", tint = MaterialTheme.colorScheme.primary)
+                    }
+
+                    IconButton(
+                        onClick = { showShiftSwapDialog = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Default.SwapHoriz, contentDescription = "Shift Swap Forecaster", tint = Teal60)
                     }
 
                     IconButton(
@@ -860,6 +868,25 @@ fun ShiftHeatmapCard(
                 targetMap.clear()
                 rotaShifts.forEach { (d, h) ->
                     targetMap[d] = h
+                }
+                saveScheduleAndNotify()
+            }
+        )
+    }
+
+    // Shift Swap & Coverage Forecaster Dialog
+    if (showShiftSwapDialog) {
+        val totalHours = currentMonthMap.values.sumOf { kotlin.math.abs(it) }
+        ShiftSwapForecasterDialog(
+            hourlyRate = hourlyRate,
+            standardShiftHours = effectiveStandardHours,
+            currentMonthlyGross = (totalHours * hourlyRate),
+            onDismiss = { showShiftSwapDialog = false },
+            onApplySwapToSchedule = { swapDay, appliedHours, _ ->
+                if (appliedHours != 0.0) {
+                    currentMonthMap[swapDay] = appliedHours
+                } else {
+                    currentMonthMap.remove(swapDay)
                 }
                 saveScheduleAndNotify()
             }

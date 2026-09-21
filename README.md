@@ -4,6 +4,10 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Shift Swap & Coverage Forecaster (`ShiftSwapEngine.kt`, `ShiftSwapForecasterDialog.kt`, `ShiftHeatmapCard.kt`):**
+  - **Statutory Net Take-Home Simulation:** Evaluates before-and-after gross earnings, PAYE Income Tax (20%/40%), Class 1 NI (8%), and net cash-in-hand yield when care workers swap shifts, pick up overtime cover (+12h @ 1.5x), or give away shifts.
+  - **Roster Colleague Integration:** Automatically pulls colleagues from the parsed duty rota (*Francy D'Silva*, *Cecilia*, *Vanessa*, *Oyebolu*, etc.) and applies simulated shift changes directly to the live monthly heatmap schedule.
+  - **Multi-Page PDF Duty Rota Batch Scanner:** Parses multi-page PDF documents and high-res images with high-accuracy grid extraction and 1-tap Calendar `.ics` synchronization.
 - **OCR Duty Rota Shift Analyzer & Staff Member Importer (`DutyRotaOcrEngine.kt`, `DutyRotaImportDialog.kt`, `ShiftHeatmapCard.kt`):**
   - **Care Rota OCR Engine & Grid Alignment:** ML Kit Text Recognition with 2D spatial coordinate table clustering to parse healthcare and care worker duty rotas directly from photo captures, gallery images, and scans.
   - **Full Shift Code Taxonomy:** Accurately maps Day shifts (`D`), Night shifts (`N`), Annual Leave (`A/L`), Training Days (`TD`), Off duty (`-`), and unknown/custom markings verbatim as `Custom(code)`.

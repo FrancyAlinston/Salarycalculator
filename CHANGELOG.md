@@ -4,6 +4,31 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.4-alpha] - 2026-09-21 (VersionCode: 37)
+### Added / Changed
+- **Shift Swap & Coverage Forecaster (`ShiftSwapEngine.kt` & `ShiftSwapForecasterDialog.kt`)**:
+  - Implemented interactive simulation engine calculating exact before-and-after statutory UK tax impact when care workers swap shifts, pick up overtime cover, or give away shifts.
+  - Three Action Modes:
+    - `Pick Up Extra Shift (+OT)`: Models covering colleague shifts (e.g. +12h @ 1.5x OT) and itemizes +£270 gross, 20% PAYE (£54), 8% NI (£21.60), resulting in +£194.40 net take-home (72% cash retention, £16.20/hr net in hand).
+    - `Direct Swap`: Models exchanging shifts with a colleague (e.g. Day for Night or different shift lengths) with real-time net take-home deltas.
+    - `Give Away Shift`: Models relinquishing a shift to a colleague and shows the exact net earnings reduction.
+  - Colleague Selection from Roster: Populates colleagues directly from the parsed care worker duty rota (Francy D'Silva, Cecilia, Vanessa, Oyebolu, Francis Alabi, Rajeev Raju, etc.).
+  - 1-Tap Calendar Schedule Application: Applies simulated shift changes directly to the active monthly heatmap schedule.
+- **Multi-Page PDF Duty Rota Batch Scanner (`DutyRotaOcrEngine.kt`)**:
+  - Added `parseRotaPdfAllPages(context, pdfUri)` rendering each PDF page at high DPI via `PdfRenderer` and extracting multi-month rosters.
+  - Enhanced document picker to seamlessly handle both PDF documents and image captures.
+- **Direct System Calendar Export (.ICS) (`DutyRotaImportDialog.kt`)**:
+  - Added 1-tap "Sync Calendar" action generating full RFC 5545 `.ics` shift calendar files pre-filled with shift times and coworker notes for immediate import into Google Calendar, Outlook, and system calendars.
+
+### Bugs Found & Fixed
+- **Tax Calculator Pension Parameter Mismatch**: Fixed `calculateTax` call in `ShiftSwapEngine.kt` to use `pensionRatePercent` and `pensionContribution`.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+- Biometric authentication auto-lock grace period customization.
+
+---
+
 ## [24.3-alpha] - 2026-09-21 (VersionCode: 36)
 ### Added / Changed
 - **OCR Duty Rota Shift Analyzer & Staff Member Importer (`DutyRotaOcrEngine.kt` & `DutyRotaImportDialog.kt`)**:

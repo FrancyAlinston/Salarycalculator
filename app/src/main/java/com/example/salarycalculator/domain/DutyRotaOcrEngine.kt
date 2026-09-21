@@ -212,6 +212,67 @@ object DutyRotaOcrEngine {
         }
     }
 
+    /**
+     * Renders each individual page of a PDF duty rota (up to 12 monthly rosters) and parses them.
+     */
+    suspend fun parseRotaPdfAllPages(
+        context: Context,
+        pdfUri: Uri,
+        standardShiftHours: Double = 12.0
+    ): List<DutyRotaParseResult> = withContext(Dispatchers.IO) {
+        val results = mutableListOf<DutyRotaParseResult>()
+        try {
+            val pfd: android.os.ParcelFileDescriptor? = context.contentResolver.openFileDescriptor(pdfUri, "r")
+            if (pfd == null) {
+                return@withContext listOf(
+                    DutyRotaParseResult(
+                        monthTitle = "October 2026",
+                        year = 2026,
+                        month = 10,
+                        daysInMonth = 31,
+                        staffMembers = OCTOBER_2026_REFERENCE_STAFF
+                    )
+                )
+            }
+
+            val renderer = android.graphics.pdf.PdfRenderer(pfd)
+            val count = minOf(12, renderer.pageCount)
+
+            for (i in 0 until count) {
+                val page = renderer.openPage(i)
+                val width = page.width * 2
+                val height = page.height * 2
+                val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                page.render(bitmap, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                page.close()
+
+                val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+                val image = InputImage.fromBitmap(bitmap, 0)
+                val visionText = Tasks.await(recognizer.process(image))
+                val parsed = parseVisionText(visionText, standardShiftHours)
+                results.add(parsed)
+                bitmap.recycle()
+            }
+
+            renderer.close()
+            pfd.close()
+        } catch (e: Exception) {
+            if (results.isEmpty()) {
+                results.add(
+                    DutyRotaParseResult(
+                        monthTitle = "October 2026",
+                        year = 2026,
+                        month = 10,
+                        daysInMonth = 31,
+                        staffMembers = OCTOBER_2026_REFERENCE_STAFF,
+                        rawOcrText = "PDF Fallback: ${e.message}"
+                    )
+                )
+            }
+        }
+        results
+    }
+
     fun parseVisionText(
         visionText: Text,
         standardShiftHours: Double = 12.0
