@@ -4,6 +4,25 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.6-alpha] - 2026-09-21 (VersionCode: 39)
+### Added / Changed
+- **Multi-Month Dynamic Timesheet Synchronization (`PayslipAuditDialog.kt` & `ShiftHeatmapCard.kt`)**:
+  - Live DataStore Shift Store Binding: Connected `PayslipAuditDialog` to the persistent multi-year shift schedule (`allMultiYearShifts`), dynamically loading and saving shift changes across all 12 months.
+  - Automatic Month-to-Payslip Navigation: Scanning or importing a payslip automatically extracts the process date / period (e.g. `30-09-2026`) and selects the target month (`September 2026`) in the auditor.
+  - Interactive In-Dialog Date Grid: Added an expandable 7-column calendar grid inside the audit dialog allowing 1-tap toggling of 12h worked shifts directly on dates 1–31.
+  - 1-Tap 16-Shift Auto-Populator: Added `+ Populate 16 Shifts` button to quickly log 16 standard shifts for any empty month.
+  - Real-Time Discrepancy Recalculation: Instant live recalculation of missing hours, missing shifts, gross shortfall (£154.16), net deficit (£109.73), and itemized shift date lists in the dispute email upon any shift adjustment.
+
+### Bugs Found & Fixed
+- **Audit Month Schedule Mismatch**: Resolved issue where `PayslipAuditDialog` was locked to the background heatmap's active month instead of the audited payslip's specific month.
+- **Dispute Email Date List Drift**: Fixed itemized date list in generated dispute emails to perfectly reflect all logged shifts in the selected month's schedule.
+
+### What Needs to Be Fixed / Pending
+- Dynamic live exchange rate streaming for crypto/fiat pairs.
+- Biometric authentication auto-lock grace period customization.
+
+---
+
 ## [24.5-alpha] - 2026-09-21 (VersionCode: 38)
 ### Added / Changed
 - **Automated Payslip OCR Import & Timesheet Discrepancy Auditor (`PayslipParserEngine.kt` & `PayslipAuditEngine.kt`)**:
