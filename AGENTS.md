@@ -7,8 +7,11 @@ These rules define the mandatory behavioral constraints, development workflows, 
 ## 1. Documentation & Architecture Compliance
 
 - **Living Documentation**:
-  - Whenever you add a new screen, modify tax computation formulas, adjust Gradle dependencies, or alter navigation routes, you MUST update [`README.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/README.md), [`CHANGELOG.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/CHANGELOG.md), and [`AGENTS.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/AGENTS.md).
+  - Whenever you add a new screen, modify tax computation formulas, adjust Gradle dependencies, or alter navigation routes, you MUST update [`README.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/README.md) and [`CHANGELOG.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/CHANGELOG.md).
   - Never leave documentation, version catalogs, or changelogs out of sync with actual codebase implementations.
+- **Changelog Segregation Rule (`@rules:changelog_in_changelog_only`)**:
+  - **ALL** version release notes, changelogs, and release histories MUST be maintained exclusively in [`CHANGELOG.md`](file:///home/d3fault/Documents/Projects/Salarycalculator/CHANGELOG.md). **NEVER** embed release changelogs, version histories, or release notes inside `AGENTS.md`, `README.md`, or any other operational guide.
+  - `AGENTS.md` MUST contain ONLY agent operating rules, behavioral constraints, and standards — no content history, version logs, or changelog entries.
 - **Dependency & Build Integrity**:
   - All library dependencies and plugins MUST be declared and managed centrally in the Gradle Version Catalog ([`gradle/libs.versions.toml`](file:///home/d3fault/Documents/Projects/Salarycalculator/gradle/libs.versions.toml)). Do not hardcode version strings inside `build.gradle.kts`.
   - Always maintain Unix (LF) line terminators on scripts such as [`gradlew`](file:///home/d3fault/Documents/Projects/Salarycalculator/gradlew).

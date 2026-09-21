@@ -173,13 +173,17 @@ def sync_releases():
     # Auto-discover all versions from APKs directory
     discovered = []
     if os.path.exists(apk_dir):
-        for f in os.listdir(apk_dir):
+        for f in sorted(os.listdir(apk_dir)):
             if f.startswith("Salarycalculator-v") and f.endswith(".apk") and not f.endswith("-debug.apk"):
                 v = f.replace("Salarycalculator-", "").replace(".apk", "")
+                discovered.append(v)
+
     def parse_ver(x):
         import re
-        nums = re.findall(r'\d+', x)
-        return [int(n) for n in nums] + [x]
+        # split on non-digit runs, convert numeric parts to int for proper numeric sort
+        parts = re.split(r'[^0-9]+', x.lstrip("v"))
+        return [int(p) if p.isdigit() else p for p in parts if p]
+
     versions = sorted(list(set(discovered)), key=parse_ver)
     if not versions:
         versions = ["v16.0", "v17.0", "v17.1", "v17.2", "v18.0", "v19.0", "v20.0", "v21.0", "v22.0"]
