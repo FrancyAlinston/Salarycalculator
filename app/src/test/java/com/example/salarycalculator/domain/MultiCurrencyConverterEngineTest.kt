@@ -1,36 +1,67 @@
 package com.example.salarycalculator.domain
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 
 class MultiCurrencyConverterEngineTest {
 
     @Test
-    fun testCurrencyConversionMonthly() {
-        // £36,000 Annual Net = £3,000 Monthly Net
-        // 1 GBP = 1.18 EUR -> €3,540.00
-        // 1 GBP = 1.31 USD -> $3,930.00
-        val items = MultiCurrencyConverterEngine.convertAmount(
-            annualGbpAmount = 36000.0,
-            period = PayPeriod.MONTHLY
-        )
-        val eur = items.find { it.currency.code == "EUR" }!!
-        val usd = items.find { it.currency.code == "USD" }!!
+    fun testFiatAndCryptoConversions() {
+        val annualGbp = 30000.0 // £30,000 / year = £2,500 / month
 
-        assertEquals(3540.0, eur.convertedAmount, 0.01)
-        assertEquals(3930.0, usd.convertedAmount, 0.01)
-        assertTrue(eur.formattedString.contains("3,540.00"))
-        assertTrue(usd.formattedString.contains("3,930.00"))
+        // Test Monthly Conversion across ALL categories
+        val allItems = MultiCurrencyConverterEngine.convertAmount(
+            annualGbpAmount = annualGbp,
+            period = PayPeriod.MONTHLY,
+            categoryFilter = CurrencyCategory.ALL
+        )
+
+        val eurItem = allItems.firstOrNull { it.currency.code == "EUR" }
+        assertNotNull(eurItem)
+        assertEquals(2500.0 * 1.18, eurItem!!.convertedAmount, 0.01)
+
+        val usdItem = allItems.firstOrNull { it.currency.code == "USD" }
+        assertNotNull(usdItem)
+        assertEquals(2500.0 * 1.31, usdItem!!.convertedAmount, 0.01)
+
+        val btcItem = allItems.firstOrNull { it.currency.code == "BTC" }
+        assertNotNull(btcItem)
+        assertEquals(2500.0 * 0.000021, btcItem!!.convertedAmount, 0.000001)
+
+        // Test Category Filtering
+        val fiatOnly = MultiCurrencyConverterEngine.convertAmount(
+            annualGbpAmount = annualGbp,
+            period = PayPeriod.MONTHLY,
+            categoryFilter = CurrencyCategory.FIAT
+        )
+        assertTrue(fiatOnly.all { it.currency.category == CurrencyCategory.FIAT })
+        assertFalse(fiatOnly.any { it.currency.code == "BTC" })
+
+        val cryptoOnly = MultiCurrencyConverterEngine.convertAmount(
+            annualGbpAmount = annualGbp,
+            period = PayPeriod.MONTHLY,
+            categoryFilter = CurrencyCategory.CRYPTO
+        )
+        assertTrue(cryptoOnly.all { it.currency.category == CurrencyCategory.CRYPTO })
+        assertTrue(cryptoOnly.any { it.currency.code == "BTC" })
+        assertTrue(cryptoOnly.any { it.currency.code == "ETH" })
+        assertTrue(cryptoOnly.any { it.currency.code == "SOL" })
     }
 
     @Test
-    fun testCurrencyConversionAnnual() {
-        val items = MultiCurrencyConverterEngine.convertAmount(
-            annualGbpAmount = 50000.0,
-            period = PayPeriod.ANNUAL
+    fun testMergeRatesWithDefaults() {
+        val liveOverrides = mapOf(
+            "EUR" to 1.22,
+            "BTC" to 0.000025
         )
-        val usd = items.find { it.currency.code == "USD" }!!
-        assertEquals(65500.0, usd.convertedAmount, 0.01)
+
+        val merged = MultiCurrencyConverterEngine.mergeRatesWithDefaults(liveOverrides)
+        val eur = merged.first { it.code == "EUR" }
+        val btc = merged.first { it.code == "BTC" }
+        val usd = merged.first { it.code == "USD" }
+
+        assertEquals(1.22, eur.gbpRate, 0.001)
+        assertEquals(0.000025, btc.gbpRate, 0.0000001)
+        assertEquals(1.31, usd.gbpRate, 0.001) // Preserved default
     }
 }

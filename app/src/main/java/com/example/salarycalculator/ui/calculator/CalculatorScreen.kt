@@ -1086,6 +1086,7 @@ fun CalculatorScreen(
             MultiCurrencyConverterDialog(
                 annualNetTakeHomeGbp = report.annualNet,
                 annualGrossGbp = report.annualGross,
+                salaryRepository = salaryRepository,
                 onDismissRequest = { showMultiCurrencyDialog = false }
             )
         }

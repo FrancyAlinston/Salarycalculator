@@ -61,6 +61,9 @@ class SalaryRepository(private val context: Context) {
     private val PAY_SCHEDULE_CUTOFF_LEAD_DAYS_KEY = intPreferencesKey("pay_schedule_cutoff_lead_days")
     private val DEFAULT_HOURS_PER_DAY_KEY = doublePreferencesKey("default_hours_per_day")
     private val EMPLOYER_SHIFT_ASSIGNMENTS_KEY = stringPreferencesKey("employer_shift_assignments_json")
+    private val PAYROLL_CONTACT_EMAIL_KEY = stringPreferencesKey("payroll_contact_email")
+    private val CACHED_CURRENCY_RATES_KEY = stringPreferencesKey("cached_currency_rates_json")
+    private val CURRENCY_RATES_LAST_FETCH_KEY = stringPreferencesKey("currency_rates_last_fetch")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -813,6 +816,51 @@ class SalaryRepository(private val context: Context) {
     suspend fun saveShiftEmployerAssignments(assignments: Map<String, String>) {
         context.dataStore.edit { preferences ->
             preferences[EMPLOYER_SHIFT_ASSIGNMENTS_KEY] = json.encodeToString(assignments)
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getPayrollContactEmail(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PAYROLL_CONTACT_EMAIL_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setPayrollContactEmail(email: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PAYROLL_CONTACT_EMAIL_KEY] = email.trim()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getCachedCurrencyRates(): Flow<Map<String, Double>> {
+        return context.dataStore.data.map { preferences ->
+            val jsonStr = preferences[CACHED_CURRENCY_RATES_KEY] ?: ""
+            if (jsonStr.isBlank()) {
+                emptyMap()
+            } else {
+                try {
+                    json.decodeFromString<Map<String, Double>>(jsonStr)
+                } catch (_: Exception) {
+                    emptyMap()
+                }
+            }
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setCachedCurrencyRates(rates: Map<String, Double>, lastFetchTimestamp: String) {
+        context.dataStore.edit { preferences ->
+            preferences[CACHED_CURRENCY_RATES_KEY] = json.encodeToString(rates)
+            preferences[CURRENCY_RATES_LAST_FETCH_KEY] = lastFetchTimestamp
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getCurrencyRatesLastFetch(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[CURRENCY_RATES_LAST_FETCH_KEY] ?: ""
         }
     }
 }

@@ -4,6 +4,35 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [24.9-alpha] - 2026-09-21 (VersionCode: 42)
+### Added / Changed
+- **Dispute Recipient Memory (`FIX-801`) (`SalaryRepository.kt` & `PayslipAuditDialog.kt`)**:
+  - Added persistent DataStore preference (`payroll_contact_email`) to remember and automatically pre-fill the employer payroll department's contact email across audit sessions.
+- **Customizable Dispute Email Templates (`FEAT-801`) (`PayslipAuditEngine.kt` & `PayslipAuditDialog.kt`)**:
+  - Implemented 3 selectable email tone templates:
+    1. **Formal (HR Standard)**: Comprehensive, polite inquiry with full employee credentials, NI number, tax period, and detailed in-cycle shift list.
+    2. **Direct (Brief)**: Concise variance query with quick metric bullet points and in-cycle shift dates.
+    3. **Urgent (Priority)**: High-priority underpayment alert requesting expedited interim BACS payment within 24–48 hours.
+  - Added interactive template selector chips in `PayslipAuditDialog` with live preview and subject line adaptation.
+- **Official Timesheet Verification Summary PDF Generator (`FEAT-802`) (`TimesheetPdfGenerator.kt`)**:
+  - Integrated 1-page A4 vector PDF generator creating official verification reports complete with employer credentials, itemized in-cycle shift tables, discrepancy calculations, gross/net shortfall breakdowns, and dual sign-off signature blocks for employee and ward/line manager.
+  - Added "Share Verification PDF" action and auto-attaches PDF to dispute email client intents via FileProvider.
+- **Live Multi-Currency & Crypto Rate Engine (`PEND-801`) (`MultiCurrencyConverterEngine.kt` & `MultiCurrencyConverterDialog.kt`)**:
+  - Extended currency converter to support real-time exchange rate fetching from live rate endpoints with graceful offline fallback to baseline rates.
+  - Integrated crypto asset support for Bitcoin (BTC), Ethereum (ETH), and Solana (SOL) with high-precision fractional formatting.
+  - Added category filter chips (`All`, `Fiat Currencies`, `Crypto Assets`), live spinning refresh button, and "Live Rate Freshness" timestamp badges in `MultiCurrencyConverterDialog`.
+  - Added DataStore persistence for cached exchange rates and last-fetch timestamps.
+
+### Bugs Found & Fixed
+- **Dispute Email Case Sensitivity & Deprecation**: Fixed assertion in `PayslipAuditEngineTest` and upgraded `FactCheck` icon in `ShiftHeatmapCard` to `Icons.AutoMirrored.Filled.FactCheck`.
+- **Audit Dialog Context Persistence**: Resolved missing repository injection in dialogs to ensure payroll email memory and currency cache persist across app restarts.
+
+### What Needs to Be Fixed / Pending
+- Biometric authentication auto-lock grace period customization.
+- Automated overtime rule triggers based on cumulative weekly threshold exceeding 37.5 hours.
+
+---
+
 ## [24.8-alpha] - 2026-09-21 (VersionCode: 41)
 ### Added / Changed
 - **Dispute Email Cutoff Scope Purification (`PayslipAuditEngine.kt`)**:

@@ -1,5 +1,6 @@
 package com.example.salarycalculator.ui.calculator
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,34 +10,86 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.example.salarycalculator.domain.MultiCurrencyConverterEngine
-import com.example.salarycalculator.domain.PayPeriod
+import com.example.salarycalculator.domain.*
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun MultiCurrencyConverterDialog(
     annualNetTakeHomeGbp: Double,
     annualGrossGbp: Double,
+    salaryRepository: SalaryRepository? = null,
     onDismissRequest: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     var selectedPeriod by remember { mutableStateOf(PayPeriod.MONTHLY) }
+    var selectedCategory by remember { mutableStateOf(CurrencyCategory.ALL) }
     var useNetPay by remember { mutableStateOf(true) }
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    val cachedRatesState = salaryRepository?.getCachedCurrencyRates()?.collectAsState(initial = emptyMap())
+    val lastFetchState = salaryRepository?.getCurrencyRatesLastFetch()?.collectAsState(initial = "")
+    var liveRatesMap by remember { mutableStateOf<Map<String, Double>>(emptyMap()) }
+
+    LaunchedEffect(cachedRatesState?.value) {
+        cachedRatesState?.value?.let { cached ->
+            if (cached.isNotEmpty() && liveRatesMap.isEmpty()) {
+                liveRatesMap = cached
+            }
+        }
+    }
+
+    fun refreshLiveRates() {
+        scope.launch {
+            isRefreshing = true
+            val fetched = MultiCurrencyConverterEngine.fetchLiveRatesOnline()
+            if (fetched != null && fetched.isNotEmpty()) {
+                liveRatesMap = fetched
+                val timeStamp = SimpleDateFormat("dd MMM, HH:mm", Locale.ENGLISH).format(Date())
+                salaryRepository?.setCachedCurrencyRates(fetched, timeStamp)
+            }
+            isRefreshing = false
+        }
+    }
+
+    val effectiveRates = remember(liveRatesMap) {
+        MultiCurrencyConverterEngine.mergeRatesWithDefaults(liveRatesMap)
+    }
 
     val baseAmount = if (useNetPay) annualNetTakeHomeGbp else annualGrossGbp
-    val convertedItems = remember(baseAmount, selectedPeriod) {
+    val convertedItems = remember(baseAmount, selectedPeriod, effectiveRates, selectedCategory) {
         MultiCurrencyConverterEngine.convertAmount(
             annualGbpAmount = baseAmount,
-            period = selectedPeriod
+            period = selectedPeriod,
+            customRates = effectiveRates,
+            categoryFilter = selectedCategory
         )
     }
+
+    // Infinite rotation for refresh indicator
+    val infiniteTransition = rememberInfiniteTransition(label = "spin")
+    val spinAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "spinAngle"
+    )
 
     Dialog(
         onDismissRequest = onDismissRequest,
@@ -57,40 +110,74 @@ fun MultiCurrencyConverterDialog(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Header
+                // Header with Live Refresh Button
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier.size(44.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Default.Public,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(42.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Public,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        Column {
+                            Text(
+                                text = "Multi-Currency & Crypto",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                            val lastFetchStr = lastFetchState?.value ?: ""
+                            Text(
+                                text = if (liveRatesMap.isNotEmpty()) "Live FX · Updated $lastFetchStr" else "Standard Reference FX",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (liveRatesMap.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                    Column {
-                        Text(
-                            text = "Multi-Currency Salary Converter",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = "Global FX Conversion Matrix",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                    IconButton(
+                        onClick = { refreshLiveRates() },
+                        enabled = !isRefreshing
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh Live Rates",
+                            modifier = if (isRefreshing) Modifier.rotate(spinAngle) else Modifier
                         )
                     }
                 }
 
                 HorizontalDivider()
+
+                // Category Filter Chips (All, Fiat, Crypto)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    CurrencyCategory.values().forEach { cat ->
+                        val isSel = selectedCategory == cat
+                        FilterChip(
+                            selected = isSel,
+                            onClick = { selectedCategory = cat },
+                            label = { Text(cat.displayName.split(" ")[0], fontSize = 12.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
 
                 // Net / Gross Toggle
                 Row(
@@ -140,7 +227,7 @@ fun MultiCurrencyConverterDialog(
                     ) {
                         Text("Base UK Pay (${selectedPeriod.displayName}):", style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            text = "£${String.format("%,.2f", baseAmount / selectedPeriod.annualDivisor)}",
+                            text = "£${String.format(Locale.ENGLISH, "%,.2f", baseAmount / selectedPeriod.annualDivisor)}",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     }

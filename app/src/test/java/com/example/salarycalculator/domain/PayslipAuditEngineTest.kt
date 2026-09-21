@@ -121,9 +121,28 @@ class PayslipAuditEngineTest {
         assertFalse(emailBody.contains("POST-CUTOFF SHIFTS WORKED"))
         assertFalse(emailBody.contains("22 Sep 2026"))
 
-        val subject = PayslipAuditEngine.generateDisputeEmailSubject(report)
-        assertTrue(subject.contains("24 Aug 2026 to 20 Sep 2026"))
-        assertTrue(subject.contains("910"))
+        // Test FORMAL template
+        val formalBody = PayslipAuditEngine.generateDiscrepancyEmailText(report, DisputeEmailTemplate.FORMAL)
+        assertTrue(formalBody.contains("Dear Payroll & Human Resources Team"))
+        assertTrue(formalBody.contains("24 Aug 2026 to 20 Sep 2026"))
+        assertTrue(formalBody.contains("192.00 hrs"))
+        assertTrue(formalBody.contains("Yours sincerely"))
+
+        // Test DIRECT template
+        val directBody = PayslipAuditEngine.generateDiscrepancyEmailText(report, DisputeEmailTemplate.DIRECT)
+        assertTrue(directBody.contains("Hi Payroll Team"))
+        assertTrue(directBody.contains("Pay Cycle Window: 24 Aug 2026 to 20 Sep 2026"))
+        assertTrue(directBody.contains("Thanks"))
+
+        // Test URGENT template
+        val urgentBody = PayslipAuditEngine.generateDiscrepancyEmailText(report, DisputeEmailTemplate.URGENT)
+        assertTrue(urgentBody.contains("Dear Payroll Management"))
+        assertTrue(urgentBody.contains("URGENT: I am writing to notify you of a critical underpayment"))
+        assertTrue(urgentBody.contains("24–48 hours"))
+        assertTrue(urgentBody.contains("Yours sincerely"))
+
+        val urgentSubject = PayslipAuditEngine.generateDisputeEmailSubject(report, DisputeEmailTemplate.URGENT)
+        assertTrue(urgentSubject.contains("URGENT: Payroll Underpayment Correction Required"))
     }
 
     @Test

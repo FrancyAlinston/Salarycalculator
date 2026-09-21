@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -249,7 +250,7 @@ fun ShiftHeatmapCard(
                         onClick = { showPayslipAuditDialog = true },
                         modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(Icons.Default.FactCheck, contentDescription = "Audit Payslip vs Timesheet (OCR)", tint = Rose60)
+                        Icon(Icons.AutoMirrored.Filled.FactCheck, contentDescription = "Audit Payslip vs Timesheet (OCR)", tint = Rose60)
                     }
 
                     IconButton(
@@ -910,6 +911,7 @@ fun ShiftHeatmapCard(
             configuredHourlyRate = hourlyRate,
             standardShiftHours = effectiveStandardHours,
             payScheduleConfig = payScheduleConfig,
+            salaryRepository = salaryRepository,
             onDismiss = { showPayslipAuditDialog = false },
             onUpdateMonthShifts = { yr, mo, updatedMap ->
                 val targetKey = "$yr-$mo"

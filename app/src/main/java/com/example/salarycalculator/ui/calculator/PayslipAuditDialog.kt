@@ -66,6 +66,7 @@ fun PayslipAuditDialog(
     configuredHourlyRate: Double = 12.82,
     standardShiftHours: Double = 12.0,
     payScheduleConfig: PayScheduleConfig = PayScheduleConfig(),
+    salaryRepository: SalaryRepository? = null,
     onDismiss: () -> Unit,
     onUpdateMonthShifts: (year: Int, month: Int, shifts: Map<Int, Double>) -> Unit = { _, _, _ -> }
 ) {
@@ -77,6 +78,18 @@ fun PayslipAuditDialog(
     var isAnalyzing by remember { mutableStateOf(false) }
     var showEditFields by remember { mutableStateOf(false) }
     var showShiftPickerGrid by remember { mutableStateOf(false) }
+    var selectedTemplate by remember { mutableStateOf(DisputeEmailTemplate.FORMAL) }
+
+    // Persistent Payroll Contact Email Memory
+    val savedPayrollEmailState = salaryRepository?.getPayrollContactEmail()?.collectAsState(initial = "")
+    var payrollContactEmail by remember { mutableStateOf("") }
+    LaunchedEffect(savedPayrollEmailState?.value) {
+        savedPayrollEmailState?.value?.let { saved ->
+            if (saved.isNotBlank() && payrollContactEmail.isBlank()) {
+                payrollContactEmail = saved
+            }
+        }
+    }
 
     val monthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
     val dayOfWeekLabels = remember { listOf("M", "T", "W", "T", "F", "S", "S") }
@@ -337,10 +350,21 @@ fun PayslipAuditDialog(
                                 .padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            // Primary Action: Draft Dispute Email
+                            // Primary Action: Draft Dispute Email (with attached Timesheet PDF)
                             Button(
                                 onClick = {
-                                    PayslipAuditEngine.dispatchDisputeEmail(context, auditReport)
+                                    val pdfFile = try {
+                                        TimesheetPdfGenerator.generateTimesheetPdf(context, auditReport)
+                                    } catch (_: Exception) {
+                                        null
+                                    }
+                                    PayslipAuditEngine.dispatchDisputeEmail(
+                                        context = context,
+                                        report = auditReport,
+                                        recipientEmail = payrollContactEmail,
+                                        template = selectedTemplate,
+                                        attachmentFile = pdfFile
+                                    )
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(14.dp),
@@ -351,41 +375,56 @@ fun PayslipAuditDialog(
                                 Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = if (auditReport.status == AuditMismatchStatus.UNDERPAID) "Draft Dispute Email to Employer" else "Email Payslip Audit Report",
+                                    text = if (auditReport.status == AuditMismatchStatus.UNDERPAID) "Draft Dispute Email & PDF Attachment" else "Email Payslip Audit Report",
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
+                                    fontSize = 14.sp
                                 )
                             }
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 OutlinedButton(
                                     onClick = {
-                                        val ok = PayslipAuditEngine.copyDiscrepancyTextToClipboard(context, auditReport)
+                                        TimesheetPdfGenerator.shareTimesheetPdf(context, auditReport)
+                                    },
+                                    modifier = Modifier.weight(1.2f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
+                                ) {
+                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Share PDF", maxLines = 1, fontSize = 12.sp)
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        val ok = PayslipAuditEngine.copyDiscrepancyTextToClipboard(context, auditReport, selectedTemplate)
                                         if (ok) {
-                                            Toast.makeText(context, "📋 Dispute email copied to clipboard!", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "📋 Dispute email (${selectedTemplate.displayName.split(" ")[0]}) copied to clipboard!", Toast.LENGTH_SHORT).show()
                                         }
                                     },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp)
+                                    modifier = Modifier.weight(1.1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
                                 ) {
                                     Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Copy Email", maxLines = 1)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Copy Text", maxLines = 1, fontSize = 12.sp)
                                 }
 
                                 OutlinedButton(
                                     onClick = {
                                         documentPickerLauncher.launch("*/*")
                                     },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp)
+                                    modifier = Modifier.weight(0.9f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
                                 ) {
                                     Icon(Icons.Default.DocumentScanner, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Scan Other", maxLines = 1)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Scan", maxLines = 1, fontSize = 12.sp)
                                 }
                             }
                         }
@@ -1047,7 +1086,7 @@ fun PayslipAuditDialog(
                         }
                     }
 
-                    // Email Preview Snippet Card
+                    // Email Preview & Customizer Card
                     Card(
                         shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)),
@@ -1055,21 +1094,74 @@ fun PayslipAuditDialog(
                     ) {
                         Column(
                             modifier = Modifier.padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Icon(Icons.Default.MailOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                                Text("Dispute Email Preview", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Icon(Icons.Default.MailOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                    Text("Dispute Email Customizer", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                                ) {
+                                    Text(
+                                        text = "+ PDF Attached",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
                             }
+
+                            // Template Selection Chips
+                            Text("Email Tone & Format Template:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                DisputeEmailTemplate.values().forEach { tpl ->
+                                    val isSel = selectedTemplate == tpl
+                                    FilterChip(
+                                        selected = isSel,
+                                        onClick = { selectedTemplate = tpl },
+                                        label = { Text(tpl.displayName.split(" ")[0], fontSize = 11.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+
+                            // Employer Payroll Contact Email (Remembered across sessions)
+                            OutlinedTextField(
+                                value = payrollContactEmail,
+                                onValueChange = { newEmail ->
+                                    payrollContactEmail = newEmail
+                                    scope.launch {
+                                        salaryRepository?.setPayrollContactEmail(newEmail)
+                                    }
+                                },
+                                label = { Text("Payroll Contact Email (Auto-Saved)") },
+                                placeholder = { Text("e.g. payroll@employer.co.uk") },
+                                leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+
                             Text(
-                                text = "Subject: ${PayslipAuditEngine.generateDisputeEmailSubject(auditReport)}",
+                                text = "Subject: ${PayslipAuditEngine.generateDisputeEmailSubject(auditReport, selectedTemplate)}",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary
                             )
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
                             Text(
-                                text = PayslipAuditEngine.generateDiscrepancyEmailText(auditReport),
+                                text = PayslipAuditEngine.generateDiscrepancyEmailText(auditReport, selectedTemplate),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 8

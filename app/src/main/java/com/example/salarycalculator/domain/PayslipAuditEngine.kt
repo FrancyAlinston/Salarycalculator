@@ -22,6 +22,15 @@ enum class AuditMismatchStatus(val label: String, val isProblem: Boolean) {
 }
 
 /**
+ * Selectable tone and formatting templates for generated payroll dispute emails.
+ */
+enum class DisputeEmailTemplate(val displayName: String, val subtitle: String) {
+    FORMAL("Formal (HR Standard)", "Polite, comprehensive breakdown with full employee credentials"),
+    DIRECT("Direct (Brief)", "Concise summary table and bulleted shortfall for quick processing"),
+    URGENT("Urgent (Priority)", "High-priority notice requesting expedited interim BACS payment")
+}
+
+/**
  * Detailed representation of an individual worked shift day in the audited month.
  */
 data class WorkedShiftDay(
@@ -371,74 +380,157 @@ object PayslipAuditEngine {
     }
 
     /**
-     * Generates a formal email subject line for the dispute inquiry including the exact cutoff cycle window.
+     * Generates a formal subject line for the discrepancy email.
      */
-    fun generateDisputeEmailSubject(report: PayslipAuditReport): String {
+    fun generateDisputeEmailSubject(
+        report: PayslipAuditReport,
+        template: DisputeEmailTemplate = DisputeEmailTemplate.FORMAL
+    ): String {
         val refPart = if (report.employeeRef.isNotBlank()) " (Ref: ${report.employeeRef})" else ""
-        return "Urgent: Payslip Discrepancy Inquiry (${report.payCycleStartDate} to ${report.payCycleCutoffDate}) - ${report.employeeName}$refPart"
+        return when (template) {
+            DisputeEmailTemplate.FORMAL ->
+                "Payslip Discrepancy Inquiry (${report.payCycleStartDate} to ${report.payCycleCutoffDate}) - ${report.employeeName}$refPart"
+            DisputeEmailTemplate.DIRECT ->
+                "Timesheet Variance Query - ${report.payPeriod} - ${report.employeeName}$refPart"
+            DisputeEmailTemplate.URGENT ->
+                "URGENT: Payroll Underpayment Correction Required (${report.payCycleStartDate} to ${report.payCycleCutoffDate}) - ${report.employeeName}$refPart"
+        }
     }
 
     /**
-     * Formats a comprehensive, professional dispute email body strictly observing the cutoff window.
+     * Formats a professional dispute email body according to the selected template, strictly observing the cutoff window.
      */
-    fun generateDiscrepancyEmailText(report: PayslipAuditReport): String {
+    fun generateDiscrepancyEmailText(
+        report: PayslipAuditReport,
+        template: DisputeEmailTemplate = DisputeEmailTemplate.FORMAL
+    ): String {
         val sb = StringBuilder()
-        sb.append("Dear Payroll & Human Resources Team,\n\n")
-        sb.append("I am writing to respectfully query a discrepancy identified on my payslip for ${report.payPeriod} (Pay Date: ${report.payDate}).\n\n")
 
-        sb.append("=== EMPLOYEE & PAYROLL DETAILS ===\n")
-        sb.append("• Employee Name: ${report.employeeName}\n")
-        if (report.employeeRef.isNotBlank()) sb.append("• Employee / Payroll Ref: ${report.employeeRef}\n")
-        if (report.niNumber.isNotBlank()) sb.append("• National Insurance No: ${report.niNumber}\n")
-        if (report.employerName.isNotBlank()) sb.append("• Employer: ${report.employerName}\n")
-        if (report.taxPeriod != null) sb.append("• Tax Period: Month ${report.taxPeriod}\n")
-        if (!report.processDate.isNullOrBlank()) sb.append("• Process Date: ${report.processDate}\n")
-        sb.append("• Tax Code: ${report.taxCode}\n")
-        sb.append("• Timesheet Pay Cycle: ${report.payCycleStartDate} to ${report.payCycleCutoffDate} (Cutoff: ${report.payCycleCutoffDate} at 23:59)\n\n")
+        when (template) {
+            DisputeEmailTemplate.FORMAL -> {
+                sb.append("Dear Payroll & Human Resources Team,\n\n")
+                sb.append("I am writing to respectfully query a discrepancy identified on my payslip for ${report.payPeriod} (Pay Date: ${report.payDate}).\n\n")
 
-        sb.append("=== DISCREPANCY SUMMARY ===\n")
-        sb.append("In accordance with our payroll schedule, this pay period accounts for shifts worked between the previous cutoff date (${report.payCycleStartDate}) and this month's cutoff date (${report.payCycleCutoffDate}).\n\n")
-        sb.append("During this exact cutoff window, my verified timesheet records ${report.timesheetShiftsCount} worked shifts totaling ${ "%.2f".format(report.timesheetTotalHours) } hours.\n")
-        sb.append("However, the payslip provides payment for only ${ "%.2f".format(report.payslipPaidBasicHours) } basic hours (equivalent to approximately ${ (report.payslipPaidBasicHours / 12.0).roundToInt() } shifts).\n\n")
+                sb.append("=== EMPLOYEE & PAYROLL DETAILS ===\n")
+                sb.append("• Employee Name: ${report.employeeName}\n")
+                if (report.employeeRef.isNotBlank()) sb.append("• Employee / Payroll Ref: ${report.employeeRef}\n")
+                if (report.niNumber.isNotBlank()) sb.append("• National Insurance No: ${report.niNumber}\n")
+                if (report.employerName.isNotBlank()) sb.append("• Employer: ${report.employerName}\n")
+                if (report.taxPeriod != null) sb.append("• Tax Period: Month ${report.taxPeriod}\n")
+                if (!report.processDate.isNullOrBlank()) sb.append("• Process Date: ${report.processDate}\n")
+                sb.append("• Tax Code: ${report.taxCode}\n")
+                sb.append("• Timesheet Pay Cycle: ${report.payCycleStartDate} to ${report.payCycleCutoffDate} (Cutoff: ${report.payCycleCutoffDate} at 23:59)\n\n")
 
-        sb.append("• Qualifying Timesheet Hours: ${ "%.2f".format(report.timesheetTotalHours) } hrs (${report.timesheetShiftsCount} shifts in cycle)\n")
-        sb.append("• Payslip Paid Basic Hours: ${ "%.2f".format(report.payslipPaidBasicHours) } hrs\n")
-        val missingShiftsLabel = if (report.missingShifts > 0) " (${report.missingShifts} shift)" else ""
-        sb.append("• Outstanding Missing Hours: ${ "%.2f".format(report.missingHours) } hrs$missingShiftsLabel\n")
-        sb.append("• Basic Hourly Rate: £${ "%.2f".format(report.payslipPaidRate) }/hr\n")
-        sb.append("• Missing Gross Shortfall: £${ "%.2f".format(report.grossShortfall) }\n")
-        sb.append("• Estimated Net Underpayment: £${ "%.2f".format(report.netShortfall) } (after statutory 20% PAYE & 8% NI)\n\n")
+                sb.append("=== DISCREPANCY SUMMARY ===\n")
+                sb.append("In accordance with our payroll schedule, this pay period accounts for shifts worked between the previous cutoff date (${report.payCycleStartDate}) and this month's cutoff date (${report.payCycleCutoffDate}).\n\n")
+                sb.append("During this exact cutoff window, my verified timesheet records ${report.timesheetShiftsCount} worked shifts totaling ${ "%.2f".format(report.timesheetTotalHours) } hours.\n")
+                sb.append("However, the payslip provides payment for only ${ "%.2f".format(report.payslipPaidBasicHours) } basic hours (equivalent to approximately ${ (report.payslipPaidBasicHours / 12.0).roundToInt() } shifts).\n\n")
 
-        sb.append("=== ITEMIZED DATES WORKED IN THIS PAY CYCLE (${report.payCycleStartDate.uppercase()} – ${report.payCycleCutoffDate.uppercase()}) ===\n")
-        if (report.workedDays.isEmpty()) {
-            sb.append("• Please refer to attached timesheet record.\n")
-        } else {
-            report.workedDays.forEachIndexed { idx, day ->
-                sb.append("${idx + 1}. ${day.dateFormatted} — ${day.shiftTypeDescription}\n")
+                sb.append("• Qualifying Timesheet Hours: ${ "%.2f".format(report.timesheetTotalHours) } hrs (${report.timesheetShiftsCount} shifts in cycle)\n")
+                sb.append("• Payslip Paid Basic Hours: ${ "%.2f".format(report.payslipPaidBasicHours) } hrs\n")
+                val missingShiftsLabel = if (report.missingShifts > 0) " (${report.missingShifts} shift)" else ""
+                sb.append("• Outstanding Missing Hours: ${ "%.2f".format(report.missingHours) } hrs$missingShiftsLabel\n")
+                sb.append("• Basic Hourly Rate: £${ "%.2f".format(report.payslipPaidRate) }/hr\n")
+                sb.append("• Missing Gross Shortfall: £${ "%.2f".format(report.grossShortfall) }\n")
+                sb.append("• Estimated Net Underpayment: £${ "%.2f".format(report.netShortfall) } (after statutory 20% PAYE & 8% NI)\n\n")
+
+                sb.append("=== ITEMIZED DATES WORKED IN THIS PAY CYCLE (${report.payCycleStartDate.uppercase()} – ${report.payCycleCutoffDate.uppercase()}) ===\n")
+                if (report.workedDays.isEmpty()) {
+                    sb.append("• Please refer to attached timesheet record.\n")
+                } else {
+                    report.workedDays.forEachIndexed { idx, day ->
+                        sb.append("${idx + 1}. ${day.dateFormatted} — ${day.shiftTypeDescription}\n")
+                    }
+                }
+                sb.append("\nTotal In-Cycle Worked: ${report.workedDays.size} shifts (${ "%.2f".format(report.timesheetTotalHours) } hours)\n\n")
+
+                sb.append("=== REQUEST FOR RESOLUTION ===\n")
+                sb.append("Could you kindly cross-check your timesheet records against the in-cycle dates listed above and arrange a supplementary BACS adjustment payment or include the outstanding £${ "%.2f".format(report.grossShortfall) } gross in the upcoming payroll run?\n\n")
+                sb.append("Please let me know if you need any additional timesheet sign-off sheets from my ward / unit manager.\n\n")
+                sb.append("Thank you very much for your time and assistance.\n\n")
+                sb.append("Yours sincerely,\n")
+                sb.append("${report.employeeName}\n")
+            }
+
+            DisputeEmailTemplate.DIRECT -> {
+                sb.append("Hi Payroll Team,\n\n")
+                sb.append("Please review an hours variance on my payslip for ${report.payPeriod} (${report.employeeName}${if (report.employeeRef.isNotBlank()) ", Ref: ${report.employeeRef}" else ""}):\n\n")
+
+                sb.append("• Pay Cycle Window: ${report.payCycleStartDate} to ${report.payCycleCutoffDate}\n")
+                sb.append("• Timesheet Hours Worked: ${ "%.2f".format(report.timesheetTotalHours) } hrs (${report.timesheetShiftsCount} shifts)\n")
+                sb.append("• Payslip Paid Basic Hours: ${ "%.2f".format(report.payslipPaidBasicHours) } hrs\n")
+                sb.append("• Unpaid Shortfall: ${ "%.2f".format(report.missingHours) } hrs (Gross Shortfall: £${ "%.2f".format(report.grossShortfall) } / ~£${ "%.2f".format(report.netShortfall) } net)\n")
+                sb.append("• Basic Rate: £${ "%.2f".format(report.payslipPaidRate) }/hr\n\n")
+
+                sb.append("In-Cycle Worked Dates:\n")
+                if (report.workedDays.isEmpty()) {
+                    sb.append("• (See attached timesheet)\n")
+                } else {
+                    report.workedDays.forEachIndexed { idx, day ->
+                        sb.append("${idx + 1}. ${day.dateFormatted} (${day.hours}h)\n")
+                    }
+                }
+                sb.append("\nPlease let me know when the missing £${ "%.2f".format(report.grossShortfall) } gross adjustment will be processed.\n\n")
+                sb.append("Thanks,\n")
+                sb.append("${report.employeeName}\n")
+            }
+
+            DisputeEmailTemplate.URGENT -> {
+                sb.append("Dear Payroll Management,\n\n")
+                sb.append("URGENT: I am writing to notify you of a critical underpayment on my payslip for ${report.payPeriod} (Pay Date: ${report.payDate}).\n\n")
+
+                sb.append("During the active pay cycle (${report.payCycleStartDate} to ${report.payCycleCutoffDate}), I completed ${report.timesheetShiftsCount} shifts (${ "%.2f".format(report.timesheetTotalHours) } hrs), but was paid for only ${ "%.2f".format(report.payslipPaidBasicHours) } basic hours.\n\n")
+                sb.append("This leaves a severe shortfall of ${ "%.2f".format(report.missingHours) } unpaid hours, amounting to £${ "%.2f".format(report.grossShortfall) } gross (approximately £${ "%.2f".format(report.netShortfall) } net take-home deficit).\n\n")
+
+                sb.append("=== EMPLOYEE DETAILS ===\n")
+                sb.append("• Employee: ${report.employeeName}\n")
+                if (report.employeeRef.isNotBlank()) sb.append("• Ref: ${report.employeeRef}\n")
+                if (report.niNumber.isNotBlank()) sb.append("• NI No: ${report.niNumber}\n")
+                sb.append("• Tax Code: ${report.taxCode}\n\n")
+
+                sb.append("=== IN-CYCLE SHIFTS WORKED ===\n")
+                if (report.workedDays.isEmpty()) {
+                    sb.append("• Please refer to attached timesheet record.\n")
+                } else {
+                    report.workedDays.forEachIndexed { idx, day ->
+                        sb.append("${idx + 1}. ${day.dateFormatted} — ${day.shiftTypeDescription}\n")
+                    }
+                }
+
+                sb.append("\nAs this shortfall directly affects my essential living commitments, I kindly request that an urgent interim BACS payment or priority adjustment be arranged within 24–48 hours.\n\n")
+                sb.append("Thank you for your prompt attention to this matter.\n\n")
+                sb.append("Yours sincerely,\n")
+                sb.append("${report.employeeName}\n")
             }
         }
-        sb.append("\nTotal In-Cycle Worked: ${report.workedDays.size} shifts (${ "%.2f".format(report.timesheetTotalHours) } hours)\n\n")
-
-        sb.append("=== REQUEST FOR RESOLUTION ===\n")
-        sb.append("Could you kindly cross-check your timesheet records against the in-cycle dates listed above and arrange a supplementary BACS adjustment payment or include the outstanding £${ "%.2f".format(report.grossShortfall) } gross in the upcoming payroll run?\n\n")
-        sb.append("Please let me know if you need any additional timesheet sign-off sheets from my ward / unit manager.\n\n")
-        sb.append("Thank you very much for your time and assistance.\n\n")
-        sb.append("Yours sincerely,\n")
-        sb.append("${report.employeeName}\n")
 
         return sb.toString()
     }
 
     /**
-     * Dispatches an Android ACTION_SENDTO intent to open the user's default email client.
+     * Dispatches an Android ACTION_SENDTO / ACTION_SEND intent to open the user's email client,
+     * optionally attaching a generated Timesheet PDF file if provided.
      */
     fun dispatchDisputeEmail(
         context: Context,
         report: PayslipAuditReport,
-        recipientEmail: String = ""
+        recipientEmail: String = "",
+        template: DisputeEmailTemplate = DisputeEmailTemplate.FORMAL,
+        attachmentFile: java.io.File? = null
     ) {
-        val subject = generateDisputeEmailSubject(report)
-        val body = generateDiscrepancyEmailText(report)
+        val subject = generateDisputeEmailSubject(report, template)
+        val body = generateDiscrepancyEmailText(report, template)
+
+        if (attachmentFile != null && attachmentFile.exists()) {
+            EmailExporter.dispatchEmailWithAttachment(
+                context = context,
+                file = attachmentFile,
+                subject = subject,
+                bodyText = body,
+                recipientEmail = recipientEmail
+            )
+            return
+        }
 
         val mailtoUri = Uri.parse("mailto:${Uri.encode(recipientEmail)}")
         val emailIntent = Intent(Intent.ACTION_SENDTO, mailtoUri).apply {
@@ -450,7 +542,6 @@ object PayslipAuditEngine {
         try {
             context.startActivity(emailIntent)
         } catch (_: Exception) {
-            // Fallback to standard ACTION_SEND
             val sendIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "message/rfc822"
                 if (recipientEmail.isNotBlank()) {
@@ -469,10 +560,14 @@ object PayslipAuditEngine {
     /**
      * Copies the full dispute email text directly to the system clipboard.
      */
-    fun copyDiscrepancyTextToClipboard(context: Context, report: PayslipAuditReport): Boolean {
+    fun copyDiscrepancyTextToClipboard(
+        context: Context,
+        report: PayslipAuditReport,
+        template: DisputeEmailTemplate = DisputeEmailTemplate.FORMAL
+    ): Boolean {
         return try {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            val text = generateDiscrepancyEmailText(report)
+            val text = generateDiscrepancyEmailText(report, template)
             val clip = ClipData.newPlainText("Payslip Dispute Email", text)
             clipboard.setPrimaryClip(clip)
             true
