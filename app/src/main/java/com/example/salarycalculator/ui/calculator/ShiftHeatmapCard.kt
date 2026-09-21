@@ -906,10 +906,19 @@ fun ShiftHeatmapCard(
         PayslipAuditDialog(
             initialYear = selectedYear,
             initialMonth = selectedMonth,
-            monthShifts = currentMonthMap.toMap(),
+            allMultiYearShifts = multiYearShifts.mapValues { it.value.toMap() },
             configuredHourlyRate = hourlyRate,
             standardShiftHours = effectiveStandardHours,
-            onDismiss = { showPayslipAuditDialog = false }
+            onDismiss = { showPayslipAuditDialog = false },
+            onUpdateMonthShifts = { yr, mo, updatedMap ->
+                val targetKey = "$yr-$mo"
+                val targetMap = multiYearShifts.getOrPut(targetKey) { mutableStateMapOf() }
+                targetMap.clear()
+                updatedMap.forEach { (d, h) ->
+                    targetMap[d] = h
+                }
+                saveScheduleAndNotify()
+            }
         )
     }
 }

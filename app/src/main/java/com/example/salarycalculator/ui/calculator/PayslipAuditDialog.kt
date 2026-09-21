@@ -13,6 +13,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,8 +46,10 @@ import com.example.salarycalculator.theme.Emerald60
 import com.example.salarycalculator.theme.Rose60
 import com.example.salarycalculator.theme.Teal60
 import kotlinx.coroutines.launch
+import java.text.DateFormatSymbols
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Calendar
 import java.util.Locale
 
 /**
@@ -58,10 +62,11 @@ import java.util.Locale
 fun PayslipAuditDialog(
     initialYear: Int = 2026,
     initialMonth: Int = 9,
-    monthShifts: Map<Int, Double>,
+    allMultiYearShifts: Map<String, Map<Int, Double>> = emptyMap(),
     configuredHourlyRate: Double = 12.82,
     standardShiftHours: Double = 12.0,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onUpdateMonthShifts: (year: Int, month: Int, shifts: Map<Int, Double>) -> Unit = { _, _, _ -> }
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -70,6 +75,24 @@ fun PayslipAuditDialog(
     var selectedMonth by remember { mutableIntStateOf(initialMonth) }
     var isAnalyzing by remember { mutableStateOf(false) }
     var showEditFields by remember { mutableStateOf(false) }
+    var showShiftPickerGrid by remember { mutableStateOf(false) }
+
+    val monthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
+    val dayOfWeekLabels = remember { listOf("M", "T", "W", "T", "F", "S", "S") }
+
+    // Live mutable shift map for the currently selected month
+    val liveMonthShifts = remember { mutableStateMapOf<Int, Double>() }
+
+    // Synchronize liveMonthShifts whenever selectedYear or selectedMonth changes
+    LaunchedEffect(selectedYear, selectedMonth, allMultiYearShifts) {
+        val key1 = "$selectedYear-$selectedMonth"
+        val key2 = "$selectedYear-${if (selectedMonth < 10) "0$selectedMonth" else "$selectedMonth"}"
+        val existing = allMultiYearShifts[key1] ?: allMultiYearShifts[key2] ?: emptyMap()
+        liveMonthShifts.clear()
+        existing.forEach { (d, h) ->
+            if (h != 0.0) liveMonthShifts[d] = h
+        }
+    }
 
     // Preloaded with default parsed data for September 2026 Waterloo Manor Ltd reference
     var parsedPayslip by remember {
@@ -111,15 +134,44 @@ fun PayslipAuditDialog(
     var editProcessDate by remember(parsedPayslip) { mutableStateOf(parsedPayslip.processDate ?: "30-09-2026") }
 
     // Compute live audit report
-    val auditReport = remember(parsedPayslip, monthShifts, selectedYear, selectedMonth, configuredHourlyRate, standardShiftHours) {
+    val auditReport = remember(parsedPayslip, liveMonthShifts.toMap(), selectedYear, selectedMonth, configuredHourlyRate, standardShiftHours) {
         PayslipAuditEngine.auditPayslipAgainstTimesheet(
             payslip = parsedPayslip,
-            monthShifts = monthShifts,
+            monthShifts = liveMonthShifts.toMap(),
             year = selectedYear,
             month = selectedMonth,
             configuredHourlyRate = configuredHourlyRate,
             standardShiftDuration = standardShiftHours
         )
+    }
+
+    // Days in current selected month/year
+    val daysInMonth = remember(selectedYear, selectedMonth) {
+        val c = Calendar.getInstance()
+        c.set(Calendar.YEAR, selectedYear)
+        c.set(Calendar.MONTH, selectedMonth - 1)
+        c.getActualMaximum(Calendar.DAY_OF_MONTH)
+    }
+
+    // Day of week for 1st day (0 = Monday, 6 = Sunday)
+    val startDayOffset = remember(selectedYear, selectedMonth) {
+        val c = Calendar.getInstance()
+        c.set(Calendar.YEAR, selectedYear)
+        c.set(Calendar.MONTH, selectedMonth - 1)
+        c.set(Calendar.DAY_OF_MONTH, 1)
+        val dow = c.get(Calendar.DAY_OF_WEEK)
+        (dow + 5) % 7
+    }
+
+    fun toggleShiftDay(day: Int) {
+        val current = liveMonthShifts[day] ?: 0.0
+        val effectiveStd = if (standardShiftHours > 0.0) standardShiftHours else 12.0
+        if (current == 0.0) {
+            liveMonthShifts[day] = effectiveStd
+        } else {
+            liveMonthShifts.remove(day)
+        }
+        onUpdateMonthShifts(selectedYear, selectedMonth, liveMonthShifts.toMap())
     }
 
     // Document / PDF Picker Launcher
@@ -145,6 +197,16 @@ fun PayslipAuditDialog(
                     }
                     if (result.grossPay > 0 || result.basicHours > 0 || result.netPay > 0) {
                         parsedPayslip = result
+                        // Auto-align selected month & year from parsed process date / period
+                        result.processDate?.let { pDate ->
+                            val parts = pDate.split('-', '/', '.')
+                            if (parts.size == 3) {
+                                val m = parts[1].toIntOrNull()
+                                val y = parts[2].toIntOrNull()?.let { if (it < 100) 2000 + it else it }
+                                if (m != null && m in 1..12) selectedMonth = m
+                                if (y != null && y in 2020..2030) selectedYear = y
+                            }
+                        }
                     } else {
                         Toast.makeText(context, "OCR could not read payslip text clearly. You can verify and edit numbers manually.", Toast.LENGTH_LONG).show()
                     }
@@ -168,6 +230,15 @@ fun PayslipAuditDialog(
                     val result = PayslipOcrAnalyzer.analyzeImage(bitmap)
                     if (result.grossPay > 0 || result.basicHours > 0 || result.netPay > 0) {
                         parsedPayslip = result
+                        result.processDate?.let { pDate ->
+                            val parts = pDate.split('-', '/', '.')
+                            if (parts.size == 3) {
+                                val m = parts[1].toIntOrNull()
+                                val y = parts[2].toIntOrNull()?.let { if (it < 100) 2000 + it else it }
+                                if (m != null && m in 1..12) selectedMonth = m
+                                if (y != null && y in 2020..2030) selectedYear = y
+                            }
+                        }
                     } else {
                         Toast.makeText(context, "OCR could not read payslip photo clearly. You can verify and edit numbers manually.", Toast.LENGTH_LONG).show()
                     }
@@ -316,6 +387,181 @@ fun PayslipAuditDialog(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    // Month & Year Selector Navigation Bar
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        if (selectedMonth == 1) {
+                                            selectedMonth = 12
+                                            selectedYear -= 1
+                                        } else {
+                                            selectedMonth -= 1
+                                        }
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(Icons.Default.ChevronLeft, contentDescription = "Previous Month")
+                                }
+
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "${monthNames[selectedMonth - 1]} $selectedYear",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "Heatmap: ${liveMonthShifts.size} Shifts Worked (${ "%.1f".format(liveMonthShifts.values.sumOf { kotlin.math.abs(it) }) }h)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Emerald60,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        if (selectedMonth == 12) {
+                                            selectedMonth = 1
+                                            selectedYear += 1
+                                        } else {
+                                            selectedMonth += 1
+                                        }
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(Icons.Default.ChevronRight, contentDescription = "Next Month")
+                                }
+                            }
+
+                            // Quick Toggle to open inline Shift Picker Grid
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = { showShiftPickerGrid = !showShiftPickerGrid },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Icon(if (showShiftPickerGrid) Icons.Default.ExpandLess else Icons.Default.CalendarViewMonth, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(if (showShiftPickerGrid) "Hide Date Grid" else "Edit Heatmap Dates (${liveMonthShifts.size} Shifts)", fontSize = 12.sp)
+                                }
+
+                                if (liveMonthShifts.isEmpty()) {
+                                    FilledTonalButton(
+                                        onClick = {
+                                            // Apply 16-shift default reference rota (e.g. 1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 30)
+                                            val defaultShifts = listOf(1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 30)
+                                            defaultShifts.forEach { d ->
+                                                if (d <= daysInMonth) liveMonthShifts[d] = 12.0
+                                            }
+                                            onUpdateMonthShifts(selectedYear, selectedMonth, liveMonthShifts.toMap())
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text("+ Populate 16 Shifts", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+
+                            // Inline Interactive Shift Date Grid
+                            if (showShiftPickerGrid) {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                                    modifier = Modifier.padding(top = 4.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        // Day Headers
+                                        Row(modifier = Modifier.fillMaxWidth()) {
+                                            dayOfWeekLabels.forEach { lbl ->
+                                                Text(
+                                                    text = lbl,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    textAlign = TextAlign.Center,
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
+
+                                        // Calendar Grid Rows
+                                        val totalCells = startDayOffset + daysInMonth
+                                        val rows = (totalCells + 6) / 7
+
+                                        for (row in 0 until rows) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                            ) {
+                                                for (col in 0..6) {
+                                                    val cellIndex = row * 7 + col
+                                                    val dayNum = cellIndex - startDayOffset + 1
+
+                                                    if (dayNum in 1..daysInMonth) {
+                                                        val hrs = liveMonthShifts[dayNum] ?: 0.0
+                                                        val isWorked = hrs != 0.0
+
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .aspectRatio(1.1f)
+                                                                .clip(RoundedCornerShape(6.dp))
+                                                                .background(
+                                                                    if (isWorked) Emerald60.copy(alpha = 0.85f)
+                                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                                )
+                                                                .clickable { toggleShiftDay(dayNum) },
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                                Text(
+                                                                    text = "$dayNum",
+                                                                    fontSize = 11.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = if (isWorked) Color.White else MaterialTheme.colorScheme.onSurface
+                                                                )
+                                                                if (isWorked) {
+                                                                    Text(
+                                                                        text = "12h",
+                                                                        fontSize = 8.sp,
+                                                                        fontWeight = FontWeight.ExtraBold,
+                                                                        color = Color.White.copy(alpha = 0.9f)
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    } else {
+                                                        Spacer(modifier = Modifier.weight(1f))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Text(
+                                            text = "💡 Tap any date to toggle a 12h worked shift in the heatmap.",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontSize = 10.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Import Options Bar
                     Card(
                         shape = RoundedCornerShape(18.dp),
@@ -485,7 +731,7 @@ fun PayslipAuditDialog(
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Icon(Icons.Default.ReceiptLong, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                     Text("Paid Payslip", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                                 }
                                 Text("Paid: ${ "%.2f".format(auditReport.payslipPaidBasicHours) } hrs", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
