@@ -4,6 +4,26 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.6] - 2026-09-25 (VersionCode: 50)
+### Added / Changed
+- **Google Calendar Category Sync & Shift Event Importer (`FEAT-921`) (`GoogleCalendarSyncEngine.kt`, `MonthCalendarSyncDialog.kt`, `ShiftHeatmapCard.kt`, `AndroidManifest.xml`)**:
+  - Integrated device calendar querying using Android `CalendarContract.Calendars`, allowing users to choose exactly which Google Calendar category/account to sync their monthly shifts into (e.g. `Personal (Google)`, `Work`, `Shifts`, `francyalinston@gmail.com`).
+  - Added configurable Shift Start Time presets (`07:00 Care Day`, `19:00 Care Night`, `08:00 Standard`, `09:00 Office`) and reminder alerts (15m, 30m, 1h).
+  - Configurable shift inclusion filters (Duty Shifts, Overtime Shifts, Annual Leave, Statutory Sick Pay) and duplicate protection (`[SalaryCalculator]` tag replacement).
+- **Auto Duty Days Phone Alarm Setter (`FEAT-922`) (`DutyAlarmManager.kt`, `MonthCalendarSyncDialog.kt`, `DutyAlarmManagerTest.kt`)**:
+  - Automatically configures multiple alarms across all scheduled **duty days** in the selected month in a single tap.
+  - **Annual Leave Exclusion**: Strictly excludes Annual Leave (`A/L`) holiday days and off days from setting alarms, ensuring user rest on holidays.
+  - **Multiple Alarms per Duty Day**: Supports configuring and saving multiple alarm times for each duty day (e.g., `05:30 Wake Up & Prepare`, `06:00 Depart / Commute`, `06:30 Arrive & Handover`, plus custom night shift times).
+  - Full DataStore persistence of user alarm configurations and target calendar selections via `SalaryRepository.kt`.
+
+### Bugs Found & Fixed
+- **Clean Sickness and Leave Disambiguation**: Ensured Annual Leave (`-999.0`) and Sick Leave (`-888.0`) are excluded from duty alarms while accurately counting working standard and overtime shifts.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [25.5] - 2026-09-25 (VersionCode: 49)
 ### Added / Changed
 - **Statutory Sick Pay (SSP) Shift Heatmap Purple Marking (`FEAT-915`) (`ShiftHeatmapCard.kt`, `Color.kt`, `AnnualShiftPdfGenerator.kt`, `IcsCalendarExporter.kt`)**:

@@ -81,6 +81,9 @@ class SalaryRepository(private val context: Context) {
     private val WEEKLY_OVERTIME_THRESHOLD_KEY = doublePreferencesKey("weekly_overtime_threshold")
     private val SSP_DAILY_RATE_KEY = doublePreferencesKey("ssp_daily_rate")
     private val SSP_WAITING_DAYS_KEY = intPreferencesKey("ssp_waiting_days")
+    private val SELECTED_GOOGLE_CALENDAR_ID_KEY = longPreferencesKey("selected_google_calendar_id")
+    private val DUTY_ALARM_TIMES_JSON_KEY = stringPreferencesKey("duty_alarm_times_json")
+    private val DUTY_SHIFT_START_TIME_KEY = stringPreferencesKey("duty_shift_start_time")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -1119,6 +1122,48 @@ class SalaryRepository(private val context: Context) {
     suspend fun setSspWaitingDays(days: Int) {
         context.dataStore.edit { preferences ->
             preferences[SSP_WAITING_DAYS_KEY] = days
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getSelectedGoogleCalendarId(): Flow<Long> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SELECTED_GOOGLE_CALENDAR_ID_KEY] ?: -1L
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setSelectedGoogleCalendarId(id: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[SELECTED_GOOGLE_CALENDAR_ID_KEY] = id
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getDutyAlarmTimesJson(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[DUTY_ALARM_TIMES_JSON_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setDutyAlarmTimesJson(json: String) {
+        context.dataStore.edit { preferences ->
+            preferences[DUTY_ALARM_TIMES_JSON_KEY] = json
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getDutyShiftStartTime(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[DUTY_SHIFT_START_TIME_KEY] ?: "07:00"
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setDutyShiftStartTime(time: String) {
+        context.dataStore.edit { preferences ->
+            preferences[DUTY_SHIFT_START_TIME_KEY] = time
         }
     }
 

@@ -4,6 +4,16 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Google Calendar Category Sync & Shift Importer (`FEAT-921`) (`GoogleCalendarSyncEngine.kt`, `MonthCalendarSyncDialog.kt`, `ShiftHeatmapCard.kt`):**
+  - **Account & Category Selector:** Queries and lists all device Google Calendars (`Personal`, `Work`, `Shifts`, `francyalinston@gmail.com`) allowing users to choose the target category for shift events.
+  - **Custom Shift Timing & Filters:** Configurable Shift Start Time presets (`07:00 Care Day`, `19:00 Care Night`, `08:00 Standard`, `09:00 Office`), custom reminder minutes (15m, 30m, 1h), and selective shift type filters (Duty, Overtime, Annual Leave, Statutory Sick Pay).
+  - **Duplicate Prevention:** Automatically clears prior Salary Calculator tagged events (`[SalaryCalculator]`) before inserting updated monthly rosters.
+
+- **Auto Duty Days Phone Alarm Setter (`FEAT-922`) (`DutyAlarmManager.kt`, `MonthCalendarSyncDialog.kt`):**
+  - **1-Tap Whole-Month Duty Alarm Automation:** Auto-configures multiple system alarms across every scheduled working duty day in the selected month in a single action.
+  - **Strict Annual Leave Holiday Exclusion:** Automatically excludes Annual Leave (`A/L`) days and off days from alarms so users are not disturbed on holidays.
+  - **Multiple Configurable Alarms per Duty Day:** Set multiple distinct alarm times (e.g. `05:30 Wake Up & Prepare`, `06:00 Depart / Commute`, `06:30 Arrive & Handover`) with custom labels and toggle switches saved to DataStore.
+
 - **Statutory Sick Pay (`SSP`) Purple Shift Marking & Waiting Days Payroll Engine (`FEAT-915`) (`ShiftHeatmapCard.kt`, `PayScheduleEngine.kt`, `TaxCalculator.kt`, `SettingsScreen.kt`):**
   - **Interactive Purple (`#A855F7`) SSP Badging:** 7-column interactive shift heatmap featuring dedicated Purple `SSP` sick leave badges with a quick 5-state tap cycle (`0h Off` $\to$ `12h Std` $\to$ `12h OT` $\to$ `A/L` $\to$ `SSP` $\to$ `0h Off`) and Purple legend indicator.
   - **Statutory UK Waiting Days & Qualifying Sickness Engine:** Implements HMRC statutory rules where the first 3 consecutive qualifying days in a sickness sequence are unpaid waiting days, and subsequent days earn statutory pay (default £23.35/day, configurable in Settings).

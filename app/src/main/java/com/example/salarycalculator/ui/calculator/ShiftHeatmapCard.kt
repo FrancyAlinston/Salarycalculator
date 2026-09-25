@@ -66,6 +66,7 @@ fun ShiftHeatmapCard(
     var showDutyRotaImportDialog by remember { mutableStateOf(false) }
     var showShiftSwapDialog by remember { mutableStateOf(false) }
     var showPayslipAuditDialog by remember { mutableStateOf(false) }
+    var showMonthCalendarSyncDialog by remember { mutableStateOf(false) }
 
     val monthNames = remember { DateFormatSymbols().shortMonths.filter { it.isNotBlank() } }
     val fullMonthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
@@ -322,6 +323,13 @@ fun ShiftHeatmapCard(
                         modifier = Modifier.size(36.dp)
                     ) {
                         Icon(Icons.Default.Share, contentDescription = "Export 12-Month .ICS Calendar", tint = MaterialTheme.colorScheme.primary)
+                    }
+
+                    IconButton(
+                        onClick = { showMonthCalendarSyncDialog = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Default.EventAvailable, contentDescription = "Sync Month to Google Calendar & Set Alarms", tint = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -872,6 +880,12 @@ fun ShiftHeatmapCard(
                 )
 
                 AssistChip(
+                    onClick = { showMonthCalendarSyncDialog = true },
+                    label = { Text("📅 Google Cal & Alarms", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold) },
+                    leadingIcon = { Icon(Icons.Default.EventAvailable, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary) }
+                )
+
+                AssistChip(
                     onClick = {
                         currentMonthMap.clear()
                         saveScheduleAndNotify()
@@ -971,6 +985,18 @@ fun ShiftHeatmapCard(
                 }
                 saveScheduleAndNotify()
             }
+        )
+    }
+
+    // Google Calendar Sync & Auto Duty Alarms Dialog
+    if (showMonthCalendarSyncDialog) {
+        MonthCalendarSyncDialog(
+            selectedYear = selectedYear,
+            selectedMonth = selectedMonth,
+            monthShifts = currentMonthMap.toMap(),
+            standardShiftHours = effectiveStandardHours,
+            salaryRepository = salaryRepository,
+            onDismiss = { showMonthCalendarSyncDialog = false }
         )
     }
 }
