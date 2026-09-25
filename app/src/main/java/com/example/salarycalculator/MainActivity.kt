@@ -44,6 +44,8 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         val salaryRepo = SalaryRepository(this)
+        com.example.salarycalculator.domain.LiveFxWorker.schedulePeriodicSync(this)
+        com.example.salarycalculator.domain.LiveFxWorker.runOneTimeSync(this)
 
         enableEdgeToEdge()
         setContent {

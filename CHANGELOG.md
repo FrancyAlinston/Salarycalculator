@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [25.0-alpha] - 2026-09-25 (VersionCode: 43)
 ### Added / Changed
+- **Universal Multi-Currency Conversion & Live Periodic FX Sync (`FEAT-903`) (`MultiCurrencyConverterEngine.kt`, `CurrencySettingsDialog.kt`, `LiveFxWorker.kt`, `CalculatorScreen.kt`)**:
+  - Configurable preferred Primary and Secondary display currencies supporting **all 160+ world currencies** and major crypto assets (BTC, ETH, SOL, XRP, ADA, DOGE) with instant conversion badges in `HeroNetPayCard`.
+  - Integrated AndroidX WorkManager background task (`LiveFxWorker`) to automatically fetch live rates from `open.er-api.com` and CoinGecko every 6 hours with offline graceful caching.
+  - Interactive currency selector dialog with quick-select chips, search/code input, manual rate overrides, and live 1-tap manual sync.
+- **Comprehensive Full-App Backup & Restore System (`FEAT-904`) (`LedgerBackupManager.kt`, `BackupRestoreDialog.kt`, `SalaryRepository.kt`)**:
+  - Upgraded `BackupBundle` (v2) to capture the *entire* state of the application: full annual shift heatmap schedule across all months/years (`annualShiftScheduleJson`), shift employer assignments (`employerShiftAssignmentsJson`), active employer profiles, custom pre/post-tax deductions, pay schedule cutoff configs, theme modes/palettes, biometric security locks, and currency preferences.
+  - Restoring a backup now returns the user *exactly* to how they left the app without losing any shift records or settings.
+- **Legacy JSON Backup Backward Compatibility (`FEAT-905`) (`LedgerBackupManager.kt`, `LedgerBackupManagerTest.kt`)**:
+  - Implemented multi-tier resilient JSON parsing in `LedgerBackupManager.parseBackupJson()` that automatically infers missing fields and adapts older v1/v2 schema variations without parsing crashes or data loss.
+- **Direct Backup JSON File Picker (`FEAT-906`) (`BackupRestoreDialog.kt`)**:
+  - Integrated `ActivityResultContracts.GetContent()` system file picker launcher allowing direct selection and preview of `.json` backup files from device storage, Google Drive, or downloads folder.
 - **Shift Heatmap Primary Default View Placement (`FEAT-901`) (`CalculatorScreen.kt`)**:
   - Reordered the primary home screen layout on single-column / mobile displays so that `ShiftHeatmapCard` renders immediately below `AppHeaderSection` before `FrequencySelectorRow` and `HeroNetPayCard`.
   - Shift Heatmap interactive calendar, month navigation, shift hours summary, and rota presets are now the very first components visible upon opening the app, eliminating the need to scroll down to access the heatmap.
@@ -17,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Bugs Found & Fixed
 - **Mobile Heatmap Viewport Clipping**: Resolved below-the-fold layout displacement on mobile screens where `HeroNetPayCard` pushed the interactive Shift Heatmap off-screen.
+- **Legacy Backup Schema Incompatibility**: Resolved deserialization exceptions when importing JSON exports created on earlier application versions.
 
 ### What Needs to Be Fixed / Pending
 - Biometric authentication auto-lock grace period customization.

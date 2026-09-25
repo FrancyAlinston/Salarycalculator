@@ -4,6 +4,17 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Universal Multi-Currency Conversion & Live Periodic FX Sync (`MultiCurrencyConverterEngine.kt`, `CurrencySettingsDialog.kt`, `LiveFxWorker.kt`, `CalculatorScreen.kt`):**
+  - **Universal Global Currency Registry:** Converts UK GBP (£) earnings into any user-selected primary and secondary currencies supporting **all 160+ world currencies** (EUR, USD, INR, PHP, CAD, AUD, JPY, CHF, SGD, NZD, AED, PLN, ZAR, NGN, KES, BRL, etc.) and major crypto assets (BTC, ETH, SOL, XRP, ADA, DOGE).
+  - **Automated WorkManager Background Sync (`LiveFxWorker.kt`):** Fetches live foreign exchange rates from `open.er-api.com` and crypto pricing every 6 hours with offline graceful caching.
+  - **Dynamic Home Screen Hero Net Pay Badges:** Renders real-time converted take-home salary badges for both primary and secondary currencies directly inside the Hero Net Pay card.
+  - **Custom Rate Overrides & Quick Selectors:** Interactive currency settings dialog with quick currency chips, search, manual rate overrides, and 1-tap live rate refresh.
+
+- **Comprehensive Full-App Backup & Restore System (`LedgerBackupManager.kt`, `BackupRestoreDialog.kt`, `SalaryRepository.kt`):**
+  - **Full-State Backup Bundle (v2):** Captures complete application state—all monthly salary records, employer profiles, custom pre/post-tax deductions, pay schedule rules, UI theme settings, biometric locks, currency preferences, and the *entire* multi-year Shift Heatmap schedule (`annualShiftScheduleJson`). Restoring returns the user *exactly* to how they left the app.
+  - **Legacy Backup Backward Compatibility:** Resilient multi-tier JSON parser seamlessly imports and restores older JSON backups from previous app versions without schema errors or data loss.
+  - **System File Picker Integration:** Direct `.json` file picker launcher (`ActivityResultContracts.GetContent()`) with instant backup preview and 1-tap full restore.
+
 - **Syncthing Continuous Cloud & Local Sync (`SyncthingSyncEngine.kt`, `SyncthingSyncDialog.kt`, `SettingsScreen.kt`):**
   - **Syncthing REST API Connectivity:** Full REST integration supporting self-hosted instances (e.g. `https://syncthing.449100.xyz`) with `X-API-Key` authentication, real-time connectivity ping tests, and remote folder scan triggers (`/rest/db/scan?folder=...`).
   - **Automated Local Syncthing Folder Export:** Continuous JSON ledger backups written to device storage (`Documents/SalaryCalculator/`) for real-time two-way synchronization between mobile phones and private NAS storage.

@@ -68,6 +68,9 @@ class SalaryRepository(private val context: Context) {
     private val SYNCTHING_API_KEY_KEY = stringPreferencesKey("syncthing_api_key")
     private val SYNCTHING_FOLDER_ID_KEY = stringPreferencesKey("syncthing_folder_id")
     private val SYNCTHING_AUTO_SYNC_KEY = booleanPreferencesKey("syncthing_auto_sync")
+    private val PREFERRED_CURRENCY_KEY = stringPreferencesKey("preferred_currency")
+    private val SECONDARY_CURRENCY_KEY = stringPreferencesKey("secondary_currency")
+    private val AUTO_UPDATE_RATES_KEY = booleanPreferencesKey("auto_update_rates_enabled")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -921,6 +924,83 @@ class SalaryRepository(private val context: Context) {
     suspend fun setSyncthingAutoSync(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[SYNCTHING_AUTO_SYNC_KEY] = enabled
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getPreferredCurrency(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[PREFERRED_CURRENCY_KEY] ?: "EUR"
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setPreferredCurrency(currencyCode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PREFERRED_CURRENCY_KEY] = currencyCode.trim().uppercase()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getSecondaryCurrency(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SECONDARY_CURRENCY_KEY] ?: "USD"
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setSecondaryCurrency(currencyCode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[SECONDARY_CURRENCY_KEY] = currencyCode.trim().uppercase()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getAutoUpdateRates(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[AUTO_UPDATE_RATES_KEY] ?: true
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setAutoUpdateRates(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[AUTO_UPDATE_RATES_KEY] = enabled
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun saveAnnualShiftScheduleJson(jsonStr: String) {
+        context.dataStore.edit { preferences ->
+            preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = jsonStr
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getShiftEmployerAssignmentsJson(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[EMPLOYER_SHIFT_ASSIGNMENTS_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun saveShiftEmployerAssignmentsJson(jsonStr: String) {
+        context.dataStore.edit { preferences ->
+            preferences[EMPLOYER_SHIFT_ASSIGNMENTS_KEY] = jsonStr
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getCachedCurrencyRatesJson(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[CACHED_CURRENCY_RATES_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setCachedCurrencyRatesJson(jsonStr: String) {
+        context.dataStore.edit { preferences ->
+            preferences[CACHED_CURRENCY_RATES_KEY] = jsonStr
         }
     }
 }

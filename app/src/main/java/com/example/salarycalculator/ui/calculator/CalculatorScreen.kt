@@ -63,6 +63,9 @@ fun CalculatorScreen(
     val activeProfileId by salaryRepository.getActiveProfileId().collectAsState(initial = null)
     val customEurRate by salaryRepository.getCustomEurRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_EUR_RATE)
     val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
+    val preferredCurrency by salaryRepository.getPreferredCurrency().collectAsState(initial = "EUR")
+    val secondaryCurrency by salaryRepository.getSecondaryCurrency().collectAsState(initial = "USD")
+    val cachedCurrencyRates by salaryRepository.getCachedCurrencyRates().collectAsState(initial = emptyMap())
     val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 12.0)
     val today = remember { java.util.Calendar.getInstance() }
     val curYear = today.get(java.util.Calendar.YEAR)
@@ -393,8 +396,9 @@ fun CalculatorScreen(
                             report = report,
                             displayedNetAmount = displayedNetAmount,
                             grossPay = grossPay,
-                            eurRate = customEurRate,
-                            usdRate = customUsdRate,
+                            primaryCurrencyCode = preferredCurrency,
+                            secondaryCurrencyCode = secondaryCurrency,
+                            cachedRates = cachedCurrencyRates,
                             onCurrencyClick = { showCurrencySettingsDialog = true }
                         )
                         DetailedPayslipCard(
@@ -528,8 +532,9 @@ fun CalculatorScreen(
                             report = report,
                             displayedNetAmount = displayedNetAmount,
                             grossPay = grossPay,
-                            eurRate = customEurRate,
-                            usdRate = customUsdRate,
+                            primaryCurrencyCode = preferredCurrency,
+                            secondaryCurrencyCode = secondaryCurrency,
+                            cachedRates = cachedCurrencyRates,
                             onCurrencyClick = { showCurrencySettingsDialog = true }
                         )
                         ShiftStopwatchCard(
@@ -1291,8 +1296,9 @@ private fun HeroNetPayCard(
     report: SalaryReport,
     displayedNetAmount: Double,
     grossPay: Double,
-    eurRate: Double = ConvertedCurrencies.DEFAULT_EUR_RATE,
-    usdRate: Double = ConvertedCurrencies.DEFAULT_USD_RATE,
+    primaryCurrencyCode: String = "EUR",
+    secondaryCurrencyCode: String = "USD",
+    cachedRates: Map<String, Double> = emptyMap(),
     onCurrencyClick: () -> Unit = {}
 ) {
     Card(
@@ -1369,7 +1375,12 @@ private fun HeroNetPayCard(
                 },
                 label = "NetAmountAnimation"
             ) { amount ->
-                val converted = CurrencyConverter.convert(amount, eurRate, usdRate)
+                val primaryConverted = remember(amount, primaryCurrencyCode, cachedRates) {
+                    MultiCurrencyConverterEngine.convertGbpToTarget(amount, primaryCurrencyCode, cachedRates)
+                }
+                val secondaryConverted = remember(amount, secondaryCurrencyCode, cachedRates) {
+                    MultiCurrencyConverterEngine.convertGbpToTarget(amount, secondaryCurrencyCode, cachedRates)
+                }
                 Column {
                     Text(
                         text = "£${"%.2f".format(amount)}",
@@ -1390,7 +1401,7 @@ private fun HeroNetPayCard(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
-                                text = "≈ €${"%.2f".format(converted.eurAmount)} · $${"%.2f".format(converted.usdAmount)}",
+                                text = "≈ $primaryConverted · $secondaryConverted",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant

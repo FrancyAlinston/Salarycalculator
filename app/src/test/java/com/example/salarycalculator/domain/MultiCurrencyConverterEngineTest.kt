@@ -64,4 +64,15 @@ class MultiCurrencyConverterEngineTest {
         assertEquals(0.000025, btc.gbpRate, 0.0000001)
         assertEquals(1.31, usd.gbpRate, 0.001) // Preserved default
     }
+
+    @Test
+    fun testConvertGbpToTarget() {
+        val amount = 1000.0 // £1000
+        val inrFormatted = MultiCurrencyConverterEngine.convertGbpToTarget(amount, "INR")
+        assertTrue("INR formatted string should contain symbol or code", inrFormatted.contains("₹") || inrFormatted.contains("INR"))
+
+        val customRates = mapOf("XYZ" to 5.0)
+        val xyzFormatted = MultiCurrencyConverterEngine.convertGbpToTarget(amount, "XYZ", customRates)
+        assertTrue("XYZ formatted string should convert with rate 5.0", xyzFormatted.contains("5,000.00") || xyzFormatted.contains("5000.00"))
+    }
 }
