@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Shift Heatmap Primary Default View Placement (`FEAT-901`) (`CalculatorScreen.kt`)**:
   - Reordered the primary home screen layout on single-column / mobile displays so that `ShiftHeatmapCard` renders immediately below `AppHeaderSection` before `FrequencySelectorRow` and `HeroNetPayCard`.
   - Shift Heatmap interactive calendar, month navigation, shift hours summary, and rota presets are now the very first components visible upon opening the app, eliminating the need to scroll down to access the heatmap.
+- **Syncthing Continuous Cloud & Local Sync (`FEAT-902`) (`SyncthingSyncEngine.kt`, `SyncthingSyncDialog.kt`, `SalaryRepository.kt`, `SettingsScreen.kt`)**:
+  - **Syncthing REST API Integration**: Added direct HTTP connectivity with self-hosted Syncthing server instances (e.g. `https://syncthing.449100.xyz`) using `X-API-Key` authentication, real-time connectivity ping tests (`/rest/system/ping`), and remote folder scan triggers (`/rest/db/scan?folder=...`).
+  - **Continuous Local Folder Export & Sync**: Exports `BackupBundle` snapshots to local device Syncthing storage (`Documents/SalaryCalculator/`) with automatic versioned timestamp naming and `SalaryCalculator_Latest.json` linking.
+  - **1-Tap Syncthing Restore**: Directly lists and restores backups from synchronized local files with live JSON schema validation.
+  - **Embedded Step-by-Step Syncthing Setup Guide**: Integrated in-app guide detailing API key extraction from Syncthing Web GUI and Android folder pairing.
 
 ### Bugs Found & Fixed
 - **Mobile Heatmap Viewport Clipping**: Resolved below-the-fold layout displacement on mobile screens where `HeroNetPayCard` pushed the interactive Shift Heatmap off-screen.

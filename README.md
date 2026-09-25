@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Syncthing Continuous Cloud & Local Sync (`SyncthingSyncEngine.kt`, `SyncthingSyncDialog.kt`, `SettingsScreen.kt`):**
+  - **Syncthing REST API Connectivity:** Full REST integration supporting self-hosted instances (e.g. `https://syncthing.449100.xyz`) with `X-API-Key` authentication, real-time connectivity ping tests, and remote folder scan triggers (`/rest/db/scan?folder=...`).
+  - **Automated Local Syncthing Folder Export:** Continuous JSON ledger backups written to device storage (`Documents/SalaryCalculator/`) for real-time two-way synchronization between mobile phones and private NAS storage.
+  - **1-Tap Syncthing Restore & Setup Guide:** In-app setup walkthrough and direct 1-tap ledger restoration from synced files.
+
 - **Cutoff-Window-Aware Payslip Auditor & 1-Tap Payroll Dispute Emailer (`PayslipParserEngine.kt`, `PayslipAuditEngine.kt`, `PayslipAuditDialog.kt`, `ShiftHeatmapCard.kt`):**
   - **Automated Payslip OCR Import:** Scans payslips from camera captures, gallery photos, and multi-page PDFs with on-device ML Kit OCR to extract Employee Name, Payroll Ref, NI Number, Process Date, Tax Period, Tax Code, Basic Paid Hours (units), Hourly Rate, Bank Holiday uplift hours & rate, Gross, PAYE, NI, and Net Pay.
   - **Payroll Cutoff Window Awareness:** Strictly audits shifts within the employer's pay cycle window (previous month cutoff + 1 day to current month cutoff date, e.g. `24 Aug 2026 to 20 Sep 2026` for September 2026 payslip). Automatically brings forward previous month's post-cutoff shifts into qualifying in-cycle hours while isolating current month's post-cutoff shifts into upcoming October rollovers.

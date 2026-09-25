@@ -76,6 +76,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var showProfileDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
     var showCustomCloudSyncDialog by remember { mutableStateOf(false) }
+    var showSyncthingSyncDialog by remember { mutableStateOf(false) }
     var showCurrencySettingsDialog by remember { mutableStateOf(false) }
     var showPayScheduleDialog by remember { mutableStateOf(false) }
     var showHmrcSyncDialog by remember { mutableStateOf(false) }
@@ -1123,28 +1124,47 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             }
                         }
 
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            FilledTonalButton(
-                                onClick = { showBackupDialog = true },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("JSON Backup", style = MaterialTheme.typography.labelMedium)
+                                FilledTonalButton(
+                                    onClick = { showBackupDialog = true },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("JSON Backup", style = MaterialTheme.typography.labelMedium)
+                                }
+
+                                FilledTonalButton(
+                                    onClick = { showCustomCloudSyncDialog = true },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Outlined.Dns, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Private Domain", style = MaterialTheme.typography.labelMedium)
+                                }
                             }
 
-                            FilledTonalButton(
-                                onClick = { showCustomCloudSyncDialog = true },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
+                            Button(
+                                onClick = { showSyncthingSyncDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
                             ) {
-                                Icon(Icons.Outlined.Dns, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Private Domain", style = MaterialTheme.typography.labelMedium)
+                                Icon(Icons.Outlined.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Syncthing Continuous Cloud Sync", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1221,6 +1241,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
             CustomCloudSyncDialog(
                 salaryRepository = salaryRepository,
                 onDismiss = { showCustomCloudSyncDialog = false }
+            )
+        }
+
+        // Syncthing Continuous Sync Modal
+        if (showSyncthingSyncDialog) {
+            SyncthingSyncDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showSyncthingSyncDialog = false }
             )
         }
 

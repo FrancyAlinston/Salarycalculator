@@ -64,6 +64,10 @@ class SalaryRepository(private val context: Context) {
     private val PAYROLL_CONTACT_EMAIL_KEY = stringPreferencesKey("payroll_contact_email")
     private val CACHED_CURRENCY_RATES_KEY = stringPreferencesKey("cached_currency_rates_json")
     private val CURRENCY_RATES_LAST_FETCH_KEY = stringPreferencesKey("currency_rates_last_fetch")
+    private val SYNCTHING_SERVER_URL_KEY = stringPreferencesKey("syncthing_server_url")
+    private val SYNCTHING_API_KEY_KEY = stringPreferencesKey("syncthing_api_key")
+    private val SYNCTHING_FOLDER_ID_KEY = stringPreferencesKey("syncthing_folder_id")
+    private val SYNCTHING_AUTO_SYNC_KEY = booleanPreferencesKey("syncthing_auto_sync")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -861,6 +865,62 @@ class SalaryRepository(private val context: Context) {
     fun getCurrencyRatesLastFetch(): Flow<String> {
         return context.dataStore.data.map { preferences ->
             preferences[CURRENCY_RATES_LAST_FETCH_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getSyncthingServerUrl(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SYNCTHING_SERVER_URL_KEY] ?: "https://syncthing.449100.xyz"
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setSyncthingServerUrl(url: String) {
+        context.dataStore.edit { preferences ->
+            preferences[SYNCTHING_SERVER_URL_KEY] = url.trim()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getSyncthingApiKey(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SYNCTHING_API_KEY_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setSyncthingApiKey(key: String) {
+        context.dataStore.edit { preferences ->
+            preferences[SYNCTHING_API_KEY_KEY] = key.trim()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getSyncthingFolderId(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SYNCTHING_FOLDER_ID_KEY] ?: "salary-calculator"
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setSyncthingFolderId(folderId: String) {
+        context.dataStore.edit { preferences ->
+            preferences[SYNCTHING_FOLDER_ID_KEY] = folderId.trim()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getSyncthingAutoSync(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SYNCTHING_AUTO_SYNC_KEY] ?: false
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setSyncthingAutoSync(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[SYNCTHING_AUTO_SYNC_KEY] = enabled
         }
     }
 }
