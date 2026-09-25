@@ -15,6 +15,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
   - **Legacy Backup Backward Compatibility:** Resilient multi-tier JSON parser seamlessly imports and restores older JSON backups from previous app versions without schema errors or data loss.
   - **System File Picker Integration:** Direct `.json` file picker launcher (`ActivityResultContracts.GetContent()`) with instant backup preview and 1-tap full restore.
 
+- **Google Account & Drive AppData Cloud Synchronization (`GoogleDriveSyncEngine.kt`, `GoogleDriveSyncDialog.kt`, `AutoBackupObserver.kt`, `SettingsScreen.kt`):**
+  - **Google Identity Integration:** Connect your Google account directly from Settings $\rightarrow$ Data Backup & Restore using standard Google Sign-In with private `drive.appdata` permissions.
+  - **Private AppData Cloud Storage:** Backups (`SalaryCalculator_Latest.json`) are stored securely in your hidden Google Drive AppData folder, keeping regular Drive folders clean while syncing effortlessly across multiple Android phones and tablets.
+  - **Automatic Continuous Sync & 1-Tap Restore:** Seamlessly updates the Drive backup whenever you make changes and enables 1-tap full ledger/shift restore on any device.
+
 - **Real-Time Continuous Syncthing Auto-Backup & Phone-to-Phone Sync (`AutoBackupObserver.kt`, `SyncthingSyncEngine.kt`, `SyncthingSyncDialog.kt`, `SettingsScreen.kt`):**
   - **Instant State Observer:** Continuously observes application DataStore preferences in real time with 500ms debouncing, immediately serializing full snapshots to `Documents/SalaryCalculator/SalaryCalculator_Latest.json` and timestamped archives on any user edit (shifts, rates, deductions, tax codes, employer profiles).
   - **Multi-Phone Synchronization:** Allows continuous synchronization across multiple Android phones and private NAS clusters (`syncthing.449100.xyz`) without requiring manual exports.

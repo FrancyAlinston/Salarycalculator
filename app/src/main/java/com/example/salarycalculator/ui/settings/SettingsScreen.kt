@@ -77,6 +77,7 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var showBackupDialog by remember { mutableStateOf(false) }
     var showCustomCloudSyncDialog by remember { mutableStateOf(false) }
     var showSyncthingSyncDialog by remember { mutableStateOf(false) }
+    var showGoogleDriveSyncDialog by remember { mutableStateOf(false) }
     var showCurrencySettingsDialog by remember { mutableStateOf(false) }
     var showPayScheduleDialog by remember { mutableStateOf(false) }
     var showHmrcSyncDialog by remember { mutableStateOf(false) }
@@ -1154,6 +1155,20 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             }
 
                             Button(
+                                onClick = { showGoogleDriveSyncDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            ) {
+                                Icon(Icons.Outlined.CloudSync, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Google Drive AppData Sync", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
                                 onClick = { showSyncthingSyncDialog = true },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
@@ -1249,6 +1264,14 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
             SyncthingSyncDialog(
                 salaryRepository = salaryRepository,
                 onDismiss = { showSyncthingSyncDialog = false }
+            )
+        }
+
+        // Google Drive AppData Sync Modal
+        if (showGoogleDriveSyncDialog) {
+            GoogleDriveSyncDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showGoogleDriveSyncDialog = false }
             )
         }
 

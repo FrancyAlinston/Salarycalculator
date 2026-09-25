@@ -59,6 +59,19 @@ object AutoBackupObserver {
                             apiKey = apiKey,
                             folderId = folderId
                         )
+
+                        // If Google Drive sync is enabled and account is signed in, sync to Google Drive AppData
+                        val googleAutoSync = repository.getGoogleDriveAutoSync().first()
+                        if (googleAutoSync) {
+                            val account = GoogleDriveSyncEngine.getSignedInAccount(context)
+                            if (account != null) {
+                                val driveRes = GoogleDriveSyncEngine.uploadBackupToDrive(context, account, bundle)
+                                if (driveRes.isSuccess) {
+                                    val nowStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                                    repository.setGoogleDriveLastSync(nowStr)
+                                }
+                            }
+                        }
                     } catch (_: Exception) {
                         // Resilient error handling - never crash UI thread
                     }

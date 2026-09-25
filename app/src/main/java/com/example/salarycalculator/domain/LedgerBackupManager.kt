@@ -61,7 +61,10 @@ data class BackupBundle(
     val customCloudEndpoint: String = "",
     val customCloudToken: String = "",
     val autoCloudSyncEnabled: Boolean = false,
-    val autoBackupFrequency: String = "DISABLED"
+    val autoBackupFrequency: String = "DISABLED",
+    val googleAccountEmail: String = "",
+    val googleDriveAutoSync: Boolean = true,
+    val googleDriveLastSync: String = ""
 )
 
 object LedgerBackupManager {
@@ -120,7 +123,10 @@ object LedgerBackupManager {
             customCloudEndpoint = repository.getCustomCloudEndpoint().first(),
             customCloudToken = repository.getCustomCloudToken().first(),
             autoCloudSyncEnabled = repository.getAutoCloudSyncEnabled().first(),
-            autoBackupFrequency = repository.getAutoBackupFrequency().first().name
+            autoBackupFrequency = repository.getAutoBackupFrequency().first().name,
+            googleAccountEmail = repository.getGoogleAccountEmail().first(),
+            googleDriveAutoSync = repository.getGoogleDriveAutoSync().first(),
+            googleDriveLastSync = repository.getGoogleDriveLastSync().first()
         )
     }
 
@@ -455,6 +461,9 @@ object LedgerBackupManager {
             try {
                 repository.setAutoBackupFrequency(AutoBackupFrequency.valueOf(bundle.autoBackupFrequency))
             } catch (_: Exception) {}
+            if (bundle.googleAccountEmail.isNotBlank()) repository.setGoogleAccountEmail(bundle.googleAccountEmail)
+            repository.setGoogleDriveAutoSync(bundle.googleDriveAutoSync)
+            if (bundle.googleDriveLastSync.isNotBlank()) repository.setGoogleDriveLastSync(bundle.googleDriveLastSync)
         } finally {
             AutoBackupObserver.setRestoring(false)
         }

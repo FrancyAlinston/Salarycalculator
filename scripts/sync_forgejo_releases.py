@@ -27,19 +27,9 @@ REPO = "Salarycalculator"
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)"
 
 def get_token():
-    # Try git credential helper first
     token = os.environ.get("FORGEJO_TOKEN")
     if token:
         return token
-    try:
-        import subprocess
-        proc = subprocess.Popen(["git", "credential", "fill"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-        out, _ = proc.communicate("protocol=https\nhost=forgejo.449100.xyz\n")
-        for line in out.splitlines():
-            if line.startswith("password="):
-                return line.split("=", 1)[1].strip()
-    except Exception:
-        pass
     return "cb3ec60060c253cc350454b85a42501f8ea5697d"
 
 def get_existing_releases(token):
