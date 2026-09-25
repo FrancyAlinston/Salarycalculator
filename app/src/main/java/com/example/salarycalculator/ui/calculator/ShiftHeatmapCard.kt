@@ -75,25 +75,23 @@ fun ShiftHeatmapCard(
 
     // Multi-Year Persistent Shift Store: Key = "$year-$month" -> Map(Day -> Hours)
     val multiYearShifts = remember { mutableStateMapOf<String, MutableMap<Int, Double>>() }
+    var isScheduleLoaded by remember { mutableStateOf(false) }
 
     // Load persisted schedule from DataStore
     LaunchedEffect(Unit) {
         salaryRepository.getAnnualShiftSchedule().collect { jsonStr ->
             if (jsonStr.isNotBlank()) {
-                try {
-                    val parsed = Json.decodeFromString<Map<String, Map<String, Double>>>(jsonStr)
-                    parsed.forEach { (keyStr, dayMap) ->
-                        val targetKey = if (keyStr.contains("-")) keyStr else "${cal.get(Calendar.YEAR)}-$keyStr"
-                        val targetMap = multiYearShifts.getOrPut(targetKey) { mutableStateMapOf() }
-                        dayMap.forEach { (dStr, hrs) ->
-                            val d = dStr.toIntOrNull()
-                            if (d != null && d in 1..31 && hrs != 0.0) {
-                                targetMap[d] = hrs
-                            }
+                val parsed = SalaryRepository.parseShiftScheduleJson(jsonStr)
+                parsed.forEach { (targetKey, dayMap) ->
+                    val targetMap = multiYearShifts.getOrPut(targetKey) { mutableStateMapOf() }
+                    dayMap.forEach { (d, hrs) ->
+                        if (hrs != 0.0) {
+                            targetMap[d] = hrs
                         }
                     }
-                } catch (_: Exception) {}
+                }
             }
+            isScheduleLoaded = true
         }
     }
 
@@ -172,12 +170,10 @@ fun ShiftHeatmapCard(
     }
 
     fun saveScheduleAndNotify() {
+        if (!isScheduleLoaded) return
         scope.launch {
             try {
-                val exportMap = multiYearShifts.mapValues { (_, dayMap) ->
-                    dayMap.filterValues { it != 0.0 }.mapKeys { it.key.toString() }
-                }.filterValues { it.isNotEmpty() }
-                val jsonStr = Json.encodeToString(exportMap)
+                val jsonStr = SalaryRepository.encodeShiftSchedule(multiYearShifts)
                 salaryRepository.setAnnualShiftSchedule(jsonStr)
 
                 // Calculate split fresh with latest state

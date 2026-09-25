@@ -121,4 +121,35 @@ class ShiftPersistenceAndSandboxTest {
         assertTrue(scenario.netPay > baseline.netPay)
         assertTrue(scenario.incomeTax > baseline.incomeTax)
     }
+
+    @Test
+    fun testResilientShiftScheduleParsingAcrossAllFormats() {
+        // 1. Nested format
+        val nestedJson = """{"2026-8": {"1": 12.0, "2": 12.0}, "2026-9": {"15": 8.0}}"""
+        val parsedNested = SalaryRepository.parseShiftScheduleJson(nestedJson)
+        assertEquals(2, parsedNested.size)
+        assertEquals(12.0, parsedNested["2026-8"]?.get(1))
+        assertEquals(12.0, parsedNested["2026-8"]?.get(2))
+        assertEquals(8.0, parsedNested["2026-9"]?.get(15))
+
+        // 2. Flat date key format (e.g., from older backups or rota exports)
+        val flatJson = """{"2026-8-1": 12.0, "2026-8-2": 12.0, "2026-9-15": 8.0}"""
+        val parsedFlat = SalaryRepository.parseShiftScheduleJson(flatJson)
+        assertEquals(2, parsedFlat.size)
+        assertEquals(12.0, parsedFlat["2026-8"]?.get(1))
+        assertEquals(12.0, parsedFlat["2026-8"]?.get(2))
+        assertEquals(8.0, parsedFlat["2026-9"]?.get(15))
+
+        // 3. Padded ISO format ("2026-08-01")
+        val isoJson = """{"2026-08-01": 12.0, "2026-08-02": 12.0}"""
+        val parsedIso = SalaryRepository.parseShiftScheduleJson(isoJson)
+        assertEquals(1, parsedIso.size)
+        assertEquals(12.0, parsedIso["2026-8"]?.get(1))
+        assertEquals(12.0, parsedIso["2026-8"]?.get(2))
+
+        // 4. Encode & roundtrip
+        val encoded = SalaryRepository.encodeShiftSchedule(parsedNested)
+        val roundtrip = SalaryRepository.parseShiftScheduleJson(encoded)
+        assertEquals(parsedNested, roundtrip)
+    }
 }

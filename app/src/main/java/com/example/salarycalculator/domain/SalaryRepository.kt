@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.jsonPrimitive
 
 enum class ThemeMode {
     SYSTEM,
@@ -681,7 +683,9 @@ class SalaryRepository(private val context: Context) {
     // CRITICAL: DATASTORE_PERSISTENCE
     suspend fun setAnnualShiftSchedule(scheduleJson: String) {
         context.dataStore.edit { preferences ->
-            preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = scheduleJson
+            val parsed = parseShiftScheduleJson(scheduleJson)
+            val cleanToSave = if (parsed.isNotEmpty()) encodeShiftSchedule(parsed) else scheduleJson
+            preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = cleanToSave
         }
     }
 
@@ -761,27 +765,23 @@ class SalaryRepository(private val context: Context) {
     fun getMonthShiftSchedule(year: Int, month: Int): Flow<Map<Int, Double>> {
         return context.dataStore.data.map { preferences ->
             val jsonStr = preferences[ANNUAL_SHIFT_SCHEDULE_KEY] ?: ""
-            if (jsonStr.isBlank()) {
-                emptyMap()
+            val fullMap = parseShiftScheduleJson(jsonStr)
+            fullMap["$year-$month"] ?: emptyMap()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun saveMonthShiftSchedule(year: Int, month: Int, monthShifts: Map<Int, Double>) {
+        context.dataStore.edit { preferences ->
+            val jsonStr = preferences[ANNUAL_SHIFT_SCHEDULE_KEY] ?: ""
+            val currentMap = parseShiftScheduleJson(jsonStr).mapValues { it.value.toMutableMap() }.toMutableMap()
+            val cleanMonth = monthShifts.filterValues { it != 0.0 }
+            if (cleanMonth.isEmpty()) {
+                currentMap.remove("$year-$month")
             } else {
-                try {
-                    val parsed = json.decodeFromString<Map<String, Map<String, Double>>>(jsonStr)
-                    // Check YYYY-MM key first (e.g. "2026-09"), then fallback to "9" or "09"
-                    val ymKey = "$year-$month"
-                    val mKey = month.toString()
-                    val dayMap = parsed[ymKey] ?: parsed[mKey] ?: emptyMap()
-                    val result = mutableMapOf<Int, Double>()
-                    dayMap.forEach { (dStr, hrs) ->
-                        val d = dStr.toIntOrNull()
-                        if (d != null && d in 1..31 && hrs != 0.0) {
-                            result[d] = hrs
-                        }
-                    }
-                    result
-                } catch (_: Exception) {
-                    emptyMap()
-                }
+                currentMap["$year-$month"] = cleanMonth.toMutableMap()
             }
+            preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = encodeShiftSchedule(currentMap)
         }
     }
 
@@ -971,9 +971,7 @@ class SalaryRepository(private val context: Context) {
 
     // CRITICAL: DATASTORE_PERSISTENCE
     suspend fun saveAnnualShiftScheduleJson(jsonStr: String) {
-        context.dataStore.edit { preferences ->
-            preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = jsonStr
-        }
+        setAnnualShiftSchedule(jsonStr)
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
@@ -1001,6 +999,70 @@ class SalaryRepository(private val context: Context) {
     suspend fun setCachedCurrencyRatesJson(jsonStr: String) {
         context.dataStore.edit { preferences ->
             preferences[CACHED_CURRENCY_RATES_KEY] = jsonStr
+        }
+    }
+
+    companion object {
+        fun parseShiftScheduleJson(jsonStr: String): Map<String, Map<Int, Double>> {
+            if (jsonStr.isBlank()) return emptyMap()
+            val result = mutableMapOf<String, MutableMap<Int, Double>>()
+            val defaultYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+
+            try {
+                val element = Json.parseToJsonElement(jsonStr)
+                if (element is kotlinx.serialization.json.JsonObject) {
+                    element.forEach { (key, value) ->
+                        when {
+                            // Case 1: Nested object -> {"2026-9": {"1": 12.0, "2": 12.0}} or {"9": {"1": 12.0}}
+                            value is kotlinx.serialization.json.JsonObject -> {
+                                val monthKey = if (key.contains("-")) {
+                                    val parts = key.split("-")
+                                    val y = parts.getOrNull(0)?.toIntOrNull() ?: defaultYear
+                                    val m = parts.getOrNull(1)?.toIntOrNull() ?: 1
+                                    "$y-$m"
+                                } else {
+                                    val m = key.toIntOrNull() ?: 1
+                                    "$defaultYear-$m"
+                                }
+                                val dayMap = result.getOrPut(monthKey) { mutableMapOf() }
+                                value.forEach { (dStr, hrsElem) ->
+                                    val d = dStr.toIntOrNull()
+                                    val hrs = hrsElem.jsonPrimitive.doubleOrNull
+                                    if (d != null && d in 1..31 && hrs != null && hrs != 0.0) {
+                                        dayMap[d] = hrs
+                                    }
+                                }
+                            }
+                            // Case 2: Flat date key -> {"2026-8-1": 12.0} or {"2026-08-01": 12.0}
+                            value is kotlinx.serialization.json.JsonPrimitive -> {
+                                val hrs = value.doubleOrNull
+                                if (hrs != null && hrs != 0.0) {
+                                    val parts = key.split("-")
+                                    if (parts.size >= 3) {
+                                        val y = parts[0].toIntOrNull() ?: defaultYear
+                                        val m = parts[1].toIntOrNull() ?: 1
+                                        val d = parts[2].toIntOrNull() ?: 1
+                                        if (d in 1..31) {
+                                            val monthKey = "$y-$m"
+                                            val dayMap = result.getOrPut(monthKey) { mutableMapOf() }
+                                            dayMap[d] = hrs
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            return result.filterValues { it.isNotEmpty() }
+        }
+
+        fun encodeShiftSchedule(schedule: Map<String, Map<Int, Double>>): String {
+            val exportMap = schedule.mapValues { (_, dayMap) ->
+                dayMap.filterValues { it != 0.0 }.mapKeys { it.key.toString() }
+            }.filterValues { it.isNotEmpty() }
+            return Json.encodeToString(exportMap)
         }
     }
 }

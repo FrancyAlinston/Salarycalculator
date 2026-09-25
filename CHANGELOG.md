@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - **Embedded Step-by-Step Syncthing Setup Guide**: Integrated in-app guide detailing API key extraction from Syncthing Web GUI and Android folder pairing.
 
 ### Bugs Found & Fixed
+- **Shift Heatmap Update Persistence & Race Condition Protection (`FIX-904`) (`SalaryRepository.kt`, `ShiftHeatmapCard.kt`, `ShiftCalendarDialog.kt`)**:
+  - Implemented universal multi-format shift schedule parsing (`SalaryRepository.parseShiftScheduleJson`) supporting nested maps, flat dates (`"YYYY-M-D"` / `"YYYY-MM-DD"`), and single-month strings so shift dates never get wiped out on app update, schema migration, or backup restoration.
+  - Added `isScheduleLoaded` lifecycle state guards in `ShiftHeatmapCard` and `ShiftCalendarDialog` preventing premature empty overwrites of DataStore preferences on initial launch.
 - **Mobile Heatmap Viewport Clipping**: Resolved below-the-fold layout displacement on mobile screens where `HeroNetPayCard` pushed the interactive Shift Heatmap off-screen.
 - **Legacy Backup Schema Incompatibility**: Resolved deserialization exceptions when importing JSON exports created on earlier application versions.
 
