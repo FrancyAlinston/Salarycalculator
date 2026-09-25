@@ -4,6 +4,28 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.7] - 2026-09-25 (VersionCode: 51)
+### Added / Changed
+- **Android Home Screen Interactive Shift Heatmap Widget (`FEAT-926`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftHeatmapWidgetManager.kt`, `widget_shift_heatmap.xml`, `AndroidManifest.xml`)**:
+  - Full-featured **Android Home Screen Heatmap Widget** rendering the interactive 7-column monthly shift calendar directly on the device home screen.
+  - **Month Navigation Controls**: `<` and `>` buttons on the widget header allow scrolling through past and future months without opening the app, alongside a "Today" reset button.
+  - **Dynamic High-DPI Heatmap Canvas**: Pixel-perfect rendering of Emerald (Standard Shifts), Amber (Overtime), Blue (Annual Leave A/L), Purple (Statutory Sick Pay SSP), and Off days with real-time Pay Day and Cutoff indicators.
+  - **Transparent & Glassmorphism Theme Support**: Tappable opacity toggle button (`widget_btn_transparency`) on the widget header seamlessly switches between translucent dark glass (`#E6151A22`) and 100% fully transparent (`#00000000`) modes to match any device wallpaper.
+  - **Real-Time Two-Way Sync**: Automatically refreshes widget display whenever shifts are updated, imported via OCR, or edited in the main app.
+- **Commute & Traffic Pre-Alarm Buffer Engine (`FEAT-925`) (`DutyAlarmManager.kt`, `MonthCalendarSyncDialog.kt`, `SalaryRepository.kt`, `DutyAlarmManagerTest.kt`)**:
+  - Added configurable Commute Duration (15m, 30m, 45m, 60m) and Traffic Buffer (0m, 10m, 15m, 30m).
+  - 1-tap **Smart Alarm Generator**: Auto-calculates exact departure times ($\text{Shift Start} - \text{Commute} - \text{Traffic Buffer}$) and handover buffers for any shift start time with automatic midnight-wrap protection.
+- **Duty Day Alarm Vibration & Sound Presets (`FEAT-923`) (`DutyAlarmManager.kt`, `MonthCalendarSyncDialog.kt`)**:
+  - Configurable alarm vibration toggle and custom duty alarm labeling dispatched directly into the Android system Clock application.
+
+### Bugs Found & Fixed
+- **Widget Month Bounds**: Handled cross-year and multi-month bounds calculations smoothly with persistent per-widget month offset tracking.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [25.6] - 2026-09-25 (VersionCode: 50)
 ### Added / Changed
 - **Google Calendar Category Sync & Shift Event Importer (`FEAT-921`) (`GoogleCalendarSyncEngine.kt`, `MonthCalendarSyncDialog.kt`, `ShiftHeatmapCard.kt`, `AndroidManifest.xml`)**:

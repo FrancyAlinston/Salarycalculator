@@ -8,7 +8,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -102,9 +101,16 @@ fun MonthCalendarSyncDialog(
     var isSyncingCalendar by remember { mutableStateOf(false) }
     var calendarSyncStatusMessage by remember { mutableStateOf<String?>(null) }
 
-    // Duty Alarms configuration
+    // Duty Alarms configuration & Traffic Buffer (FEAT-923 & FEAT-925)
     val savedAlarmJsonState = salaryRepository.getDutyAlarmTimesJson().collectAsState(initial = "")
+    val commuteMinutesState = salaryRepository.getCommuteMinutes().collectAsState(initial = 30)
+    val trafficBufferMinutesState = salaryRepository.getTrafficBufferMinutes().collectAsState(initial = 15)
+    val alarmVibrateState = salaryRepository.getAlarmVibrate().collectAsState(initial = true)
+
     var dutyAlarmTimes by remember { mutableStateOf(DutyAlarmManager.DEFAULT_DUTY_ALARMS) }
+    var commuteMinutes by remember { mutableIntStateOf(30) }
+    var trafficBufferMinutes by remember { mutableIntStateOf(15) }
+    var alarmVibrate by remember { mutableStateOf(true) }
 
     LaunchedEffect(savedAlarmJsonState.value) {
         if (savedAlarmJsonState.value.isNotBlank()) {
@@ -114,11 +120,15 @@ fun MonthCalendarSyncDialog(
             }
         }
     }
+    LaunchedEffect(commuteMinutesState.value) { commuteMinutes = commuteMinutesState.value }
+    LaunchedEffect(trafficBufferMinutesState.value) { trafficBufferMinutes = trafficBufferMinutesState.value }
+    LaunchedEffect(alarmVibrateState.value) { alarmVibrate = alarmVibrateState.value }
 
     var showAddAlarmDialog by remember { mutableStateOf(false) }
     var newAlarmHour by remember { mutableIntStateOf(6) }
     var newAlarmMinute by remember { mutableIntStateOf(0) }
     var newAlarmLabel by remember { mutableStateOf("Duty Shift - Commute") }
+    var newAlarmVibrate by remember { mutableStateOf(true) }
 
     var alarmStatusMessage by remember { mutableStateOf<String?>(null) }
 
@@ -344,6 +354,38 @@ fun MonthCalendarSyncDialog(
                                 dutyDays = dutyDays,
                                 annualLeaveDays = annualLeaveDays,
                                 alarmTimes = dutyAlarmTimes,
+                                shiftStartHour = shiftStartHour,
+                                shiftStartMinute = shiftStartMinute,
+                                commuteMinutes = commuteMinutes,
+                                onCommuteMinutesChange = {
+                                    commuteMinutes = it
+                                    scope.launch { salaryRepository.setCommuteMinutes(it) }
+                                },
+                                trafficBufferMinutes = trafficBufferMinutes,
+                                onTrafficBufferMinutesChange = {
+                                    trafficBufferMinutes = it
+                                    scope.launch { salaryRepository.setTrafficBufferMinutes(it) }
+                                },
+                                alarmVibrate = alarmVibrate,
+                                onAlarmVibrateChange = {
+                                    alarmVibrate = it
+                                    scope.launch { salaryRepository.setAlarmVibrate(it) }
+                                },
+                                onGenerateSmartAlarms = {
+                                    val smart = DutyAlarmManager.generateSmartDutyAlarms(
+                                        shiftStartHour = shiftStartHour,
+                                        shiftStartMinute = shiftStartMinute,
+                                        wakeUpLeadMinutes = 90,
+                                        commuteMinutes = commuteMinutes,
+                                        trafficBufferMinutes = trafficBufferMinutes,
+                                        vibrate = alarmVibrate
+                                    )
+                                    dutyAlarmTimes = smart
+                                    scope.launch {
+                                        salaryRepository.setDutyAlarmTimesJson(DutyAlarmManager.encodeAlarmTimesJson(smart))
+                                    }
+                                    Toast.makeText(context, "Calculated smart alarms for %02d:%02d shift!".format(shiftStartHour, shiftStartMinute), Toast.LENGTH_SHORT).show()
+                                },
                                 onToggleAlarm = { id, enabled ->
                                     val updated = dutyAlarmTimes.map {
                                         if (it.id == id) it.copy(isEnabled = enabled) else it
@@ -447,6 +489,15 @@ fun MonthCalendarSyncDialog(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Vibrate on Alarm", style = MaterialTheme.typography.bodySmall)
+                        Switch(checked = newAlarmVibrate, onCheckedChange = { newAlarmVibrate = it })
+                    }
                 }
             },
             confirmButton = {
@@ -456,7 +507,8 @@ fun MonthCalendarSyncDialog(
                             hour = newAlarmHour,
                             minute = newAlarmMinute,
                             label = newAlarmLabel.ifBlank { "Duty Shift" },
-                            isEnabled = true
+                            isEnabled = true,
+                            vibrate = newAlarmVibrate
                         )
                         val updated = dutyAlarmTimes + newAlarm
                         dutyAlarmTimes = updated
@@ -785,6 +837,15 @@ private fun DutyAlarmsTabContent(
     dutyDays: List<Int>,
     annualLeaveDays: List<Int>,
     alarmTimes: List<DutyAlarmTime>,
+    shiftStartHour: Int,
+    shiftStartMinute: Int,
+    commuteMinutes: Int,
+    onCommuteMinutesChange: (Int) -> Unit,
+    trafficBufferMinutes: Int,
+    onTrafficBufferMinutesChange: (Int) -> Unit,
+    alarmVibrate: Boolean,
+    onAlarmVibrateChange: (Boolean) -> Unit,
+    onGenerateSmartAlarms: () -> Unit,
     onToggleAlarm: (String, Boolean) -> Unit,
     onDeleteAlarm: (String) -> Unit,
     onOpenAddAlarmDialog: () -> Unit,
@@ -823,6 +884,99 @@ private fun DutyAlarmsTabContent(
                         "Automatically configures multiple alarms for the whole month on every scheduled duty day. Annual Leave days are automatically excluded so you can sleep in on holidays!",
                         style = MaterialTheme.typography.bodySmall
                     )
+                }
+            }
+        }
+
+        // FEAT-923 & FEAT-925: Smart Commute & Traffic Pre-Alarm Buffer Card
+        item {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Amber60.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, Amber60.copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.DirectionsCar, contentDescription = null, tint = Amber60)
+                        Text(
+                            "Commute & Traffic Pre-Alarm Buffer (FEAT-925)",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Amber60
+                        )
+                    }
+
+                    // Commute Duration Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Commute Duration:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(15 to "15m", 30 to "30m", 45 to "45m", 60 to "60m").forEach { (mins, lbl) ->
+                                FilterChip(
+                                    selected = commuteMinutes == mins,
+                                    onClick = { onCommuteMinutesChange(mins) },
+                                    label = { Text(lbl, style = MaterialTheme.typography.labelSmall) }
+                                )
+                            }
+                        }
+                    }
+
+                    // Traffic Buffer Chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Traffic Buffer:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(0 to "0m", 10 to "10m", 15 to "15m", 30 to "30m").forEach { (mins, lbl) ->
+                                FilterChip(
+                                    selected = trafficBufferMinutes == mins,
+                                    onClick = { onTrafficBufferMinutesChange(mins) },
+                                    label = { Text(lbl, style = MaterialTheme.typography.labelSmall) }
+                                )
+                            }
+                        }
+                    }
+
+                    // Alarm Vibration Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.Vibration, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                            Text("Alarm Vibration (FEAT-923)", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Switch(checked = alarmVibrate, onCheckedChange = onAlarmVibrateChange)
+                    }
+
+                    // Smart Auto-Calculate Button
+                    Button(
+                        onClick = onGenerateSmartAlarms,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Amber60)
+                    ) {
+                        Icon(Icons.Default.AutoFixHigh, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            "⚡ Auto-Generate Alarms for %02d:%02d Shift (+%dm Buffer)".format(shiftStartHour, shiftStartMinute, trafficBufferMinutes),
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
                 }
             }
         }

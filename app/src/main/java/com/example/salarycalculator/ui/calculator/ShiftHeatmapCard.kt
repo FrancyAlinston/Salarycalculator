@@ -195,6 +195,7 @@ fun ShiftHeatmapCard(
             try {
                 val jsonStr = SalaryRepository.encodeShiftSchedule(multiYearShifts)
                 salaryRepository.setAnnualShiftSchedule(jsonStr)
+                com.example.salarycalculator.widget.ShiftHeatmapWidgetManager.updateAllWidgets(context)
 
                 // Calculate split fresh with latest state
                 val freshSplit = PayScheduleEngine.calculateShiftPayrollSplit(

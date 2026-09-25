@@ -79,4 +79,49 @@ class DutyAlarmManagerTest {
         assertEquals(30, defaults[2].minute)
         assertEquals("06:30", defaults[2].formattedTime)
     }
+
+    @Test
+    fun testCalculateDepartureTime_WithCommuteAndTrafficBuffer() {
+        // Shift 07:00, 30m commute, 15m traffic buffer -> Departure 06:15
+        val (h1, m1) = DutyAlarmManager.calculateDepartureTime(7, 0, 30, 15)
+        assertEquals(6, h1)
+        assertEquals(15, m1)
+
+        // Shift 07:00, 45m commute, 30m traffic buffer -> Departure 05:45
+        val (h2, m2) = DutyAlarmManager.calculateDepartureTime(7, 0, 45, 30)
+        assertEquals(5, h2)
+        assertEquals(45, m2)
+
+        // Midnight shift 00:30, 30m commute, 15m traffic buffer -> Departure 23:45
+        val (h3, m3) = DutyAlarmManager.calculateDepartureTime(0, 30, 30, 15)
+        assertEquals(23, h3)
+        assertEquals(45, m3)
+    }
+
+    @Test
+    fun testGenerateSmartDutyAlarms() {
+        val smartAlarms = DutyAlarmManager.generateSmartDutyAlarms(
+            shiftStartHour = 7,
+            shiftStartMinute = 0,
+            wakeUpLeadMinutes = 90,
+            commuteMinutes = 30,
+            trafficBufferMinutes = 15,
+            vibrate = true
+        )
+
+        assertEquals(3, smartAlarms.size)
+        // Wake-up: 07:00 - 90m = 05:30
+        assertEquals(5, smartAlarms[0].hour)
+        assertEquals(30, smartAlarms[0].minute)
+        assertTrue(smartAlarms[0].vibrate)
+
+        // Depart with Traffic Buffer: 07:00 - 45m = 06:15
+        assertEquals(6, smartAlarms[1].hour)
+        assertEquals(15, smartAlarms[1].minute)
+        assertTrue(smartAlarms[1].label.contains("+15m Traffic Buffer"))
+
+        // Arrive / Handover: 07:00 - 15m = 06:45
+        assertEquals(6, smartAlarms[2].hour)
+        assertEquals(45, smartAlarms[2].minute)
+    }
 }

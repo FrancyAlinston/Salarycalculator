@@ -31,6 +31,21 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+
+        <receiver
+            android:name=".widget.ShiftHeatmapWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.salarycalculator.widget.PREV_MONTH" />
+                <action android:name="com.example.salarycalculator.widget.NEXT_MONTH" />
+                <action android:name="com.example.salarycalculator.widget.RESET_MONTH" />
+                <action android:name="com.example.salarycalculator.widget.TOGGLE_TRANSPARENCY" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/shift_heatmap_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

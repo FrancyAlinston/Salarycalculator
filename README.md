@@ -4,6 +4,16 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Interactive Android Home Screen Shift Heatmap Widget (`FEAT-926`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftHeatmapWidgetManager.kt`, `widget_shift_heatmap.xml`):**
+  - **Live Home Screen Roster Widget:** Direct on-screen interactive 7-column shift heatmap displaying the user's scheduled shifts, holiday days, and sick days.
+  - **In-Widget Month Scrolling:** Step forward (`>`) and backward (`<`) through months or reset to "Today" directly from the Android home screen without opening the app.
+  - **Adaptive Transparent & Glassmorphic Theming:** Includes a 1-tap opacity toggle (`widget_btn_transparency`) on the widget header to switch between translucent glass (`#E6151A22`) and 100% fully transparent (`#00000000`) modes to blend with any device wallpaper.
+  - **Real-Time Automatic Sync:** Instantly refreshes widget display whenever shifts are updated, imported via OCR, or edited in the main app.
+
+- **Commute & Traffic Pre-Alarm Buffer Engine (`FEAT-925`) & Vibration Presets (`FEAT-923`) (`DutyAlarmManager.kt`, `MonthCalendarSyncDialog.kt`):**
+  - **Dynamic Traffic Lead Buffer:** Configurable commute duration (15m, 30m, 45m, 60m) and traffic delay buffer (0m, 10m, 15m, 30m) to calculate exact departure times ($\text{Shift Start} - \text{Commute} - \text{Traffic Buffer}$) with 1-tap smart alarm generation.
+  - **Alarm Vibration & Sound Customization:** Full alarm vibration toggling and custom label dispatching directly to the Android system clock app.
+
 - **Google Calendar Category Sync & Shift Importer (`FEAT-921`) (`GoogleCalendarSyncEngine.kt`, `MonthCalendarSyncDialog.kt`, `ShiftHeatmapCard.kt`):**
   - **Account & Category Selector:** Queries and lists all device Google Calendars (`Personal`, `Work`, `Shifts`, `francyalinston@gmail.com`) allowing users to choose the target category for shift events.
   - **Custom Shift Timing & Filters:** Configurable Shift Start Time presets (`07:00 Care Day`, `19:00 Care Night`, `08:00 Standard`, `09:00 Office`), custom reminder minutes (15m, 30m, 1h), and selective shift type filters (Duty, Overtime, Annual Leave, Statutory Sick Pay).

@@ -84,6 +84,10 @@ class SalaryRepository(private val context: Context) {
     private val SELECTED_GOOGLE_CALENDAR_ID_KEY = longPreferencesKey("selected_google_calendar_id")
     private val DUTY_ALARM_TIMES_JSON_KEY = stringPreferencesKey("duty_alarm_times_json")
     private val DUTY_SHIFT_START_TIME_KEY = stringPreferencesKey("duty_shift_start_time")
+    private val WIDGET_TRANSPARENT_MODE_KEY = booleanPreferencesKey("widget_transparent_mode")
+    private val COMMUTE_MINUTES_KEY = intPreferencesKey("commute_minutes")
+    private val TRAFFIC_BUFFER_MINUTES_KEY = intPreferencesKey("traffic_buffer_minutes")
+    private val ALARM_VIBRATE_KEY = booleanPreferencesKey("alarm_vibrate")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -1164,6 +1168,62 @@ class SalaryRepository(private val context: Context) {
     suspend fun setDutyShiftStartTime(time: String) {
         context.dataStore.edit { preferences ->
             preferences[DUTY_SHIFT_START_TIME_KEY] = time
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getWidgetTransparentMode(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[WIDGET_TRANSPARENT_MODE_KEY] ?: false // false = Translucent Glass (default), true = Fully Transparent
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setWidgetTransparentMode(transparent: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[WIDGET_TRANSPARENT_MODE_KEY] = transparent
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getCommuteMinutes(): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[COMMUTE_MINUTES_KEY] ?: 30
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setCommuteMinutes(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[COMMUTE_MINUTES_KEY] = minutes
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getTrafficBufferMinutes(): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[TRAFFIC_BUFFER_MINUTES_KEY] ?: 15
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setTrafficBufferMinutes(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[TRAFFIC_BUFFER_MINUTES_KEY] = minutes
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getAlarmVibrate(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[ALARM_VIBRATE_KEY] ?: true
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setAlarmVibrate(vibrate: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[ALARM_VIBRATE_KEY] = vibrate
         }
     }
 

@@ -15,7 +15,8 @@ data class DutyAlarmTime(
     val hour: Int,
     val minute: Int,
     val label: String,
-    val isEnabled: Boolean = true
+    val isEnabled: Boolean = true,
+    val vibrate: Boolean = true
 ) {
     val formattedTime: String
         get() = "%02d:%02d".format(hour, minute)
@@ -42,21 +43,24 @@ object DutyAlarmManager {
             hour = 5,
             minute = 30,
             label = "Duty Shift - Wake Up & Prepare",
-            isEnabled = true
+            isEnabled = true,
+            vibrate = true
         ),
         DutyAlarmTime(
             id = "alarm-2",
             hour = 6,
             minute = 0,
             label = "Duty Shift - Depart / Commute",
-            isEnabled = true
+            isEnabled = true,
+            vibrate = true
         ),
         DutyAlarmTime(
             id = "alarm-3",
             hour = 6,
             minute = 30,
             label = "Duty Shift - Arrive & Handover",
-            isEnabled = true
+            isEnabled = true,
+            vibrate = true
         )
     )
 
@@ -77,6 +81,73 @@ object DutyAlarmManager {
         } catch (_: Exception) {
             ""
         }
+    }
+
+    /**
+     * Calculates pre-shift alarm times based on commute duration and traffic buffer.
+     * FEAT-925: Traffic & Pre-Alarm Buffer calculation.
+     */
+    fun calculateDepartureTime(
+        shiftStartHour: Int,
+        shiftStartMinute: Int,
+        commuteMinutes: Int,
+        trafficBufferMinutes: Int
+    ): Pair<Int, Int> {
+        val totalLeadMinutes = commuteMinutes + trafficBufferMinutes
+        var totalShiftMinutes = shiftStartHour * 60 + shiftStartMinute - totalLeadMinutes
+        while (totalShiftMinutes < 0) {
+            totalShiftMinutes += 24 * 60
+        }
+        totalShiftMinutes %= (24 * 60)
+        return Pair(totalShiftMinutes / 60, totalShiftMinutes % 60)
+    }
+
+    /**
+     * Generates a smart preset profile of 3 alarms for a given shift start time, commute, and traffic buffer.
+     */
+    fun generateSmartDutyAlarms(
+        shiftStartHour: Int,
+        shiftStartMinute: Int,
+        wakeUpLeadMinutes: Int = 90,
+        commuteMinutes: Int = 30,
+        trafficBufferMinutes: Int = 15,
+        vibrate: Boolean = true
+    ): List<DutyAlarmTime> {
+        // Wake-up alarm
+        val (wakeH, wakeM) = calculateDepartureTime(shiftStartHour, shiftStartMinute, wakeUpLeadMinutes, 0)
+        // Departure alarm (Commute + Traffic Buffer)
+        val (departH, departM) = calculateDepartureTime(shiftStartHour, shiftStartMinute, commuteMinutes, trafficBufferMinutes)
+        // Handover / Arrival buffer (15m before shift start)
+        val (arriveH, arriveM) = calculateDepartureTime(shiftStartHour, shiftStartMinute, 15, 0)
+
+        val trafficLabel = if (trafficBufferMinutes > 0) " (+${trafficBufferMinutes}m Traffic Buffer)" else ""
+
+        return listOf(
+            DutyAlarmTime(
+                id = UUID.randomUUID().toString(),
+                hour = wakeH,
+                minute = wakeM,
+                label = "Duty Shift - Wake Up & Prepare",
+                isEnabled = true,
+                vibrate = vibrate
+            ),
+            DutyAlarmTime(
+                id = UUID.randomUUID().toString(),
+                hour = departH,
+                minute = departM,
+                label = "Duty Shift - Depart / Commute$trafficLabel",
+                isEnabled = true,
+                vibrate = vibrate
+            ),
+            DutyAlarmTime(
+                id = UUID.randomUUID().toString(),
+                hour = arriveH,
+                minute = arriveM,
+                label = "Duty Shift - Arrive & Handover",
+                isEnabled = true,
+                vibrate = vibrate
+            )
+        )
     }
 
     /**
@@ -178,6 +249,7 @@ object DutyAlarmManager {
                     putExtra(AlarmClock.EXTRA_HOUR, alarm.hour)
                     putExtra(AlarmClock.EXTRA_MINUTES, alarm.minute)
                     putExtra(AlarmClock.EXTRA_MESSAGE, alarm.label)
+                    putExtra(AlarmClock.EXTRA_VIBRATE, alarm.vibrate)
                     if (daysOfWeekList.isNotEmpty()) {
                         putIntegerArrayListExtra(AlarmClock.EXTRA_DAYS, daysOfWeekList)
                     }
@@ -187,12 +259,13 @@ object DutyAlarmManager {
                 context.startActivity(intent)
                 alarmsDispatched++
             } catch (_: Exception) {
-                // If skip_ui fails, try standard interactive alarm intent
+                // Fallback for devices restricting EXTRA_SKIP_UI
                 try {
                     val fallbackIntent = Intent(AlarmClock.ACTION_SET_ALARM).apply {
                         putExtra(AlarmClock.EXTRA_HOUR, alarm.hour)
                         putExtra(AlarmClock.EXTRA_MINUTES, alarm.minute)
                         putExtra(AlarmClock.EXTRA_MESSAGE, alarm.label)
+                        putExtra(AlarmClock.EXTRA_VIBRATE, alarm.vibrate)
                         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     context.startActivity(fallbackIntent)
