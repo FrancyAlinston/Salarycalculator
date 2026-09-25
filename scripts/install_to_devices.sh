@@ -2,7 +2,8 @@
 set -e
 
 DEVICE_IPS=(
-    "192.168.8.178" # Pixel 8 Pro
+    "192.168.8.246" # Pixel 8 Pro (Current DHCP)
+    "192.168.8.178" # Pixel 8 Pro (Alternate)
     "192.168.8.168" # Redmi Note 10 Pro
 )
 
