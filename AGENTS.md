@@ -95,6 +95,11 @@ These rules define the mandatory behavioral constraints, development workflows, 
 
 ## 5. Testing, Verification & Cleanup Standards (`@rules:mandatory_testing_and_cleanup`)
 
+- **Multi-Device Target Registry (`@rules:multi_device_deployment_registry`)**:
+  - Automatically attempt deployment to registered wireless ADB targets whenever available:
+    - Primary Device: `192.168.8.178:38089` (Pixel 8 Pro)
+    - Secondary Device: `192.168.8.168` (Phone 2)
+  - Execute [`scripts/install_to_devices.sh`](scripts/install_to_devices.sh) to deploy builds across active devices.
 - **Mandatory Emulator & Live UI Verification (`@rules:mandatory_emulator_verification`)**:
   - When changes are made, install and launch the build on the Android emulator (`adb install -r ...` and `adb shell am start ...`) when an emulator is available.
   - Inspect the live running app for glitches, alignment issues, layout overflow, truncated text, touch target clipping, and runtime logcat exceptions across portrait and landscape/foldable orientations.
