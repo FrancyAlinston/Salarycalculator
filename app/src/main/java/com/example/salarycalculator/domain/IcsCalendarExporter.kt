@@ -35,16 +35,22 @@ object IcsCalendarExporter {
         val calendar = Calendar.getInstance()
 
         dayShifts.forEach { (day, hours) ->
-            if (hours > 0) {
+            if (hours != 0.0) {
                 calendar.set(year, month - 1, day, 9, 0, 0)
                 val startTime = calendar.time
-                val durationMs = (hours * 3600 * 1000).toLong()
+                val isAnnualLeave = hours == SalaryRepository.ANNUAL_LEAVE_HOURS
+                val effectiveHours = if (isAnnualLeave) 7.5 else kotlin.math.abs(hours)
+                val durationMs = (effectiveHours * 3600 * 1000).toLong()
                 val endTime = Date(startTime.time + durationMs)
 
                 val uid = "shift-${year}${month}${day}-${UUID.randomUUID()}@salarycalculator.app"
-                val isOvertime = hours > 8.0
-                val summary = if (isOvertime) "$jobTitle (Overtime: ${hours.toInt()}h)" else "$jobTitle (${hours.toInt()}h Shift)"
-                val description = "Logged working shift in Salary Calculator. Total hours: ${"%.1f".format(hours)}h"
+                val isOvertime = hours < 0.0 || hours > 8.0
+                val summary = when {
+                    isAnnualLeave -> "Annual Leave (A/L)"
+                    isOvertime -> "$jobTitle (Overtime: ${effectiveHours.toInt()}h)"
+                    else -> "$jobTitle (${effectiveHours.toInt()}h Shift)"
+                }
+                val description = if (isAnnualLeave) "Annual leave holiday day logged in Salary Calculator." else "Logged working shift in Salary Calculator. Total hours: ${"%.1f".format(effectiveHours)}h"
 
                 sb.appendLine("BEGIN:VEVENT")
                 sb.appendLine("UID:$uid")
@@ -85,16 +91,22 @@ object IcsCalendarExporter {
 
         monthlyShifts.forEach { (month, dayMap) ->
             dayMap.forEach { (day, hours) ->
-                if (hours > 0) {
+                if (hours != 0.0) {
                     calendar.set(year, month - 1, day, 9, 0, 0)
                     val startTime = calendar.time
-                    val durationMs = (hours * 3600 * 1000).toLong()
+                    val isAnnualLeave = hours == SalaryRepository.ANNUAL_LEAVE_HOURS
+                    val effectiveHours = if (isAnnualLeave) 7.5 else kotlin.math.abs(hours)
+                    val durationMs = (effectiveHours * 3600 * 1000).toLong()
                     val endTime = Date(startTime.time + durationMs)
 
                     val uid = "annual-shift-${year}-${month}-${day}-${UUID.randomUUID()}@salarycalculator.app"
-                    val isOvertime = hours > 8.0
-                    val summary = if (isOvertime) "$jobTitle (Overtime: ${hours.toInt()}h)" else "$jobTitle (${hours.toInt()}h Shift)"
-                    val description = "Logged working shift in Salary Calculator. Month: $month, Day: $day. Total: ${"%.1f".format(hours)}h"
+                    val isOvertime = hours < 0.0 || hours > 8.0
+                    val summary = when {
+                        isAnnualLeave -> "Annual Leave (A/L)"
+                        isOvertime -> "$jobTitle (Overtime: ${effectiveHours.toInt()}h)"
+                        else -> "$jobTitle (${effectiveHours.toInt()}h Shift)"
+                    }
+                    val description = if (isAnnualLeave) "Annual leave holiday day logged in Salary Calculator. Month: $month, Day: $day." else "Logged working shift in Salary Calculator. Month: $month, Day: $day. Total: ${"%.1f".format(effectiveHours)}h"
 
                     sb.appendLine("BEGIN:VEVENT")
                     sb.appendLine("UID:$uid")

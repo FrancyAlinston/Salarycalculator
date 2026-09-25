@@ -36,7 +36,9 @@ data class PayScheduleConfig(
     val type: PayScheduleType = PayScheduleType.LAST_FRIDAY_OF_MONTH,
     val fixedDay: Int = 28,
     val cutoffLeadDays: Int = 5, // e.g. Sunday before Friday = 5 days
-    val adjustForBankHolidays: Boolean = true
+    val adjustForBankHolidays: Boolean = true,
+    val weeklyOvertimeThresholdHours: Double = 0.0, // 0.0 = disabled, or e.g. 37.5, 40.0
+    val annualLeaveHoursPerDay: Double = 7.5
 )
 
 @Serializable
@@ -84,13 +86,19 @@ data class ShiftPayrollSplit(
     val inCycleHours: Double,
     val inCycleOtHours: Double,
     val inCycleStandardHours: Double,
+    val inCycleAnnualLeaveDays: Int = 0,
+    val inCycleAnnualLeaveHours: Double = 0.0,
     val previousRolloverDays: Int = 0,
     val previousRolloverHours: Double = 0.0,
     val previousRolloverOtHours: Double = 0.0,
     val previousRolloverStandardHours: Double = 0.0,
+    val previousRolloverAnnualLeaveDays: Int = 0,
+    val previousRolloverAnnualLeaveHours: Double = 0.0,
     val rolloverDays: Int,
     val rolloverHours: Double,
     val rolloverOtHours: Double,
+    val rolloverAnnualLeaveDays: Int = 0,
+    val rolloverAnnualLeaveHours: Double = 0.0,
     val totalMonthDays: Int,
     val totalMonthHours: Double,
     val cutoffDay: Int,
@@ -100,6 +108,8 @@ data class ShiftPayrollSplit(
     val totalPaidHours: Double get() = inCycleHours + previousRolloverHours
     val totalPaidStandardHours: Double get() = inCycleStandardHours + previousRolloverStandardHours
     val totalPaidOtHours: Double get() = inCycleOtHours + previousRolloverOtHours
+    val totalPaidAnnualLeaveDays: Int get() = inCycleAnnualLeaveDays + previousRolloverAnnualLeaveDays
+    val totalPaidAnnualLeaveHours: Double get() = inCycleAnnualLeaveHours + previousRolloverAnnualLeaveHours
 }
 
 // CRITICAL: TAX_ENGINE
@@ -258,6 +268,8 @@ object PayScheduleEngine {
      * 1. Hours falling on or before the Cutoff Date in the current month.
      * 2. Rollover hours brought forward from AFTER the previous month's cutoff date.
      * 3. Hours worked after current month's Cutoff Date (rolling over into the next month's payroll).
+     * 4. Annual leave days & hours marked with ANNUAL_LEAVE_HOURS (-999.0).
+     * 5. Weekly overtime threshold conversions (hours > weeklyOvertimeThresholdHours in a Mon-Sun week convert to OT).
      */
     fun calculateShiftPayrollSplit(
         year: Int,
@@ -274,41 +286,56 @@ object PayScheduleEngine {
         var inCycleHours = 0.0
         var inCycleOtHours = 0.0
         var inCycleStdHours = 0.0
+        var inCycleAlDays = 0
+        var inCycleAlHours = 0.0
 
         var rolloverDays = 0
         var rolloverHours = 0.0
         var rolloverOtHours = 0.0
+        var rolloverAlDays = 0
+        var rolloverAlHours = 0.0
 
-        currentMonthShifts.forEach { (day, hours) ->
-            if (hours != 0.0) {
-                val (std, ot, totalEffectiveHrs) = if (hours < 0.0) {
-                    // Dedicated Overtime Shift (e.g. -12.0 for 12h OT shift)
-                    val absH = kotlin.math.abs(hours)
-                    Triple(0.0, absH, absH)
-                } else {
-                    val s = minOf(standardHoursPerShift, hours)
-                    val o = maxOf(0.0, hours - standardHoursPerShift)
-                    Triple(s, o, hours)
-                }
+        val weeklyStdHoursAccumulator = mutableMapOf<String, Double>()
 
-                if (day <= cutoffDay) {
-                    inCycleDays++
-                    inCycleHours += totalEffectiveHrs
-                    inCycleStdHours += std
-                    inCycleOtHours += ot
-                } else {
-                    rolloverDays++
-                    rolloverHours += totalEffectiveHrs
-                    rolloverOtHours += ot
-                }
+        fun getWeekKey(y: Int, m: Int, d: Int): String {
+            val c = Calendar.getInstance().apply {
+                firstDayOfWeek = Calendar.MONDAY
+                minimalDaysInFirstWeek = 4
+                set(y, m - 1, d)
+            }
+            val w = c.get(Calendar.WEEK_OF_YEAR)
+            val wy = c.get(Calendar.YEAR)
+            return "$wy-W$w"
+        }
+
+        fun evaluateShiftHours(y: Int, m: Int, d: Int, hours: Double): Triple<Double, Double, Double> {
+            return if (hours < 0.0) {
+                // Dedicated Overtime Shift (e.g. -12.0)
+                val absH = kotlin.math.abs(hours)
+                Triple(0.0, absH, absH)
+            } else if (config.weeklyOvertimeThresholdHours > 0.0) {
+                // Dynamic weekly threshold (e.g. 37.5h or 40h / week)
+                val wKey = getWeekKey(y, m, d)
+                val currentAccum = weeklyStdHoursAccumulator.getOrDefault(wKey, 0.0)
+                val remainingThreshold = maxOf(0.0, config.weeklyOvertimeThresholdHours - currentAccum)
+                val std = minOf(hours, remainingThreshold)
+                val ot = maxOf(0.0, hours - std)
+                weeklyStdHoursAccumulator[wKey] = currentAccum + std
+                Triple(std, ot, hours)
+            } else {
+                val s = minOf(standardHoursPerShift, hours)
+                val o = maxOf(0.0, hours - standardHoursPerShift)
+                Triple(s, o, hours)
             }
         }
 
-        // Process previous month's post-cutoff rollover into this month
+        // 1. Process previous month's post-cutoff rollover into this month (sorted by day)
         var prevRolloverDays = 0
         var prevRolloverHours = 0.0
         var prevRolloverOtHours = 0.0
         var prevRolloverStdHours = 0.0
+        var prevRolloverAlDays = 0
+        var prevRolloverAlHours = 0.0
 
         if (previousMonthShifts.isNotEmpty()) {
             val prevMonth = if (month == 1) 12 else month - 1
@@ -316,20 +343,51 @@ object PayScheduleEngine {
             val prevPayPeriod = calculatePayPeriod(prevYear, prevMonth, config)
             val prevCutoffDay = prevPayPeriod.cutoffDay
 
-            previousMonthShifts.forEach { (day, hours) ->
+            previousMonthShifts.toSortedMap().forEach { (day, hours) ->
                 if (day > prevCutoffDay && hours != 0.0) {
-                    val (std, ot, totalEffectiveHrs) = if (hours < 0.0) {
-                        val absH = kotlin.math.abs(hours)
-                        Triple(0.0, absH, absH)
+                    if (hours == SalaryRepository.ANNUAL_LEAVE_HOURS) {
+                        prevRolloverDays++
+                        prevRolloverAlDays++
+                        prevRolloverHours += config.annualLeaveHoursPerDay
+                        prevRolloverAlHours += config.annualLeaveHoursPerDay
                     } else {
-                        val s = minOf(standardHoursPerShift, hours)
-                        val o = maxOf(0.0, hours - standardHoursPerShift)
-                        Triple(s, o, hours)
+                        val (std, ot, totalEffectiveHrs) = evaluateShiftHours(prevYear, prevMonth, day, hours)
+                        prevRolloverDays++
+                        prevRolloverHours += totalEffectiveHrs
+                        prevRolloverStdHours += std
+                        prevRolloverOtHours += ot
                     }
-                    prevRolloverDays++
-                    prevRolloverHours += totalEffectiveHrs
-                    prevRolloverStdHours += std
-                    prevRolloverOtHours += ot
+                }
+            }
+        }
+
+        // 2. Process current month shifts (sorted by day)
+        currentMonthShifts.toSortedMap().forEach { (day, hours) ->
+            if (hours != 0.0) {
+                if (hours == SalaryRepository.ANNUAL_LEAVE_HOURS) {
+                    if (day <= cutoffDay) {
+                        inCycleDays++
+                        inCycleAlDays++
+                        inCycleHours += config.annualLeaveHoursPerDay
+                        inCycleAlHours += config.annualLeaveHoursPerDay
+                    } else {
+                        rolloverDays++
+                        rolloverAlDays++
+                        rolloverHours += config.annualLeaveHoursPerDay
+                        rolloverAlHours += config.annualLeaveHoursPerDay
+                    }
+                } else {
+                    val (std, ot, totalEffectiveHrs) = evaluateShiftHours(year, month, day, hours)
+                    if (day <= cutoffDay) {
+                        inCycleDays++
+                        inCycleHours += totalEffectiveHrs
+                        inCycleStdHours += std
+                        inCycleOtHours += ot
+                    } else {
+                        rolloverDays++
+                        rolloverHours += totalEffectiveHrs
+                        rolloverOtHours += ot
+                    }
                 }
             }
         }
@@ -342,13 +400,19 @@ object PayScheduleEngine {
             inCycleHours = inCycleHours,
             inCycleOtHours = inCycleOtHours,
             inCycleStandardHours = inCycleStdHours,
+            inCycleAnnualLeaveDays = inCycleAlDays,
+            inCycleAnnualLeaveHours = inCycleAlHours,
             previousRolloverDays = prevRolloverDays,
             previousRolloverHours = prevRolloverHours,
             previousRolloverOtHours = prevRolloverOtHours,
             previousRolloverStandardHours = prevRolloverStdHours,
+            previousRolloverAnnualLeaveDays = prevRolloverAlDays,
+            previousRolloverAnnualLeaveHours = prevRolloverAlHours,
             rolloverDays = rolloverDays,
             rolloverHours = rolloverHours,
             rolloverOtHours = rolloverOtHours,
+            rolloverAnnualLeaveDays = rolloverAlDays,
+            rolloverAnnualLeaveHours = rolloverAlHours,
             totalMonthDays = totalMonthDays,
             totalMonthHours = totalMonthHours,
             cutoffDay = cutoffDay,

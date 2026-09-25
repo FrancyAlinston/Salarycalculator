@@ -4,6 +4,12 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Blue Annual Leave (`A/L`) Shift Marking & Dynamic Weekly Overtime Threshold Engine (`FEAT-913`) (`ShiftHeatmapCard.kt`, `PayScheduleEngine.kt`, `TaxCalculator.kt`, `SettingsScreen.kt`):**
+  - **Interactive Blue (`#1E88E5`) Annual Leave Badging:** Interactive 7-column shift heatmap featuring dedicated Blue `A/L` holiday badges with a fast tap cycle (`0h Off` $\to$ `12h Std` $\to$ `12h OT` $\to$ `A/L` $\to$ `0h Off`) and Blue legend indicator.
+  - **Configurable Annual Leave Rate & Shift Duration:** Customize Annual Leave Hourly Rate (£/hr) (defaulting to basic rate) and Holiday Shift Hours (7.5h standard, 8.0h, 12.0h long day) in Settings, calculating statutory holiday pay directly into Gross Pay, Tax, NI, and Take-Home earnings.
+  - **Dynamic Weekly Overtime Threshold Trigger:** Automatically calculates cumulative regular hours in a Monday–Sunday calendar week and converts hours worked beyond the threshold (e.g., 37.5h or 40.0h) into paid Overtime.
+  - **Annual PDF & Calendar Synchronization:** Exports Blue `A/L` holidays in high-resolution 12-month printable vector PDFs and RFC 5545 `.ics` calendar events.
+
 - **Universal Multi-Currency Conversion & Live Periodic FX Sync (`MultiCurrencyConverterEngine.kt`, `CurrencySettingsDialog.kt`, `LiveFxWorker.kt`, `CalculatorScreen.kt`):**
   - **Universal Global Currency Registry:** Converts UK GBP (£) earnings into any user-selected primary and secondary currencies supporting **all 160+ world currencies** (EUR, USD, INR, PHP, CAD, AUD, JPY, CHF, SGD, NZD, AED, PLN, ZAR, NGN, KES, BRL, etc.) and major crypto assets (BTC, ETH, SOL, XRP, ADA, DOGE).
   - **Automated WorkManager Background Sync (`LiveFxWorker.kt`):** Fetches live foreign exchange rates from `open.er-api.com` and crypto pricing every 6 hours with offline graceful caching.

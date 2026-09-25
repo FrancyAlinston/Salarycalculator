@@ -51,3 +51,11 @@ val Slate50 = Color(0xFFF8FAFC)
 val Slate100 = Color(0xFFF1F5F9)
 val Slate200 = Color(0xFFE2E8F0)
 val Slate300 = Color(0xFFCBD5E1)
+
+// Annual Leave / Statutory Relief Colors (Blue)
+val Blue80 = Color(0xFF90CAF9)
+val Blue60 = Color(0xFF1E88E5)
+val Blue40 = Color(0xFF1565C0)
+val BlueContainerLight = Color(0xFFE3F2FD)
+val BlueContainerDark = Color(0xFF0D47A1)
+

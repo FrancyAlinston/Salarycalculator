@@ -65,6 +65,9 @@ data class BackupBundle(
     val googleAccountEmail: String = "",
     val googleDriveAutoSync: Boolean = true,
     val googleDriveLastSync: String = "",
+    val annualLeaveHourlyRate: Double = 0.0,
+    val annualLeaveHoursPerDay: Double = 7.5,
+    val weeklyOvertimeThreshold: Double = 37.5,
     val deviceName: String = "",
     val deviceModel: String = "",
     val deviceId: String = ""
@@ -130,6 +133,9 @@ object LedgerBackupManager {
             googleAccountEmail = repository.getGoogleAccountEmail().first(),
             googleDriveAutoSync = repository.getGoogleDriveAutoSync().first(),
             googleDriveLastSync = repository.getGoogleDriveLastSync().first(),
+            annualLeaveHourlyRate = repository.getAnnualLeaveHourlyRate().first(),
+            annualLeaveHoursPerDay = repository.getAnnualLeaveHoursPerDay().first(),
+            weeklyOvertimeThreshold = repository.getWeeklyOvertimeThreshold().first(),
             deviceName = getDeviceName(),
             deviceModel = getDeviceModel()
         )
@@ -429,6 +435,15 @@ object LedgerBackupManager {
             }
             repository.setHasMarriageAllowance(bundle.hasMarriageAllowance)
             repository.setHasBlindPersonsAllowance(bundle.hasBlindPersonsAllowance)
+            if (bundle.annualLeaveHourlyRate >= 0.0) {
+                repository.setAnnualLeaveHourlyRate(bundle.annualLeaveHourlyRate)
+            }
+            if (bundle.annualLeaveHoursPerDay > 0.0) {
+                repository.setAnnualLeaveHoursPerDay(bundle.annualLeaveHoursPerDay)
+            }
+            if (bundle.weeklyOvertimeThreshold >= 0.0) {
+                repository.setWeeklyOvertimeThreshold(bundle.weeklyOvertimeThreshold)
+            }
 
             // 2. Restore Employer Profiles & Active Selection
             for (profile in bundle.profiles) {

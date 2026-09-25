@@ -4,6 +4,30 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.4] - 2026-09-25 (VersionCode: 48)
+### Added / Changed
+- **Shift Heatmap Blue Annual Leave (`A/L`) Marking (`FEAT-913`) (`ShiftHeatmapCard.kt`, `Color.kt`, `AnnualShiftPdfGenerator.kt`, `IcsCalendarExporter.kt`)**:
+  - Implemented **Blue (`#1E88E5` / `Blue60`)** marking for Annual Leave in the interactive 7-column shift heatmap.
+  - Enhanced cell tap cycle to: `0h Off` $\longrightarrow$ `12h Std (Emerald)` $\longrightarrow$ `12h OT (Amber)` $\longrightarrow$ `A/L (Blue)` $\longrightarrow$ `0h Off`.
+  - Added dedicated Blue `● A/L Annual Leave` legend chip and integrated Annual Leave itemization into the Cutoff & Pay Cycle banner card.
+  - Exported Blue `A/L` markers in printable 12-month vector PDFs and RFC 5545 `.ics` calendar files.
+- **Configurable Annual Leave Pay Rate & Salary Calculation Engine (`FEAT-913`) (`SalaryRepository.kt`, `SettingsScreen.kt`, `TaxCalculator.kt`, `PayScheduleEngine.kt`)**:
+  - Added Annual Leave settings card in Settings to configure custom Annual Leave Hourly Rate (£/hr) (defaulting to base hourly rate) and standard Holiday Shift Hours (7.5h standard, 8h, 12h long day).
+  - Factored Annual Leave pay directly into Gross Pay, Taxable Pay, PAYE Income Tax, Class 1 Primary NI, and Net Take-Home earnings across all payslip breakdowns.
+- **Dynamic Weekly Overtime Threshold Engine (`FEAT-913`) (`PayScheduleEngine.kt`, `SettingsScreen.kt`, `PayScheduleEngineTest.kt`)**:
+  - Added configurable Weekly Overtime Threshold in Settings (e.g. Disabled, 37.5h UK standard, 40.0h full-time, 48.0h WTD max).
+  - Automatically converts cumulative standard hours exceeding the weekly threshold in a Monday–Sunday calendar week into paid Overtime.
+- **Cloud Backup & Restore Integration**:
+  - Persisted `annualLeaveHourlyRate`, `annualLeaveHoursPerDay`, and `weeklyOvertimeThreshold` into `BackupBundle` snapshots for Google Drive and Syncthing sync.
+
+### Bugs Found & Fixed
+- **Shift Rollover Annual Leave Partitioning**: Fixed rollover calculations to accurately track and separate Annual Leave days and hours rolling over from post-cutoff schedules.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [25.3] - 2026-09-25 (VersionCode: 47)
 ### Added / Changed
 - **Multi-Device Cloud Backup Separation & Device-Targeted Restore (`FEAT-909`) (`GoogleDriveSyncEngine.kt`, `GoogleDriveSyncDialog.kt`, `LedgerBackupManager.kt`, `ShiftHeatmapCard.kt`, `GoogleDriveSyncEngineTest.kt`)**:

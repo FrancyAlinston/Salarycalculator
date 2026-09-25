@@ -31,6 +31,8 @@ data class SalaryReport(
     val grossPay: Double,
     val bonusPay: Double = 0.0,
     val commissionPay: Double = 0.0,
+    val annualLeavePay: Double = 0.0,
+    val annualLeaveHours: Double = 0.0,
     val baseGrossPay: Double = grossPay,
     val salarySacrifice: Double = 0.0,
     val adjustedGrossPay: Double = grossPay,
@@ -115,6 +117,8 @@ object TaxCalculator {
         taxYear: TaxYear = TaxYear.YEAR_2024_2025,
         bonusPay: Double = 0.0,
         commissionPay: Double = 0.0,
+        annualLeavePay: Double = 0.0,
+        annualLeaveHours: Double = 0.0,
         pensionRatePercent: Double = 0.0,
         studentLoanPlan: StudentLoanPlan = StudentLoanPlan.NONE,
         salarySacrificeAmount: Double = 0.0,
@@ -128,7 +132,8 @@ object TaxCalculator {
         val safeBaseGross = max(0.0, grossPay)
         val safeBonus = max(0.0, bonusPay)
         val safeCommission = max(0.0, commissionPay)
-        val safeGross = safeBaseGross + safeBonus + safeCommission
+        val safeAnnualLeave = max(0.0, annualLeavePay)
+        val safeGross = safeBaseGross + safeBonus + safeCommission + safeAnnualLeave
 
         // Custom Pre-Tax & Post-Tax Deductions
         val preTaxCustom = customDeductions.filter { it.isPreTax }.sumOf { it.amount }
@@ -265,6 +270,8 @@ object TaxCalculator {
             grossPay = safeGross,
             bonusPay = safeBonus,
             commissionPay = safeCommission,
+            annualLeavePay = safeAnnualLeave,
+            annualLeaveHours = max(0.0, annualLeaveHours),
             baseGrossPay = safeBaseGross,
             salarySacrifice = safeSacrifice,
             adjustedGrossPay = adjustedGross,

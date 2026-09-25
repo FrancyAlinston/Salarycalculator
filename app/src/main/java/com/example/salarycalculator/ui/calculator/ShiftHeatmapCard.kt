@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.salarycalculator.domain.*
 import com.example.salarycalculator.theme.Amber60
+import com.example.salarycalculator.theme.Blue60
+import com.example.salarycalculator.theme.Blue80
 import com.example.salarycalculator.theme.Emerald60
 import com.example.salarycalculator.theme.Rose60
 import com.example.salarycalculator.theme.Teal60
@@ -142,19 +144,23 @@ fun ShiftHeatmapCard(
         )
     }
 
+    val annualLeaveHourlyRate by salaryRepository.getAnnualLeaveHourlyRate().collectAsState(initial = 0.0)
+    val effectiveAnnualLeaveRate = if (annualLeaveHourlyRate > 0.0) annualLeaveHourlyRate else hourlyRate
+    val annualLeavePay = payrollSplit.totalPaidAnnualLeaveHours * effectiveAnnualLeaveRate
+
     val monthDaysWorked = currentMonthMap.values.count { it != 0.0 }
-    val monthTotalHours = currentMonthMap.values.sumOf { kotlin.math.abs(it) }
-    val monthStandardHours = currentMonthMap.values.sumOf { if (it < 0.0) 0.0 else minOf(effectiveStandardHours, it) }
-    val monthOvertimeHours = currentMonthMap.values.sumOf { if (it < 0.0) kotlin.math.abs(it) else maxOf(0.0, it - effectiveStandardHours) }
+    val monthTotalHours = currentMonthMap.values.sumOf { if (it == SalaryRepository.ANNUAL_LEAVE_HOURS) payScheduleConfig.annualLeaveHoursPerDay else kotlin.math.abs(it) }
+    val monthStandardHours = currentMonthMap.values.sumOf { if (it <= 0.0) 0.0 else minOf(effectiveStandardHours, it) }
+    val monthOvertimeHours = currentMonthMap.values.sumOf { if (it == SalaryRepository.ANNUAL_LEAVE_HOURS) 0.0 else if (it < 0.0) kotlin.math.abs(it) else maxOf(0.0, it - effectiveStandardHours) }
     val monthAvgHoursPerDay = if (monthDaysWorked > 0) monthTotalHours / monthDaysWorked else effectiveStandardHours
 
     val totalPaidStdDays = if (effectiveStandardHours > 0) payrollSplit.totalPaidStandardHours / effectiveStandardHours else payrollSplit.totalPaidDays.toDouble()
     val totalPaidAvgHours = effectiveStandardHours
 
-    val payslipEstimatedGross = if (payrollSplit.totalPaidDays == 0 || payrollSplit.totalPaidHours == 0.0) {
+    val payslipEstimatedGross = if (payrollSplit.totalPaidDays == 0 || (payrollSplit.totalPaidHours == 0.0 && payrollSplit.totalPaidAnnualLeaveHours == 0.0)) {
         0.0
     } else {
-        (payrollSplit.totalPaidStandardHours * hourlyRate) + (payrollSplit.totalPaidOtHours * hourlyRate * overtimeMultiplier)
+        (payrollSplit.totalPaidStandardHours * hourlyRate) + (payrollSplit.totalPaidOtHours * hourlyRate * overtimeMultiplier) + annualLeavePay
     }
 
     // Care Worker Overtime UK Tax & Take-Home Calculation for this schedule
@@ -477,6 +483,11 @@ fun ShiftHeatmapCard(
                         Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Amber60))
                         Text("${stdHoursLabel}h OT", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
+                    // Annual Leave (Blue)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Blue60))
+                        Text("A/L Annual Leave", style = MaterialTheme.typography.labelSmall, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
                     // Part-time < Standard
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Teal60))
@@ -587,6 +598,15 @@ fun ShiftHeatmapCard(
                             color = if (payrollSplit.totalPaidDays > 0) Emerald60 else MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
+                        if (payrollSplit.totalPaidAnnualLeaveDays > 0) {
+                            Text(
+                                text = "↳ Annual Leave: ${payrollSplit.totalPaidAnnualLeaveDays}d (${"%.1f".format(payrollSplit.totalPaidAnnualLeaveHours)}h) · +£${"%.2f".format(annualLeavePay)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Blue60,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
                         if (payrollSplit.previousRolloverDays > 0) {
                             Text(
                                 text = "↳ Includes +${payrollSplit.previousRolloverDays}d (${"%.0f".format(payrollSplit.previousRolloverHours)}h) rolled over from ${monthNames.getOrElse(prevMonth - 1) { "" }} post-cutoff",
@@ -643,10 +663,12 @@ fun ShiftHeatmapCard(
                                 val isPayday = (dayNum == payPeriod.payDay && selectedMonth == payPeriod.payMonth && selectedYear == payPeriod.payYear)
                                 val isRollover = (dayNum > payPeriod.cutoffDay && selectedMonth == payPeriod.cutoffMonth && selectedYear == payPeriod.cutoffYear)
 
-                                val isOtShift = hours < 0.0
+                                val isAnnualLeave = hours == SalaryRepository.ANNUAL_LEAVE_HOURS
+                                val isOtShift = hours < 0.0 && !isAnnualLeave
                                 val absHours = kotlin.math.abs(hours)
 
                                 val (bgColor, textColor, defaultLabel) = when {
+                                    isAnnualLeave -> Triple(Blue60, Color.White, "A/L")
                                     isOtShift -> Triple(Amber60, Color.Black, "${absHours.toInt()}h OT")
                                     hours > effectiveStandardHours -> Triple(Amber60, Color.Black, "${hours.toInt()}h OT")
                                     hours >= effectiveStandardHours -> Triple(Emerald60, Color.White, "${hours.toInt()}h")
@@ -663,7 +685,7 @@ fun ShiftHeatmapCard(
                                 val cellLabel = when {
                                     isCutoff && hours == 0.0 -> "Cutoff"
                                     isPayday && hours == 0.0 -> "Payday"
-                                    isRollover && hours != 0.0 -> "+Roll"
+                                    isRollover && hours != 0.0 && !isAnnualLeave -> "+Roll"
                                     else -> defaultLabel
                                 }
 
@@ -681,10 +703,11 @@ fun ShiftHeatmapCard(
                                         .then(if (cellBorder != null) Modifier.border(cellBorder, RoundedCornerShape(8.dp)) else Modifier)
                                         .clickable {
                                             // Dynamic Calibrated Cycle:
-                                            // 0h -> Standard Shift (effectiveStandardHours) -> Overtime Shift (-effectiveStandardHours) -> 0h
+                                            // 0h -> Standard Shift (effectiveStandardHours) -> Overtime Shift (-effectiveStandardHours) -> Annual Leave (-999.0) -> 0h
                                             val next = when {
                                                 hours == 0.0 -> effectiveStandardHours
                                                 hours == effectiveStandardHours -> -effectiveStandardHours
+                                                hours == -effectiveStandardHours -> SalaryRepository.ANNUAL_LEAVE_HOURS
                                                 else -> 0.0
                                             }
                                             if (next != 0.0) {

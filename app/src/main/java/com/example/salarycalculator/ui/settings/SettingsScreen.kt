@@ -52,10 +52,16 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val customUsdRate by salaryRepository.getCustomUsdRate().collectAsState(initial = ConvertedCurrencies.DEFAULT_USD_RATE)
     val payScheduleConfig by salaryRepository.getPayScheduleConfig().collectAsState(initial = PayScheduleConfig())
     val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 12.0)
+    val annualLeaveHourlyRate by salaryRepository.getAnnualLeaveHourlyRate().collectAsState(initial = 0.0)
+    val annualLeaveHoursPerDay by salaryRepository.getAnnualLeaveHoursPerDay().collectAsState(initial = 7.5)
+    val weeklyOvertimeThreshold by salaryRepository.getWeeklyOvertimeThreshold().collectAsState(initial = 37.5)
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
     var inputHoursPerDay by remember(defaultHoursPerDay) { mutableStateOf(defaultHoursPerDay.toString()) }
+    var inputAnnualLeaveRate by remember(annualLeaveHourlyRate) { mutableStateOf(if (annualLeaveHourlyRate > 0.0) annualLeaveHourlyRate.toString() else "") }
+    var inputAnnualLeaveHours by remember(annualLeaveHoursPerDay) { mutableStateOf(annualLeaveHoursPerDay.toString()) }
+    var selectedWeeklyOvertimeThreshold by remember(weeklyOvertimeThreshold) { mutableStateOf(weeklyOvertimeThreshold) }
     var inputPensionRate by remember(pensionRate) { mutableStateOf(pensionRate.toString()) }
     var selectedThemeMode by remember(currentThemeMode) { mutableStateOf(currentThemeMode) }
     var selectedThemePalette by remember(currentThemePalette) { mutableStateOf(currentThemePalette) }
@@ -823,6 +829,118 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                 }
                             }
                         }
+
+                        // Weekly Overtime Threshold (FEAT-913)
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Weekly Overtime Threshold", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                Text(
+                                    if (selectedWeeklyOvertimeThreshold > 0.0) "${"%.1f".format(selectedWeeklyOvertimeThreshold)}h/wk" else "Disabled",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(
+                                    0.0 to "Disabled",
+                                    37.5 to "37.5h (UK Standard)",
+                                    40.0 to "40.0h (Full-Time)",
+                                    48.0 to "48.0h (WTD Max)"
+                                ).forEach { (threshold, label) ->
+                                    FilterChip(
+                                        selected = selectedWeeklyOvertimeThreshold == threshold,
+                                        onClick = {
+                                            selectedWeeklyOvertimeThreshold = threshold
+                                            scope.launch { salaryRepository.setWeeklyOvertimeThreshold(threshold) }
+                                        },
+                                        label = { Text(label) },
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 5b. Annual Leave (A/L) Settings Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Outlined.BeachAccess, contentDescription = null, tint = com.example.salarycalculator.theme.Blue60)
+                            Text("Annual Leave (A/L) Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Text(
+                            text = "Configure your paid annual leave calculation rate and standard holiday shift hours. Marked as Blue 'A/L' on your shift heatmap.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // Annual Leave Pay Rate
+                        OutlinedTextField(
+                            value = inputAnnualLeaveRate,
+                            onValueChange = { inputAnnualLeaveRate = it },
+                            label = { Text("Annual Leave Hourly Rate (£/hr)") },
+                            placeholder = { Text("Defaults to standard hourly rate (£${"%.2f".format(hourlyRate)})") },
+                            leadingIcon = { Text("£", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 12.dp)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Annual Leave Hours Per Day
+                        OutlinedTextField(
+                            value = inputAnnualLeaveHours,
+                            onValueChange = { inputAnnualLeaveHours = it },
+                            label = { Text("Annual Leave Hours Per Day (h)") },
+                            leadingIcon = { Icon(Icons.Outlined.Schedule, contentDescription = null) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Quick Hours Presets
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(7.5 to "7.5h (Standard)", 8.0 to "8.0h", 12.0 to "12.0h (Long Day)").forEach { (hrs, label) ->
+                                FilterChip(
+                                    selected = inputAnnualLeaveHours.toDoubleOrNull() == hrs,
+                                    onClick = {
+                                        inputAnnualLeaveHours = hrs.toString()
+                                        scope.launch { salaryRepository.setAnnualLeaveHoursPerDay(hrs) }
+                                    },
+                                    label = { Text(label) },
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -1215,6 +1333,12 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             inputPensionRate.toDoubleOrNull()?.let {
                                 salaryRepository.setPensionRate(it)
                             }
+                            val alRate = inputAnnualLeaveRate.toDoubleOrNull() ?: 0.0
+                            salaryRepository.setAnnualLeaveHourlyRate(alRate)
+                            inputAnnualLeaveHours.toDoubleOrNull()?.let {
+                                salaryRepository.setAnnualLeaveHoursPerDay(it)
+                            }
+                            salaryRepository.setWeeklyOvertimeThreshold(selectedWeeklyOvertimeThreshold)
                             snackbarHostState.showSnackbar("Settings saved successfully!")
                         }
                     },

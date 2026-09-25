@@ -798,6 +798,25 @@ class TaxCalculatorTest {
         assertEquals(0.00, report.pensionContribution, 0.01) // Opted out
         assertEquals(2065.77, report.netPay, 0.01)    // £2,461.44 - £282.60 - £113.07 = £2,065.77
     }
+
+    @Test
+    fun testCalculateTax_WithAnnualLeavePay() {
+        val stdPay = 2000.0
+        val alPay = 300.0
+        val report = TaxCalculator.calculateTax(
+            grossPay = stdPay,
+            taxCode = "1257L",
+            isMonthly = true,
+            annualLeavePay = alPay,
+            annualLeaveHours = 20.0,
+            pensionRatePercent = 0.0
+        )
+
+        assertEquals(2300.0, report.grossPay, 0.01)
+        assertEquals(300.0, report.annualLeavePay, 0.01)
+        assertEquals(20.0, report.annualLeaveHours, 0.01)
+        assertEquals(2300.0 - (12570.0 / 12.0), report.taxablePay, 0.01)
+    }
 }
 
 

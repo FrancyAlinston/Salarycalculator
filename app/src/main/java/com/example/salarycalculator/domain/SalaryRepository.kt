@@ -72,10 +72,13 @@ class SalaryRepository(private val context: Context) {
     private val SYNCTHING_AUTO_SYNC_KEY = booleanPreferencesKey("syncthing_auto_sync")
     private val PREFERRED_CURRENCY_KEY = stringPreferencesKey("preferred_currency")
     private val SECONDARY_CURRENCY_KEY = stringPreferencesKey("secondary_currency")
-    private val AUTO_UPDATE_RATES_KEY = booleanPreferencesKey("auto_update_rates_enabled")
     private val GOOGLE_ACCOUNT_EMAIL_KEY = stringPreferencesKey("google_account_email")
     private val GOOGLE_DRIVE_AUTO_SYNC_KEY = booleanPreferencesKey("google_drive_auto_sync")
     private val GOOGLE_DRIVE_LAST_SYNC_KEY = stringPreferencesKey("google_drive_last_sync")
+    private val AUTO_UPDATE_RATES_KEY = booleanPreferencesKey("auto_update_rates")
+    private val ANNUAL_LEAVE_HOURLY_RATE_KEY = doublePreferencesKey("annual_leave_hourly_rate")
+    private val ANNUAL_LEAVE_HOURS_PER_DAY_KEY = doublePreferencesKey("annual_leave_hours_per_day")
+    private val WEEKLY_OVERTIME_THRESHOLD_KEY = doublePreferencesKey("weekly_overtime_threshold")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -1047,7 +1050,50 @@ class SalaryRepository(private val context: Context) {
         }
     }
 
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getAnnualLeaveHourlyRate(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[ANNUAL_LEAVE_HOURLY_RATE_KEY] ?: 0.0 // 0.0 = Default to standard hourly rate
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setAnnualLeaveHourlyRate(rate: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[ANNUAL_LEAVE_HOURLY_RATE_KEY] = rate
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getAnnualLeaveHoursPerDay(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[ANNUAL_LEAVE_HOURS_PER_DAY_KEY] ?: 0.0 // 0.0 = Default to standard hours per day
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setAnnualLeaveHoursPerDay(hours: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[ANNUAL_LEAVE_HOURS_PER_DAY_KEY] = hours
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getWeeklyOvertimeThreshold(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[WEEKLY_OVERTIME_THRESHOLD_KEY] ?: 37.5 // Default 37.5h statutory standard
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setWeeklyOvertimeThreshold(threshold: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[WEEKLY_OVERTIME_THRESHOLD_KEY] = threshold
+        }
+    }
+
     companion object {
+        const val ANNUAL_LEAVE_HOURS = -999.0
         fun parseShiftScheduleJson(jsonStr: String): Map<String, Map<Int, Double>> {
             if (jsonStr.isBlank()) return emptyMap()
             val result = mutableMapOf<String, MutableMap<Int, Double>>()

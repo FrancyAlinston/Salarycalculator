@@ -45,6 +45,7 @@ object AnnualShiftPdfGenerator {
         val colorRegular = Color.rgb(16, 149, 106) // Emerald
         val colorOt10 = Color.rgb(217, 119, 6)    // Amber
         val colorOt12 = Color.rgb(225, 29, 72)    // Rose
+        val colorAnnualLeave = Color.rgb(30, 136, 229) // Blue
         val colorOff = Color.rgb(235, 240, 245)
 
         // Draw background
@@ -150,6 +151,7 @@ object AnnualShiftPdfGenerator {
                         val hrs = monthShifts[dayNum] ?: 0.0
 
                         val cellColor = when {
+                            hrs == SalaryRepository.ANNUAL_LEAVE_HOURS -> colorAnnualLeave
                             hrs < 0.0 || hrs > standardShiftHours -> colorOt10
                             hrs >= standardShiftHours -> colorRegular
                             hrs > 0.0 -> colorPrimary
@@ -181,7 +183,8 @@ object AnnualShiftPdfGenerator {
         val legendItems = listOf(
             Triple(colorRegular, "${stdHoursStr}h Standard", 75f),
             Triple(colorOt10, "${stdHoursStr}h Overtime", 180f),
-            Triple(colorOff, "Day Off", 300f)
+            Triple(colorAnnualLeave, "A/L Annual Leave", 285f),
+            Triple(colorOff, "Day Off", 395f)
         )
 
         legendItems.forEach { (col, label, lx) ->

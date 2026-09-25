@@ -242,4 +242,82 @@ class PayScheduleEngineTest {
         assertEquals(12.0, split.rolloverHours, 0.01)
         assertEquals(12.0, split.rolloverOtHours, 0.01)
     }
+
+    @Test
+    fun testShiftPayrollSplit_AnnualLeaveMarkings() {
+        val config = PayScheduleConfig(
+            type = PayScheduleType.LAST_FRIDAY_OF_MONTH,
+            annualLeaveHoursPerDay = 7.5
+        )
+        // Oct 2025 cutoff is 26th
+        // Day 1: 12.0h std shift
+        // Day 5: ANNUAL_LEAVE_HOURS (-999.0)
+        // Day 6: ANNUAL_LEAVE_HOURS (-999.0)
+        // Day 27 (post-cutoff): ANNUAL_LEAVE_HOURS (-999.0)
+        val shifts = mapOf(
+            1 to 12.0,
+            5 to SalaryRepository.ANNUAL_LEAVE_HOURS,
+            6 to SalaryRepository.ANNUAL_LEAVE_HOURS,
+            27 to SalaryRepository.ANNUAL_LEAVE_HOURS
+        )
+
+        val split = PayScheduleEngine.calculateShiftPayrollSplit(
+            year = 2025,
+            month = 10,
+            currentMonthShifts = shifts,
+            config = config,
+            standardHoursPerShift = 12.0
+        )
+
+        // In-cycle: Day 1 (12h std) + Days 5 & 6 (2 AL days = 15h) = 3 days, 27h
+        assertEquals(3, split.inCycleDays)
+        assertEquals(2, split.inCycleAnnualLeaveDays)
+        assertEquals(15.0, split.inCycleAnnualLeaveHours, 0.01)
+        assertEquals(12.0, split.inCycleStandardHours, 0.01)
+
+        // Rollover: Day 27 (1 AL day = 7.5h)
+        assertEquals(1, split.rolloverDays)
+        assertEquals(1, split.rolloverAnnualLeaveDays)
+        assertEquals(7.5, split.rolloverAnnualLeaveHours, 0.01)
+
+        // Total paid in cycle
+        assertEquals(2, split.totalPaidAnnualLeaveDays)
+        assertEquals(15.0, split.totalPaidAnnualLeaveHours, 0.01)
+    }
+
+    @Test
+    fun testShiftPayrollSplit_WeeklyOvertimeThreshold() {
+        // Oct 2025: Oct 6 (Mon), Oct 7 (Tue), Oct 8 (Wed), Oct 9 (Thu) are in Week 41
+        // Worker logs four 12.0h standard shifts (48h total in week).
+        // With weekly threshold = 37.5h:
+        // Day 6 (Mon): 12.0h (cum: 12h <= 37.5) -> 12h std, 0h ot
+        // Day 7 (Tue): 12.0h (cum: 24h <= 37.5) -> 12h std, 0h ot
+        // Day 8 (Wed): 12.0h (cum: 36h <= 37.5) -> 12h std, 0h ot
+        // Day 9 (Thu): 12.0h (cum: 48h > 37.5) -> 1.5h std, 10.5h ot
+        // Total for Week: 37.5h std, 10.5h ot
+        val config = PayScheduleConfig(
+            type = PayScheduleType.LAST_FRIDAY_OF_MONTH,
+            weeklyOvertimeThresholdHours = 37.5
+        )
+
+        val shifts = mapOf(
+            6 to 12.0,
+            7 to 12.0,
+            8 to 12.0,
+            9 to 12.0
+        )
+
+        val split = PayScheduleEngine.calculateShiftPayrollSplit(
+            year = 2025,
+            month = 10,
+            currentMonthShifts = shifts,
+            config = config,
+            standardHoursPerShift = 12.0
+        )
+
+        assertEquals(4, split.inCycleDays)
+        assertEquals(48.0, split.inCycleHours, 0.01)
+        assertEquals(37.5, split.inCycleStandardHours, 0.01)
+        assertEquals(10.5, split.inCycleOtHours, 0.01)
+    }
 }
