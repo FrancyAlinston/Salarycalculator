@@ -39,18 +39,28 @@ object IcsCalendarExporter {
                 calendar.set(year, month - 1, day, 9, 0, 0)
                 val startTime = calendar.time
                 val isAnnualLeave = hours == SalaryRepository.ANNUAL_LEAVE_HOURS
-                val effectiveHours = if (isAnnualLeave) 7.5 else kotlin.math.abs(hours)
-                val durationMs = (effectiveHours * 3600 * 1000).toLong()
+                val isStatutorySickLeave = hours == SalaryRepository.STATUTORY_SICK_LEAVE_HOURS
+                val effectiveHours = when {
+                    isAnnualLeave -> 7.5
+                    isStatutorySickLeave -> 0.0
+                    else -> kotlin.math.abs(hours)
+                }
+                val durationMs = if (isStatutorySickLeave) (8 * 3600 * 1000).toLong() else (effectiveHours * 3600 * 1000).toLong()
                 val endTime = Date(startTime.time + durationMs)
 
                 val uid = "shift-${year}${month}${day}-${UUID.randomUUID()}@salarycalculator.app"
-                val isOvertime = hours < 0.0 || hours > 8.0
+                val isOvertime = !isAnnualLeave && !isStatutorySickLeave && (hours < 0.0 || hours > 8.0)
                 val summary = when {
                     isAnnualLeave -> "Annual Leave (A/L)"
+                    isStatutorySickLeave -> "Statutory Sick Leave (SSP)"
                     isOvertime -> "$jobTitle (Overtime: ${effectiveHours.toInt()}h)"
                     else -> "$jobTitle (${effectiveHours.toInt()}h Shift)"
                 }
-                val description = if (isAnnualLeave) "Annual leave holiday day logged in Salary Calculator." else "Logged working shift in Salary Calculator. Total hours: ${"%.1f".format(effectiveHours)}h"
+                val description = when {
+                    isAnnualLeave -> "Annual leave holiday day logged in Salary Calculator."
+                    isStatutorySickLeave -> "Statutory sick leave (SSP) day logged in Salary Calculator."
+                    else -> "Logged working shift in Salary Calculator. Total hours: ${"%.1f".format(effectiveHours)}h"
+                }
 
                 sb.appendLine("BEGIN:VEVENT")
                 sb.appendLine("UID:$uid")
@@ -95,18 +105,28 @@ object IcsCalendarExporter {
                     calendar.set(year, month - 1, day, 9, 0, 0)
                     val startTime = calendar.time
                     val isAnnualLeave = hours == SalaryRepository.ANNUAL_LEAVE_HOURS
-                    val effectiveHours = if (isAnnualLeave) 7.5 else kotlin.math.abs(hours)
-                    val durationMs = (effectiveHours * 3600 * 1000).toLong()
+                    val isStatutorySickLeave = hours == SalaryRepository.STATUTORY_SICK_LEAVE_HOURS
+                    val effectiveHours = when {
+                        isAnnualLeave -> 7.5
+                        isStatutorySickLeave -> 0.0
+                        else -> kotlin.math.abs(hours)
+                    }
+                    val durationMs = if (isStatutorySickLeave) (8 * 3600 * 1000).toLong() else (effectiveHours * 3600 * 1000).toLong()
                     val endTime = Date(startTime.time + durationMs)
 
                     val uid = "annual-shift-${year}-${month}-${day}-${UUID.randomUUID()}@salarycalculator.app"
-                    val isOvertime = hours < 0.0 || hours > 8.0
+                    val isOvertime = !isAnnualLeave && !isStatutorySickLeave && (hours < 0.0 || hours > 8.0)
                     val summary = when {
                         isAnnualLeave -> "Annual Leave (A/L)"
+                        isStatutorySickLeave -> "Statutory Sick Leave (SSP)"
                         isOvertime -> "$jobTitle (Overtime: ${effectiveHours.toInt()}h)"
                         else -> "$jobTitle (${effectiveHours.toInt()}h Shift)"
                     }
-                    val description = if (isAnnualLeave) "Annual leave holiday day logged in Salary Calculator. Month: $month, Day: $day." else "Logged working shift in Salary Calculator. Month: $month, Day: $day. Total: ${"%.1f".format(effectiveHours)}h"
+                    val description = when {
+                        isAnnualLeave -> "Annual leave holiday day logged in Salary Calculator. Month: $month, Day: $day."
+                        isStatutorySickLeave -> "Statutory sick leave (SSP) day logged in Salary Calculator. Month: $month, Day: $day."
+                        else -> "Logged working shift in Salary Calculator. Month: $month, Day: $day. Total: ${"%.1f".format(effectiveHours)}h"
+                    }
 
                     sb.appendLine("BEGIN:VEVENT")
                     sb.appendLine("UID:$uid")

@@ -32,14 +32,19 @@ class DutyRotaOcrEngineTest {
         val off = RotaShiftType.fromCode("-")
         assertTrue(off is RotaShiftType.Off)
         assertEquals(0.0, off.defaultHours, 0.001)
-    }
 
-    @Test
-    fun testShiftTypeFromCode_customUnknownMarkings() {
-        val custom = RotaShiftType.fromCode("SICK")
+        val ssp = RotaShiftType.fromCode("SSP")
+        assertTrue(ssp is RotaShiftType.SickLeave)
+        assertEquals(0.0, ssp.defaultHours, 0.001)
+        assertFalse(ssp.isWorkShift)
+
+        val sick = RotaShiftType.fromCode("SICK")
+        assertTrue(sick is RotaShiftType.SickLeave)
+
+        val custom = RotaShiftType.fromCode("MAT")
         assertTrue(custom is RotaShiftType.Custom)
-        assertEquals("SICK", custom.code)
-        assertEquals("Custom (SICK)", custom.label)
+        assertEquals("MAT", custom.code)
+        assertEquals("Custom (MAT)", custom.label)
         assertEquals(12.0, custom.defaultHours, 0.001)
     }
 

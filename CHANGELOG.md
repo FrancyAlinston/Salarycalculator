@@ -4,6 +4,33 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.5] - 2026-09-25 (VersionCode: 49)
+### Added / Changed
+- **Statutory Sick Pay (SSP) Shift Heatmap Purple Marking (`FEAT-915`) (`ShiftHeatmapCard.kt`, `Color.kt`, `AnnualShiftPdfGenerator.kt`, `IcsCalendarExporter.kt`)**:
+  - Implemented **Purple (`#A855F7` / `Violet60`)** badge marking for Statutory Sick Pay in the interactive 7-column shift heatmap.
+  - Enhanced cell tap cycle to: `0h Off` $\longrightarrow$ `12h Std (Emerald)` $\longrightarrow$ `12h OT (Amber)` $\longrightarrow$ `A/L (Blue)` $\longrightarrow$ `SSP (Purple)` $\longrightarrow$ `0h Off`.
+  - Added dedicated Purple `● SSP Sick Pay` legend chip and integrated SSP itemization into the Cutoff & Pay Cycle banner card.
+  - Exported Purple `SSP` markers in printable 12-month vector PDFs and RFC 5545 `.ics` calendar files.
+- **UK Statutory Sick Pay Calculation Engine & Settings (`FEAT-915`) (`PayScheduleEngine.kt`, `TaxCalculator.kt`, `SalaryRepository.kt`, `SettingsScreen.kt`)**:
+  - Added Statutory Sick Pay settings card in Settings to configure custom SSP Daily Rate (£23.35/day standard, £25/day, £30/day) and unpaid Waiting Days (3 waiting days standard, 0 days immediate, 2 days).
+  - Implemented consecutive sickness sequence tracking with UK waiting day rules (first 3 qualifying days unpaid, starting payment from Day 4).
+  - Factored SSP earnings into Gross Pay, Taxable Pay, PAYE Income Tax, Class 1 Primary NI, and Net Take-Home earnings across all payslip breakdowns.
+  - Handled post-cutoff SSP qualifying days rollover into the subsequent month's payroll split.
+- **Duty Rota OCR Auto-Detection of `A/L` & `SSP` Markings (`FEAT-916`) (`DutyRotaOcrEngine.kt`, `DutyRotaImportDialog.kt`, `DutyRotaOcrEngineTest.kt`)**:
+  - Auto-detects `A/L`, `AL`, `LEAVE`, `HOL`, `HOLIDAY` rota codes directly into Blue heatmap cells (`-999.0`).
+  - Auto-detects `SSP`, `SICK`, `S`, `S/L`, `SL` rota codes directly into Purple heatmap cells (`-888.0`).
+  - Added `RotaShiftType.SickLeave` with visual Purple badges in staff rosters, preview calendar grids, shift editing dialogs, and breakdown summary cards.
+- **Cloud Backup & Restore Integration (`LedgerBackupManager.kt`)**:
+  - Added `sspDailyRate` and `sspWaitingDays` to `BackupBundle` snapshots for Google Drive and Syncthing sync.
+
+### Bugs Found & Fixed
+- **Duty Rota Heatmap Marking Loss**: Fixed Duty Rota import confirmation logic to preserve and serialize `-999.0` (Annual Leave) and `-888.0` (Statutory Sick Leave) values when applying imported rotas to the main heatmap.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [25.4] - 2026-09-25 (VersionCode: 48)
 ### Added / Changed
 - **Shift Heatmap Blue Annual Leave (`A/L`) Marking (`FEAT-913`) (`ShiftHeatmapCard.kt`, `Color.kt`, `AnnualShiftPdfGenerator.kt`, `IcsCalendarExporter.kt`)**:

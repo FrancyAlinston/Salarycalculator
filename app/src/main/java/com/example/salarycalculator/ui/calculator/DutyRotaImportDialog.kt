@@ -35,9 +35,11 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.salarycalculator.domain.*
 import com.example.salarycalculator.theme.Amber60
+import com.example.salarycalculator.theme.Blue60
 import com.example.salarycalculator.theme.Emerald60
 import com.example.salarycalculator.theme.Rose60
 import com.example.salarycalculator.theme.Teal60
+import com.example.salarycalculator.theme.Violet60
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -286,9 +288,17 @@ fun DutyRotaImportDialog(
                             onEditShift = { dayShift -> editingDayShift = dayShift },
                             onOpenShiftSwap = { showShiftSwapForecaster = true },
                             onConfirmAndApply = {
-                                val finalMap = editableShifts.values
-                                    .filter { it.hours > 0.0 }
-                                    .associate { it.day to it.hours }
+                                val finalMap = mutableMapOf<Int, Double>()
+                                editableShifts.values.forEach { s ->
+                                    when (s.shiftType) {
+                                        is RotaShiftType.AnnualLeave -> finalMap[s.day] = SalaryRepository.ANNUAL_LEAVE_HOURS
+                                        is RotaShiftType.SickLeave -> finalMap[s.day] = SalaryRepository.STATUTORY_SICK_LEAVE_HOURS
+                                        is RotaShiftType.Off -> {}
+                                        else -> {
+                                            if (s.hours > 0.0) finalMap[s.day] = s.hours
+                                        }
+                                    }
+                                }
                                 onApplyRotaSchedule(
                                     parseResult.year,
                                     parseResult.month,
@@ -576,7 +586,10 @@ private fun StaffMemberCard(
                     ShiftBadge(label = "${staff.totalDayShifts}D", color = Emerald60)
                 }
                 if (staff.totalAnnualLeaveDays > 0) {
-                    ShiftBadge(label = "${staff.totalAnnualLeaveDays} AL", color = Amber60)
+                    ShiftBadge(label = "${staff.totalAnnualLeaveDays} AL", color = Blue60)
+                }
+                if (staff.totalSickLeaveDays > 0) {
+                    ShiftBadge(label = "${staff.totalSickLeaveDays} SSP", color = Violet60)
                 }
                 if (staff.totalTrainingDays > 0) {
                     ShiftBadge(label = "${staff.totalTrainingDays} TD", color = Teal60)
@@ -646,6 +659,7 @@ private fun Step3HeatmapPreview(
     val totalNights = shifts.values.count { it.shiftType is RotaShiftType.Night }
     val totalDays = shifts.values.count { it.shiftType is RotaShiftType.Day }
     val totalAL = shifts.values.count { it.shiftType is RotaShiftType.AnnualLeave }
+    val totalSick = shifts.values.count { it.shiftType is RotaShiftType.SickLeave }
     val totalTD = shifts.values.count { it.shiftType is RotaShiftType.TrainingDay }
     val totalHours = shifts.values.sumOf { it.hours }
     val estGross = totalHours * hourlyRate
@@ -707,7 +721,8 @@ private fun Step3HeatmapPreview(
         ) {
             LegendItem("N = Night (12h)", Color(0xFF6750A4))
             LegendItem("D = Day (12h)", Emerald60)
-            LegendItem("A/L = Leave", Amber60)
+            LegendItem("A/L = Leave (Blue)", Blue60)
+            LegendItem("SSP = Sick (Purple)", Violet60)
             LegendItem("TD = Training", Teal60)
             LegendItem("Tap cell to edit", MaterialTheme.colorScheme.outline)
         }
@@ -793,8 +808,16 @@ private fun Step3HeatmapPreview(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    SummaryMetric(label = "Annual Leave", value = "$totalAL days")
+                    SummaryMetric(label = "Annual Leave (A/L)", value = "$totalAL days")
+                    SummaryMetric(label = "Sick Leave (SSP)", value = "$totalSick days")
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     SummaryMetric(label = "Training Days", value = "$totalTD days")
+                    SummaryMetric(label = "Off Days", value = "${daysInMonth - totalWorkDays - totalAL - totalSick - totalTD} days")
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -899,7 +922,8 @@ private fun RotaCellItem(
     val (bg, textColor, border) = when (val t = shift.shiftType) {
         is RotaShiftType.Night -> Triple(Color(0xFF6750A4), Color.White, Color(0xFF6750A4))
         is RotaShiftType.Day -> Triple(Emerald60, Color.White, Emerald60)
-        is RotaShiftType.AnnualLeave -> Triple(Amber60.copy(alpha = 0.25f), Amber60, Amber60)
+        is RotaShiftType.AnnualLeave -> Triple(Blue60, Color.White, Blue60)
+        is RotaShiftType.SickLeave -> Triple(Violet60, Color.White, Violet60)
         is RotaShiftType.TrainingDay -> Triple(Teal60.copy(alpha = 0.25f), Teal60, Teal60)
         is RotaShiftType.Custom -> Triple(Rose60.copy(alpha = 0.25f), Rose60, Rose60)
         is RotaShiftType.Off -> Triple(
@@ -936,6 +960,7 @@ private fun RotaCellItem(
                 is RotaShiftType.Day -> "D"
                 is RotaShiftType.Night -> "N"
                 is RotaShiftType.AnnualLeave -> "A/L"
+                is RotaShiftType.SickLeave -> "SSP"
                 is RotaShiftType.TrainingDay -> "TD"
                 is RotaShiftType.Custom -> shift.rawCode.take(3)
             }
@@ -1023,7 +1048,8 @@ private fun ShiftCellEditDialog(
                 listOf(
                     RotaShiftType.Night to "Night Shift (12h)",
                     RotaShiftType.Day to "Day Shift (12h)",
-                    RotaShiftType.AnnualLeave to "Annual Leave (Paid 12h)",
+                    RotaShiftType.AnnualLeave to "Annual Leave (A/L / Blue)",
+                    RotaShiftType.SickLeave to "Statutory Sick Leave (SSP / Purple)",
                     RotaShiftType.TrainingDay to "Training Day (TD)",
                     RotaShiftType.Off to "Off Duty (-)"
                 ).forEach { (type, label) ->
@@ -1035,6 +1061,7 @@ private fun ShiftCellEditDialog(
                                 selectedType = type
                                 hoursInput = when (type) {
                                     is RotaShiftType.Off -> "0.0"
+                                    is RotaShiftType.SickLeave -> "0.0"
                                     else -> standardShiftHours.toString()
                                 }
                             },

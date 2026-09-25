@@ -67,6 +67,8 @@ data class BackupBundle(
     val googleDriveLastSync: String = "",
     val annualLeaveHourlyRate: Double = 0.0,
     val annualLeaveHoursPerDay: Double = 7.5,
+    val sspDailyRate: Double = 23.35,
+    val sspWaitingDays: Int = 3,
     val weeklyOvertimeThreshold: Double = 37.5,
     val deviceName: String = "",
     val deviceModel: String = "",
@@ -135,6 +137,8 @@ object LedgerBackupManager {
             googleDriveLastSync = repository.getGoogleDriveLastSync().first(),
             annualLeaveHourlyRate = repository.getAnnualLeaveHourlyRate().first(),
             annualLeaveHoursPerDay = repository.getAnnualLeaveHoursPerDay().first(),
+            sspDailyRate = repository.getSspDailyRate().first(),
+            sspWaitingDays = repository.getSspWaitingDays().first(),
             weeklyOvertimeThreshold = repository.getWeeklyOvertimeThreshold().first(),
             deviceName = getDeviceName(),
             deviceModel = getDeviceModel()
@@ -440,6 +444,12 @@ object LedgerBackupManager {
             }
             if (bundle.annualLeaveHoursPerDay > 0.0) {
                 repository.setAnnualLeaveHoursPerDay(bundle.annualLeaveHoursPerDay)
+            }
+            if (bundle.sspDailyRate > 0.0) {
+                repository.setSspDailyRate(bundle.sspDailyRate)
+            }
+            if (bundle.sspWaitingDays >= 0) {
+                repository.setSspWaitingDays(bundle.sspWaitingDays)
             }
             if (bundle.weeklyOvertimeThreshold >= 0.0) {
                 repository.setWeeklyOvertimeThreshold(bundle.weeklyOvertimeThreshold)

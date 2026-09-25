@@ -54,6 +54,8 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 12.0)
     val annualLeaveHourlyRate by salaryRepository.getAnnualLeaveHourlyRate().collectAsState(initial = 0.0)
     val annualLeaveHoursPerDay by salaryRepository.getAnnualLeaveHoursPerDay().collectAsState(initial = 7.5)
+    val sspDailyRate by salaryRepository.getSspDailyRate().collectAsState(initial = 23.35)
+    val sspWaitingDays by salaryRepository.getSspWaitingDays().collectAsState(initial = 3)
     val weeklyOvertimeThreshold by salaryRepository.getWeeklyOvertimeThreshold().collectAsState(initial = 37.5)
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
@@ -61,6 +63,8 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var inputHoursPerDay by remember(defaultHoursPerDay) { mutableStateOf(defaultHoursPerDay.toString()) }
     var inputAnnualLeaveRate by remember(annualLeaveHourlyRate) { mutableStateOf(if (annualLeaveHourlyRate > 0.0) annualLeaveHourlyRate.toString() else "") }
     var inputAnnualLeaveHours by remember(annualLeaveHoursPerDay) { mutableStateOf(annualLeaveHoursPerDay.toString()) }
+    var inputSspDailyRate by remember(sspDailyRate) { mutableStateOf(sspDailyRate.toString()) }
+    var inputSspWaitingDays by remember(sspWaitingDays) { mutableStateOf(sspWaitingDays.toString()) }
     var selectedWeeklyOvertimeThreshold by remember(weeklyOvertimeThreshold) { mutableStateOf(weeklyOvertimeThreshold) }
     var inputPensionRate by remember(pensionRate) { mutableStateOf(pensionRate.toString()) }
     var selectedThemeMode by remember(currentThemeMode) { mutableStateOf(currentThemeMode) }
@@ -944,6 +948,98 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                     }
                 }
 
+                // 5c. Statutory Sick Pay (SSP) Settings Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Outlined.LocalHospital, contentDescription = null, tint = com.example.salarycalculator.theme.Violet60)
+                            Text("Statutory Sick Pay (SSP) Settings", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Text(
+                            text = "Configure statutory sick pay daily rate and unpaid waiting days (UK standard: 3 waiting days, £23.35/qualifying day). Marked as Purple 'SSP' on your shift heatmap.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // SSP Daily Rate
+                        OutlinedTextField(
+                            value = inputSspDailyRate,
+                            onValueChange = { inputSspDailyRate = it },
+                            label = { Text("SSP Daily Rate (£/qualifying day)") },
+                            placeholder = { Text("Standard UK rate: £23.35/day (£116.75/wk)") },
+                            leadingIcon = { Text("£", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 12.dp)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Quick SSP Daily Rate Presets
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(23.35 to "£23.35 (UK Standard)", 25.00 to "£25.00", 30.00 to "£30.00").forEach { (rate, label) ->
+                                FilterChip(
+                                    selected = inputSspDailyRate.toDoubleOrNull() == rate,
+                                    onClick = {
+                                        inputSspDailyRate = rate.toString()
+                                        scope.launch { salaryRepository.setSspDailyRate(rate) }
+                                    },
+                                    label = { Text(label) },
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+                        }
+
+                        // SSP Waiting Days
+                        OutlinedTextField(
+                            value = inputSspWaitingDays,
+                            onValueChange = { inputSspWaitingDays = it },
+                            label = { Text("Waiting Days (Unpaid before SSP begins)") },
+                            leadingIcon = { Icon(Icons.Outlined.Timer, contentDescription = null) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        // Quick Waiting Days Presets
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(3 to "3 Days (UK Standard)", 0 to "0 Days (Immediate)", 2 to "2 Days").forEach { (days, label) ->
+                                FilterChip(
+                                    selected = inputSspWaitingDays.toIntOrNull() == days,
+                                    onClick = {
+                                        inputSspWaitingDays = days.toString()
+                                        scope.launch { salaryRepository.setSspWaitingDays(days) }
+                                    },
+                                    label = { Text(label) },
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // 6. Security & Privacy Card (Biometric Lock)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -1337,6 +1433,12 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                             salaryRepository.setAnnualLeaveHourlyRate(alRate)
                             inputAnnualLeaveHours.toDoubleOrNull()?.let {
                                 salaryRepository.setAnnualLeaveHoursPerDay(it)
+                            }
+                            inputSspDailyRate.toDoubleOrNull()?.let {
+                                salaryRepository.setSspDailyRate(it)
+                            }
+                            inputSspWaitingDays.toIntOrNull()?.let {
+                                salaryRepository.setSspWaitingDays(it)
                             }
                             salaryRepository.setWeeklyOvertimeThreshold(selectedWeeklyOvertimeThreshold)
                             snackbarHostState.showSnackbar("Settings saved successfully!")

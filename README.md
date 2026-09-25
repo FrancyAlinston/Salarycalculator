@@ -4,8 +4,18 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Statutory Sick Pay (`SSP`) Purple Shift Marking & Waiting Days Payroll Engine (`FEAT-915`) (`ShiftHeatmapCard.kt`, `PayScheduleEngine.kt`, `TaxCalculator.kt`, `SettingsScreen.kt`):**
+  - **Interactive Purple (`#A855F7`) SSP Badging:** 7-column interactive shift heatmap featuring dedicated Purple `SSP` sick leave badges with a quick 5-state tap cycle (`0h Off` $\to$ `12h Std` $\to$ `12h OT` $\to$ `A/L` $\to$ `SSP` $\to$ `0h Off`) and Purple legend indicator.
+  - **Statutory UK Waiting Days & Qualifying Sickness Engine:** Implements HMRC statutory rules where the first 3 consecutive qualifying days in a sickness sequence are unpaid waiting days, and subsequent days earn statutory pay (default £23.35/day, configurable in Settings).
+  - **Cutoff-Aware SSP Payroll Splitting:** Splits SSP into in-cycle and rollover sick pay based on monthly payroll cutoffs, displaying real-time paid SSP days and total statutory sick pay in the pay cycle banner and adding it to gross pay, PAYE tax, NI, and net take-home calculations.
+  - **Annual Printable PDF & Calendar Sync:** Renders Purple `SSP` days on printable 12-month PDF calendars and exports sick leave events to RFC 5545 `.ics` calendars.
+
+- **OCR Duty Rota Auto-Detection of Annual Leave (`A/L`) & Sick Leave (`SSP`) (`FEAT-916`) (`DutyRotaOcrEngine.kt`, `DutyRotaImportDialog.kt`):**
+  - **Automated Leave & Sickness Classification:** On-device ML Kit OCR automatically detects `"A/L"`, `"AL"`, `"LEAVE"`, `"HOL"`, and `"HOLIDAY"` as Annual Leave, and `"SSP"`, `"SICK"`, `"S"`, `"S/L"`, and `"SL"` as Statutory Sick Pay.
+  - **Seamless Rota-to-Heatmap Mapping:** One-tap application directly encodes Blue `A/L` (`-999.0`) and Purple `SSP` (`-888.0`) into the monthly shift schedule, updating staff preview badges, summaries, and monthly salary calculations instantly.
+
 - **Blue Annual Leave (`A/L`) Shift Marking & Dynamic Weekly Overtime Threshold Engine (`FEAT-913`) (`ShiftHeatmapCard.kt`, `PayScheduleEngine.kt`, `TaxCalculator.kt`, `SettingsScreen.kt`):**
-  - **Interactive Blue (`#1E88E5`) Annual Leave Badging:** Interactive 7-column shift heatmap featuring dedicated Blue `A/L` holiday badges with a fast tap cycle (`0h Off` $\to$ `12h Std` $\to$ `12h OT` $\to$ `A/L` $\to$ `0h Off`) and Blue legend indicator.
+  - **Interactive Blue (`#1E88E5`) Annual Leave Badging:** Interactive 7-column shift heatmap featuring dedicated Blue `A/L` holiday badges with a fast tap cycle (`0h Off` $\to$ `12h Std` $\to$ `12h OT` $\to$ `A/L` $\to$ `SSP` $\to$ `0h Off`) and Blue legend indicator.
   - **Configurable Annual Leave Rate & Shift Duration:** Customize Annual Leave Hourly Rate (£/hr) (defaulting to basic rate) and Holiday Shift Hours (7.5h standard, 8.0h, 12.0h long day) in Settings, calculating statutory holiday pay directly into Gross Pay, Tax, NI, and Take-Home earnings.
   - **Dynamic Weekly Overtime Threshold Trigger:** Automatically calculates cumulative regular hours in a Monday–Sunday calendar week and converts hours worked beyond the threshold (e.g., 37.5h or 40.0h) into paid Overtime.
   - **Annual PDF & Calendar Synchronization:** Exports Blue `A/L` holidays in high-resolution 12-month printable vector PDFs and RFC 5545 `.ics` calendar events.

@@ -817,6 +817,26 @@ class TaxCalculatorTest {
         assertEquals(20.0, report.annualLeaveHours, 0.01)
         assertEquals(2300.0 - (12570.0 / 12.0), report.taxablePay, 0.01)
     }
+
+    @Test
+    fun testCalculateTax_WithStatutorySickPay() {
+        val stdPay = 1800.0
+        val sspPay = 93.40 // 4 qualifying days @ 23.35
+        val report = TaxCalculator.calculateTax(
+            grossPay = stdPay,
+            taxCode = "1257L",
+            isMonthly = true,
+            sspPay = sspPay,
+            sspDays = 4,
+            pensionRatePercent = 0.0
+        )
+
+        assertEquals(1893.40, report.grossPay, 0.01)
+        assertEquals(93.40, report.sspPay, 0.01)
+        assertEquals(4, report.sspDays)
+        assertEquals(1893.40 - (12570.0 / 12.0), report.taxablePay, 0.01)
+        assertTrue(report.netPay > 0.0)
+    }
 }
 
 

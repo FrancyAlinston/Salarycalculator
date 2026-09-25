@@ -79,6 +79,8 @@ class SalaryRepository(private val context: Context) {
     private val ANNUAL_LEAVE_HOURLY_RATE_KEY = doublePreferencesKey("annual_leave_hourly_rate")
     private val ANNUAL_LEAVE_HOURS_PER_DAY_KEY = doublePreferencesKey("annual_leave_hours_per_day")
     private val WEEKLY_OVERTIME_THRESHOLD_KEY = doublePreferencesKey("weekly_overtime_threshold")
+    private val SSP_DAILY_RATE_KEY = doublePreferencesKey("ssp_daily_rate")
+    private val SSP_WAITING_DAYS_KEY = intPreferencesKey("ssp_waiting_days")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -1092,8 +1094,37 @@ class SalaryRepository(private val context: Context) {
         }
     }
 
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getSspDailyRate(): Flow<Double> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SSP_DAILY_RATE_KEY] ?: 23.35 // UK Statutory SSP: £116.75 / 5 days = £23.35/day
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setSspDailyRate(rate: Double) {
+        context.dataStore.edit { preferences ->
+            preferences[SSP_DAILY_RATE_KEY] = rate
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getSspWaitingDays(): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SSP_WAITING_DAYS_KEY] ?: 3 // Standard statutory 3 waiting days
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setSspWaitingDays(days: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[SSP_WAITING_DAYS_KEY] = days
+        }
+    }
+
     companion object {
         const val ANNUAL_LEAVE_HOURS = -999.0
+        const val STATUTORY_SICK_LEAVE_HOURS = -888.0
         fun parseShiftScheduleJson(jsonStr: String): Map<String, Map<Int, Double>> {
             if (jsonStr.isBlank()) return emptyMap()
             val result = mutableMapOf<String, MutableMap<Int, Double>>()

@@ -320,4 +320,71 @@ class PayScheduleEngineTest {
         assertEquals(37.5, split.inCycleStandardHours, 0.01)
         assertEquals(10.5, split.inCycleOtHours, 0.01)
     }
+
+    @Test
+    fun testShiftPayrollSplit_StatutorySickPay_WaitingDaysAndPayment() {
+        val config = PayScheduleConfig(
+            type = PayScheduleType.LAST_FRIDAY_OF_MONTH,
+            sspDailyRate = 23.35,
+            sspWaitingDays = 3
+        )
+
+        // 5 consecutive days of illness (Days 1 to 5 in Oct 2025)
+        // Days 1, 2, 3 are waiting days (0 pay)
+        // Days 4, 5 are qualifying paid SSP days (2 * 23.35 = 46.70)
+        val shifts = mapOf(
+            1 to SalaryRepository.STATUTORY_SICK_LEAVE_HOURS,
+            2 to SalaryRepository.STATUTORY_SICK_LEAVE_HOURS,
+            3 to SalaryRepository.STATUTORY_SICK_LEAVE_HOURS,
+            4 to SalaryRepository.STATUTORY_SICK_LEAVE_HOURS,
+            5 to SalaryRepository.STATUTORY_SICK_LEAVE_HOURS,
+            10 to 12.0
+        )
+
+        val split = PayScheduleEngine.calculateShiftPayrollSplit(
+            year = 2025,
+            month = 10,
+            currentMonthShifts = shifts,
+            config = config,
+            standardHoursPerShift = 12.0
+        )
+
+        assertEquals(2, split.inCycleSspDays)
+        assertEquals(46.70, split.inCycleSspPay, 0.01)
+        assertEquals(2, split.totalPaidSspDays)
+        assertEquals(46.70, split.totalPaidSspPay, 0.01)
+        assertEquals(1, split.inCycleDays) // Day 10 standard shift
+        assertEquals(12.0, split.inCycleHours, 0.01)
+    }
+
+    @Test
+    fun testShiftPayrollSplit_StatutorySickPay_PostCutoffRollover() {
+        val config = PayScheduleConfig(
+            type = PayScheduleType.LAST_FRIDAY_OF_MONTH,
+            sspDailyRate = 23.35,
+            sspWaitingDays = 3
+        )
+
+        // Oct 2025 cutoff is Sun Oct 26.
+        // Days 24, 25, 26 (waiting days <= 26)
+        // Day 27 (> 26 cutoff, 4th sick day -> rolls over to Nov as 1 qualifying SSP day)
+        val shifts = mapOf(
+            24 to SalaryRepository.STATUTORY_SICK_LEAVE_HOURS,
+            25 to SalaryRepository.STATUTORY_SICK_LEAVE_HOURS,
+            26 to SalaryRepository.STATUTORY_SICK_LEAVE_HOURS,
+            27 to SalaryRepository.STATUTORY_SICK_LEAVE_HOURS
+        )
+
+        val split = PayScheduleEngine.calculateShiftPayrollSplit(
+            year = 2025,
+            month = 10,
+            currentMonthShifts = shifts,
+            config = config
+        )
+
+        assertEquals(0, split.inCycleSspDays)
+        assertEquals(0.0, split.inCycleSspPay, 0.01)
+        assertEquals(1, split.rolloverSspDays)
+        assertEquals(23.35, split.rolloverSspPay, 0.01)
+    }
 }

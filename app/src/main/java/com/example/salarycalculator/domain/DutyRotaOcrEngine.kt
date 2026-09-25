@@ -48,6 +48,14 @@ sealed class RotaShiftType {
     }
 
     @Serializable
+    data object SickLeave : RotaShiftType() {
+        override val code: String = "SSP"
+        override val label: String = "Statutory Sick Leave"
+        override val defaultHours: Double = 0.0
+        override val isWorkShift: Boolean = false
+    }
+
+    @Serializable
     data object TrainingDay : RotaShiftType() {
         override val code: String = "TD"
         override val label: String = "Training Day"
@@ -77,7 +85,8 @@ sealed class RotaShiftType {
             return when {
                 normalized == "D" || normalized == "DAY" || normalized == "D/S" -> Day
                 normalized == "N" || normalized == "NIGHT" || normalized == "N/S" -> Night
-                normalized == "A/L" || normalized == "AL" || normalized == "LEAVE" || normalized == "HOL" || normalized == "A/l" -> AnnualLeave
+                normalized == "A/L" || normalized == "AL" || normalized == "LEAVE" || normalized == "HOL" || normalized == "HOLIDAY" -> AnnualLeave
+                normalized == "SSP" || normalized == "SICK" || normalized == "S" || normalized == "S/L" || normalized == "SL" -> SickLeave
                 normalized == "TD" || normalized == "T/D" || normalized == "TRAIN" || normalized == "TRAINING" -> TrainingDay
                 normalized == "-" || normalized == "" || normalized == "OFF" || normalized == "X" || normalized == "O" || normalized == "R" -> Off
                 else -> Custom(codeStr.trim(), customHours)
@@ -97,6 +106,7 @@ data class RotaDayShift(
     val shiftType: RotaShiftType,
     val hours: Double,
     val isLeave: Boolean = shiftType is RotaShiftType.AnnualLeave,
+    val isSick: Boolean = shiftType is RotaShiftType.SickLeave,
     val isTraining: Boolean = shiftType is RotaShiftType.TrainingDay
 )
 
@@ -122,6 +132,9 @@ data class RotaStaffMember(
     val totalAnnualLeaveDays: Int
         get() = shifts.count { it.shiftType is RotaShiftType.AnnualLeave }
 
+    val totalSickLeaveDays: Int
+        get() = shifts.count { it.shiftType is RotaShiftType.SickLeave }
+
     val totalTrainingDays: Int
         get() = shifts.count { it.shiftType is RotaShiftType.TrainingDay }
 
@@ -131,8 +144,15 @@ data class RotaStaffMember(
     fun toHeatmapShiftMap(): Map<Int, Double> {
         val result = mutableMapOf<Int, Double>()
         shifts.forEach { shift ->
-            if (shift.hours > 0.0) {
-                result[shift.day] = shift.hours
+            when (shift.shiftType) {
+                is RotaShiftType.AnnualLeave -> result[shift.day] = SalaryRepository.ANNUAL_LEAVE_HOURS
+                is RotaShiftType.SickLeave -> result[shift.day] = SalaryRepository.STATUTORY_SICK_LEAVE_HOURS
+                is RotaShiftType.Off -> {}
+                else -> {
+                    if (shift.hours > 0.0) {
+                        result[shift.day] = shift.hours
+                    }
+                }
             }
         }
         return result
@@ -458,6 +478,7 @@ object DutyRotaOcrEngine {
                 is RotaShiftType.Day -> standardHours
                 is RotaShiftType.Night -> standardHours
                 is RotaShiftType.AnnualLeave -> standardHours
+                is RotaShiftType.SickLeave -> 0.0
                 is RotaShiftType.TrainingDay -> standardHours
                 is RotaShiftType.Off -> 0.0
                 is RotaShiftType.Custom -> shiftType.customHours

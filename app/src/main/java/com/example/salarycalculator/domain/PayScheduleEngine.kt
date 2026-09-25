@@ -38,7 +38,9 @@ data class PayScheduleConfig(
     val cutoffLeadDays: Int = 5, // e.g. Sunday before Friday = 5 days
     val adjustForBankHolidays: Boolean = true,
     val weeklyOvertimeThresholdHours: Double = 0.0, // 0.0 = disabled, or e.g. 37.5, 40.0
-    val annualLeaveHoursPerDay: Double = 7.5
+    val annualLeaveHoursPerDay: Double = 7.5,
+    val sspDailyRate: Double = 23.35, // Statutory UK SSP (£116.75 / 5 days = £23.35/day)
+    val sspWaitingDays: Int = 3 // Standard UK statutory 3 waiting days
 )
 
 @Serializable
@@ -88,17 +90,23 @@ data class ShiftPayrollSplit(
     val inCycleStandardHours: Double,
     val inCycleAnnualLeaveDays: Int = 0,
     val inCycleAnnualLeaveHours: Double = 0.0,
+    val inCycleSspDays: Int = 0,
+    val inCycleSspPay: Double = 0.0,
     val previousRolloverDays: Int = 0,
     val previousRolloverHours: Double = 0.0,
     val previousRolloverOtHours: Double = 0.0,
     val previousRolloverStandardHours: Double = 0.0,
     val previousRolloverAnnualLeaveDays: Int = 0,
     val previousRolloverAnnualLeaveHours: Double = 0.0,
+    val previousRolloverSspDays: Int = 0,
+    val previousRolloverSspPay: Double = 0.0,
     val rolloverDays: Int,
     val rolloverHours: Double,
     val rolloverOtHours: Double,
     val rolloverAnnualLeaveDays: Int = 0,
     val rolloverAnnualLeaveHours: Double = 0.0,
+    val rolloverSspDays: Int = 0,
+    val rolloverSspPay: Double = 0.0,
     val totalMonthDays: Int,
     val totalMonthHours: Double,
     val cutoffDay: Int,
@@ -110,6 +118,8 @@ data class ShiftPayrollSplit(
     val totalPaidOtHours: Double get() = inCycleOtHours + previousRolloverOtHours
     val totalPaidAnnualLeaveDays: Int get() = inCycleAnnualLeaveDays + previousRolloverAnnualLeaveDays
     val totalPaidAnnualLeaveHours: Double get() = inCycleAnnualLeaveHours + previousRolloverAnnualLeaveHours
+    val totalPaidSspDays: Int get() = inCycleSspDays + previousRolloverSspDays
+    val totalPaidSspPay: Double get() = inCycleSspPay + previousRolloverSspPay
 }
 
 // CRITICAL: TAX_ENGINE
@@ -288,12 +298,18 @@ object PayScheduleEngine {
         var inCycleStdHours = 0.0
         var inCycleAlDays = 0
         var inCycleAlHours = 0.0
+        var inCycleSspDays = 0
+        var inCycleSspPay = 0.0
 
         var rolloverDays = 0
         var rolloverHours = 0.0
         var rolloverOtHours = 0.0
         var rolloverAlDays = 0
         var rolloverAlHours = 0.0
+        var rolloverSspDays = 0
+        var rolloverSspPay = 0.0
+
+        var sspSequenceIndex = 0
 
         val weeklyStdHoursAccumulator = mutableMapOf<String, Double>()
 
@@ -336,6 +352,8 @@ object PayScheduleEngine {
         var prevRolloverStdHours = 0.0
         var prevRolloverAlDays = 0
         var prevRolloverAlHours = 0.0
+        var prevRolloverSspDays = 0
+        var prevRolloverSspPay = 0.0
 
         if (previousMonthShifts.isNotEmpty()) {
             val prevMonth = if (month == 1) 12 else month - 1
@@ -345,17 +363,28 @@ object PayScheduleEngine {
 
             previousMonthShifts.toSortedMap().forEach { (day, hours) ->
                 if (day > prevCutoffDay && hours != 0.0) {
-                    if (hours == SalaryRepository.ANNUAL_LEAVE_HOURS) {
-                        prevRolloverDays++
-                        prevRolloverAlDays++
-                        prevRolloverHours += config.annualLeaveHoursPerDay
-                        prevRolloverAlHours += config.annualLeaveHoursPerDay
-                    } else {
-                        val (std, ot, totalEffectiveHrs) = evaluateShiftHours(prevYear, prevMonth, day, hours)
-                        prevRolloverDays++
-                        prevRolloverHours += totalEffectiveHrs
-                        prevRolloverStdHours += std
-                        prevRolloverOtHours += ot
+                    when (hours) {
+                        SalaryRepository.ANNUAL_LEAVE_HOURS -> {
+                            prevRolloverDays++
+                            prevRolloverAlDays++
+                            prevRolloverHours += config.annualLeaveHoursPerDay
+                            prevRolloverAlHours += config.annualLeaveHoursPerDay
+                        }
+                        SalaryRepository.STATUTORY_SICK_LEAVE_HOURS -> {
+                            sspSequenceIndex++
+                            val isPaidSsp = sspSequenceIndex > config.sspWaitingDays
+                            if (isPaidSsp) {
+                                prevRolloverSspDays++
+                                prevRolloverSspPay += config.sspDailyRate
+                            }
+                        }
+                        else -> {
+                            val (std, ot, totalEffectiveHrs) = evaluateShiftHours(prevYear, prevMonth, day, hours)
+                            prevRolloverDays++
+                            prevRolloverHours += totalEffectiveHrs
+                            prevRolloverStdHours += std
+                            prevRolloverOtHours += ot
+                        }
                     }
                 }
             }
@@ -364,29 +393,48 @@ object PayScheduleEngine {
         // 2. Process current month shifts (sorted by day)
         currentMonthShifts.toSortedMap().forEach { (day, hours) ->
             if (hours != 0.0) {
-                if (hours == SalaryRepository.ANNUAL_LEAVE_HOURS) {
-                    if (day <= cutoffDay) {
-                        inCycleDays++
-                        inCycleAlDays++
-                        inCycleHours += config.annualLeaveHoursPerDay
-                        inCycleAlHours += config.annualLeaveHoursPerDay
-                    } else {
-                        rolloverDays++
-                        rolloverAlDays++
-                        rolloverHours += config.annualLeaveHoursPerDay
-                        rolloverAlHours += config.annualLeaveHoursPerDay
+                when (hours) {
+                    SalaryRepository.ANNUAL_LEAVE_HOURS -> {
+                        if (day <= cutoffDay) {
+                            inCycleDays++
+                            inCycleAlDays++
+                            inCycleHours += config.annualLeaveHoursPerDay
+                            inCycleAlHours += config.annualLeaveHoursPerDay
+                        } else {
+                            rolloverDays++
+                            rolloverAlDays++
+                            rolloverHours += config.annualLeaveHoursPerDay
+                            rolloverAlHours += config.annualLeaveHoursPerDay
+                        }
                     }
-                } else {
-                    val (std, ot, totalEffectiveHrs) = evaluateShiftHours(year, month, day, hours)
-                    if (day <= cutoffDay) {
-                        inCycleDays++
-                        inCycleHours += totalEffectiveHrs
-                        inCycleStdHours += std
-                        inCycleOtHours += ot
-                    } else {
-                        rolloverDays++
-                        rolloverHours += totalEffectiveHrs
-                        rolloverOtHours += ot
+                    SalaryRepository.STATUTORY_SICK_LEAVE_HOURS -> {
+                        sspSequenceIndex++
+                        val isPaidSsp = sspSequenceIndex > config.sspWaitingDays
+                        val daySspPay = if (isPaidSsp) config.sspDailyRate else 0.0
+                        if (day <= cutoffDay) {
+                            if (isPaidSsp) {
+                                inCycleSspDays++
+                                inCycleSspPay += daySspPay
+                            }
+                        } else {
+                            if (isPaidSsp) {
+                                rolloverSspDays++
+                                rolloverSspPay += daySspPay
+                            }
+                        }
+                    }
+                    else -> {
+                        val (std, ot, totalEffectiveHrs) = evaluateShiftHours(year, month, day, hours)
+                        if (day <= cutoffDay) {
+                            inCycleDays++
+                            inCycleHours += totalEffectiveHrs
+                            inCycleStdHours += std
+                            inCycleOtHours += ot
+                        } else {
+                            rolloverDays++
+                            rolloverHours += totalEffectiveHrs
+                            rolloverOtHours += ot
+                        }
                     }
                 }
             }
@@ -402,17 +450,23 @@ object PayScheduleEngine {
             inCycleStandardHours = inCycleStdHours,
             inCycleAnnualLeaveDays = inCycleAlDays,
             inCycleAnnualLeaveHours = inCycleAlHours,
+            inCycleSspDays = inCycleSspDays,
+            inCycleSspPay = inCycleSspPay,
             previousRolloverDays = prevRolloverDays,
             previousRolloverHours = prevRolloverHours,
             previousRolloverOtHours = prevRolloverOtHours,
             previousRolloverStandardHours = prevRolloverStdHours,
             previousRolloverAnnualLeaveDays = prevRolloverAlDays,
             previousRolloverAnnualLeaveHours = prevRolloverAlHours,
+            previousRolloverSspDays = prevRolloverSspDays,
+            previousRolloverSspPay = prevRolloverSspPay,
             rolloverDays = rolloverDays,
             rolloverHours = rolloverHours,
             rolloverOtHours = rolloverOtHours,
             rolloverAnnualLeaveDays = rolloverAlDays,
             rolloverAnnualLeaveHours = rolloverAlHours,
+            rolloverSspDays = rolloverSspDays,
+            rolloverSspPay = rolloverSspPay,
             totalMonthDays = totalMonthDays,
             totalMonthHours = totalMonthHours,
             cutoffDay = cutoffDay,
