@@ -510,17 +510,7 @@ fun CalculatorScreen(
                             selectedTaxMonth = selectedTaxMonth,
                             onTaxMonthClick = { showTaxMonthDialog = true }
                         )
-                        FrequencySelectorRow(selectedFrequency = selectedFrequency, onSelect = { selectedFrequency = it })
-                        HeroNetPayCard(
-                            selectedFrequency = selectedFrequency,
-                            report = report,
-                            displayedNetAmount = displayedNetAmount,
-                            grossPay = grossPay,
-                            eurRate = customEurRate,
-                            usdRate = customUsdRate,
-                            onCurrencyClick = { showCurrencySettingsDialog = true }
-                        )
-                        // Shift Heatmap as Default Interactive View on Home Screen
+                        // Shift Heatmap as the Primary First-View Card on Home Screen (No Scroll Needed)
                         ShiftHeatmapCard(
                             salaryRepository = salaryRepository,
                             hourlyRate = effectiveHourlyRate,
@@ -531,6 +521,16 @@ fun CalculatorScreen(
                                 if (hours > 0) hoursPerDayOverride = hours
                                 overtimeHoursInput = if (otHours > 0) "%.1f".format(otHours) else ""
                             }
+                        )
+                        FrequencySelectorRow(selectedFrequency = selectedFrequency, onSelect = { selectedFrequency = it })
+                        HeroNetPayCard(
+                            selectedFrequency = selectedFrequency,
+                            report = report,
+                            displayedNetAmount = displayedNetAmount,
+                            grossPay = grossPay,
+                            eurRate = customEurRate,
+                            usdRate = customUsdRate,
+                            onCurrencyClick = { showCurrencySettingsDialog = true }
                         )
                         ShiftStopwatchCard(
                             salaryRepository = salaryRepository,

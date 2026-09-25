@@ -4,6 +4,21 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.0-alpha] - 2026-09-25 (VersionCode: 43)
+### Added / Changed
+- **Shift Heatmap Primary Default View Placement (`FEAT-901`) (`CalculatorScreen.kt`)**:
+  - Reordered the primary home screen layout on single-column / mobile displays so that `ShiftHeatmapCard` renders immediately below `AppHeaderSection` before `FrequencySelectorRow` and `HeroNetPayCard`.
+  - Shift Heatmap interactive calendar, month navigation, shift hours summary, and rota presets are now the very first components visible upon opening the app, eliminating the need to scroll down to access the heatmap.
+
+### Bugs Found & Fixed
+- **Mobile Heatmap Viewport Clipping**: Resolved below-the-fold layout displacement on mobile screens where `HeroNetPayCard` pushed the interactive Shift Heatmap off-screen.
+
+### What Needs to Be Fixed / Pending
+- Biometric authentication auto-lock grace period customization.
+- Automated overtime rule triggers based on cumulative weekly threshold exceeding 37.5 hours.
+
+---
+
 ## [24.9-alpha] - 2026-09-21 (VersionCode: 42)
 ### Added / Changed
 - **Dispute Recipient Memory (`FIX-801`) (`SalaryRepository.kt` & `PayslipAuditDialog.kt`)**:
