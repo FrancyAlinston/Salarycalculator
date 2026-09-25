@@ -350,108 +350,113 @@ object LedgerBackupManager {
         repository: SalaryRepository,
         bundle: BackupBundle
     ) {
-        // 1. Restore Core Tax & Wage Settings
-        repository.setTaxCode(bundle.taxCode)
-        repository.setTaxRegion(bundle.taxRegion)
-        repository.setTaxYear(bundle.taxYear)
-        repository.setPensionRate(bundle.pensionRate)
-        repository.setDefaultHourlyRate(bundle.hourlyRate)
-        if (bundle.defaultHoursPerDay > 0.0) {
-            repository.setDefaultHoursPerDay(bundle.defaultHoursPerDay)
-        }
-        repository.setStudentLoanPlan(bundle.studentLoanPlan)
-        if (bundle.overtimeMultiplier > 0.0) {
-            repository.setOvertimeMultiplier(bundle.overtimeMultiplier)
-        }
-        if (bundle.weekendOvertimeMultiplier > 0.0) {
-            repository.setWeekendOvertimeMultiplier(bundle.weekendOvertimeMultiplier)
-        }
-        if (bundle.bankHolidayOvertimeMultiplier > 0.0) {
-            repository.setBankHolidayOvertimeMultiplier(bundle.bankHolidayOvertimeMultiplier)
-        }
-        repository.setHasMarriageAllowance(bundle.hasMarriageAllowance)
-        repository.setHasBlindPersonsAllowance(bundle.hasBlindPersonsAllowance)
-
-        // 2. Restore Employer Profiles & Active Selection
-        for (profile in bundle.profiles) {
-            repository.saveEmployerProfile(profile)
-        }
-        if (bundle.activeProfileId != null) {
-            repository.setActiveProfileId(bundle.activeProfileId)
-        }
-
-        // 3. Restore Custom Deductions
-        for (deduction in bundle.customDeductions) {
-            repository.saveCustomDeduction(deduction)
-        }
-
-        // 4. Restore Monthly Records
-        for (record in bundle.records) {
-            repository.saveSalaryRecord(record)
-        }
-
-        // 5. Restore Full Shift Heatmap Schedule & Shift Employer Mappings
-        if (bundle.annualShiftScheduleJson.isNotBlank()) {
-            repository.saveAnnualShiftScheduleJson(bundle.annualShiftScheduleJson)
-        }
-        if (bundle.employerShiftAssignmentsJson.isNotBlank()) {
-            repository.saveShiftEmployerAssignmentsJson(bundle.employerShiftAssignmentsJson)
-        }
-
-        // 6. Restore Pay Schedule Configuration
-        val restoredScheduleType = try {
-            PayScheduleType.valueOf(bundle.payScheduleType)
-        } catch (_: Exception) {
-            PayScheduleType.LAST_FRIDAY_OF_MONTH
-        }
-        val currentConfig = repository.getPayScheduleConfig().first()
-        repository.setPayScheduleConfig(
-            currentConfig.copy(
-                type = restoredScheduleType,
-                fixedDay = if (bundle.payScheduleFixedDay in 1..31) bundle.payScheduleFixedDay else currentConfig.fixedDay,
-                cutoffLeadDays = if (bundle.payScheduleCutoffLeadDays >= 0) bundle.payScheduleCutoffLeadDays else currentConfig.cutoffLeadDays
-            )
-        )
-
-        // 7. Restore UI Theme & Biometric Preferences
-        if (bundle.themeMode.isNotBlank()) {
-            try { repository.setThemeMode(ThemeMode.valueOf(bundle.themeMode)) } catch (_: Exception) {}
-        }
-        if (bundle.themePalette.isNotBlank()) {
-            try { repository.setThemePalette(ThemePalette.valueOf(bundle.themePalette)) } catch (_: Exception) {}
-        }
-        repository.setBiometricLockEnabled(bundle.biometricLockEnabled)
-        repository.setBiometricHistoryLockEnabled(bundle.biometricHistoryLockEnabled)
-        if (bundle.biometricTimeoutSeconds >= 0) {
-            repository.setBiometricTimeoutSeconds(bundle.biometricTimeoutSeconds)
-        }
-
-        // 8. Restore Contact & Currency Settings
-        if (bundle.payrollContactEmail.isNotBlank()) {
-            repository.setPayrollContactEmail(bundle.payrollContactEmail)
-        }
-        if (bundle.preferredCurrency.isNotBlank()) {
-            repository.setPreferredCurrency(bundle.preferredCurrency)
-        }
-        if (bundle.secondaryCurrency.isNotBlank()) {
-            repository.setSecondaryCurrency(bundle.secondaryCurrency)
-        }
-        if (bundle.customEurRate > 0.0) repository.setCustomEurRate(bundle.customEurRate)
-        if (bundle.customUsdRate > 0.0) repository.setCustomUsdRate(bundle.customUsdRate)
-        if (bundle.cachedCurrencyRatesJson.isNotBlank()) {
-            repository.setCachedCurrencyRatesJson(bundle.cachedCurrencyRatesJson)
-        }
-
-        // 9. Restore Syncthing & Cloud Endpoints
-        if (bundle.syncthingServerUrl.isNotBlank()) repository.setSyncthingServerUrl(bundle.syncthingServerUrl)
-        if (bundle.syncthingApiKey.isNotBlank()) repository.setSyncthingApiKey(bundle.syncthingApiKey)
-        if (bundle.syncthingFolderId.isNotBlank()) repository.setSyncthingFolderId(bundle.syncthingFolderId)
-        repository.setSyncthingAutoSync(bundle.syncthingAutoSync)
-        if (bundle.customCloudEndpoint.isNotBlank()) repository.setCustomCloudEndpoint(bundle.customCloudEndpoint)
-        if (bundle.customCloudToken.isNotBlank()) repository.setCustomCloudToken(bundle.customCloudToken)
-        repository.setAutoCloudSyncEnabled(bundle.autoCloudSyncEnabled)
+        AutoBackupObserver.setRestoring(true)
         try {
-            repository.setAutoBackupFrequency(AutoBackupFrequency.valueOf(bundle.autoBackupFrequency))
-        } catch (_: Exception) {}
+            // 1. Restore Core Tax & Wage Settings
+            repository.setTaxCode(bundle.taxCode)
+            repository.setTaxRegion(bundle.taxRegion)
+            repository.setTaxYear(bundle.taxYear)
+            repository.setPensionRate(bundle.pensionRate)
+            repository.setDefaultHourlyRate(bundle.hourlyRate)
+            if (bundle.defaultHoursPerDay > 0.0) {
+                repository.setDefaultHoursPerDay(bundle.defaultHoursPerDay)
+            }
+            repository.setStudentLoanPlan(bundle.studentLoanPlan)
+            if (bundle.overtimeMultiplier > 0.0) {
+                repository.setOvertimeMultiplier(bundle.overtimeMultiplier)
+            }
+            if (bundle.weekendOvertimeMultiplier > 0.0) {
+                repository.setWeekendOvertimeMultiplier(bundle.weekendOvertimeMultiplier)
+            }
+            if (bundle.bankHolidayOvertimeMultiplier > 0.0) {
+                repository.setBankHolidayOvertimeMultiplier(bundle.bankHolidayOvertimeMultiplier)
+            }
+            repository.setHasMarriageAllowance(bundle.hasMarriageAllowance)
+            repository.setHasBlindPersonsAllowance(bundle.hasBlindPersonsAllowance)
+
+            // 2. Restore Employer Profiles & Active Selection
+            for (profile in bundle.profiles) {
+                repository.saveEmployerProfile(profile)
+            }
+            if (bundle.activeProfileId != null) {
+                repository.setActiveProfileId(bundle.activeProfileId)
+            }
+
+            // 3. Restore Custom Deductions
+            for (deduction in bundle.customDeductions) {
+                repository.saveCustomDeduction(deduction)
+            }
+
+            // 4. Restore Monthly Records
+            for (record in bundle.records) {
+                repository.saveSalaryRecord(record)
+            }
+
+            // 5. Restore Full Shift Heatmap Schedule & Shift Employer Mappings
+            if (bundle.annualShiftScheduleJson.isNotBlank()) {
+                repository.saveAnnualShiftScheduleJson(bundle.annualShiftScheduleJson)
+            }
+            if (bundle.employerShiftAssignmentsJson.isNotBlank()) {
+                repository.saveShiftEmployerAssignmentsJson(bundle.employerShiftAssignmentsJson)
+            }
+
+            // 6. Restore Pay Schedule Configuration
+            val restoredScheduleType = try {
+                PayScheduleType.valueOf(bundle.payScheduleType)
+            } catch (_: Exception) {
+                PayScheduleType.LAST_FRIDAY_OF_MONTH
+            }
+            val currentConfig = repository.getPayScheduleConfig().first()
+            repository.setPayScheduleConfig(
+                currentConfig.copy(
+                    type = restoredScheduleType,
+                    fixedDay = if (bundle.payScheduleFixedDay in 1..31) bundle.payScheduleFixedDay else currentConfig.fixedDay,
+                    cutoffLeadDays = if (bundle.payScheduleCutoffLeadDays >= 0) bundle.payScheduleCutoffLeadDays else currentConfig.cutoffLeadDays
+                )
+            )
+
+            // 7. Restore UI Theme & Biometric Preferences
+            if (bundle.themeMode.isNotBlank()) {
+                try { repository.setThemeMode(ThemeMode.valueOf(bundle.themeMode)) } catch (_: Exception) {}
+            }
+            if (bundle.themePalette.isNotBlank()) {
+                try { repository.setThemePalette(ThemePalette.valueOf(bundle.themePalette)) } catch (_: Exception) {}
+            }
+            repository.setBiometricLockEnabled(bundle.biometricLockEnabled)
+            repository.setBiometricHistoryLockEnabled(bundle.biometricHistoryLockEnabled)
+            if (bundle.biometricTimeoutSeconds >= 0) {
+                repository.setBiometricTimeoutSeconds(bundle.biometricTimeoutSeconds)
+            }
+
+            // 8. Restore Contact & Currency Settings
+            if (bundle.payrollContactEmail.isNotBlank()) {
+                repository.setPayrollContactEmail(bundle.payrollContactEmail)
+            }
+            if (bundle.preferredCurrency.isNotBlank()) {
+                repository.setPreferredCurrency(bundle.preferredCurrency)
+            }
+            if (bundle.secondaryCurrency.isNotBlank()) {
+                repository.setSecondaryCurrency(bundle.secondaryCurrency)
+            }
+            if (bundle.customEurRate > 0.0) repository.setCustomEurRate(bundle.customEurRate)
+            if (bundle.customUsdRate > 0.0) repository.setCustomUsdRate(bundle.customUsdRate)
+            if (bundle.cachedCurrencyRatesJson.isNotBlank()) {
+                repository.setCachedCurrencyRatesJson(bundle.cachedCurrencyRatesJson)
+            }
+
+            // 9. Restore Syncthing & Cloud Endpoints
+            if (bundle.syncthingServerUrl.isNotBlank()) repository.setSyncthingServerUrl(bundle.syncthingServerUrl)
+            if (bundle.syncthingApiKey.isNotBlank()) repository.setSyncthingApiKey(bundle.syncthingApiKey)
+            if (bundle.syncthingFolderId.isNotBlank()) repository.setSyncthingFolderId(bundle.syncthingFolderId)
+            repository.setSyncthingAutoSync(bundle.syncthingAutoSync)
+            if (bundle.customCloudEndpoint.isNotBlank()) repository.setCustomCloudEndpoint(bundle.customCloudEndpoint)
+            if (bundle.customCloudToken.isNotBlank()) repository.setCustomCloudToken(bundle.customCloudToken)
+            repository.setAutoCloudSyncEnabled(bundle.autoCloudSyncEnabled)
+            try {
+                repository.setAutoBackupFrequency(AutoBackupFrequency.valueOf(bundle.autoBackupFrequency))
+            } catch (_: Exception) {}
+        } finally {
+            AutoBackupObserver.setRestoring(false)
+        }
     }
 }

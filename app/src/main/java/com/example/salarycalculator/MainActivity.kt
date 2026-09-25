@@ -50,6 +50,7 @@ class MainActivity : FragmentActivity() {
         val salaryRepo = SalaryRepository(this)
         com.example.salarycalculator.domain.LiveFxWorker.schedulePeriodicSync(this)
         com.example.salarycalculator.domain.LiveFxWorker.runOneTimeSync(this)
+        com.example.salarycalculator.domain.AutoBackupObserver.startObserving(this, lifecycleScope)
         handleBackupIntent(intent, salaryRepo)
 
         enableEdgeToEdge()

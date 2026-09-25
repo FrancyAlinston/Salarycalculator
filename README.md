@@ -15,10 +15,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
   - **Legacy Backup Backward Compatibility:** Resilient multi-tier JSON parser seamlessly imports and restores older JSON backups from previous app versions without schema errors or data loss.
   - **System File Picker Integration:** Direct `.json` file picker launcher (`ActivityResultContracts.GetContent()`) with instant backup preview and 1-tap full restore.
 
-- **Syncthing Continuous Cloud & Local Sync (`SyncthingSyncEngine.kt`, `SyncthingSyncDialog.kt`, `SettingsScreen.kt`):**
-  - **Syncthing REST API Connectivity:** Full REST integration supporting self-hosted instances (e.g. `https://syncthing.449100.xyz`) with `X-API-Key` authentication, real-time connectivity ping tests, and remote folder scan triggers (`/rest/db/scan?folder=...`).
-  - **Automated Local Syncthing Folder Export:** Continuous JSON ledger backups written to device storage (`Documents/SalaryCalculator/`) for real-time two-way synchronization between mobile phones and private NAS storage.
-  - **1-Tap Syncthing Restore & Setup Guide:** In-app setup walkthrough and direct 1-tap ledger restoration from synced files.
+- **Real-Time Continuous Syncthing Auto-Backup & Phone-to-Phone Sync (`AutoBackupObserver.kt`, `SyncthingSyncEngine.kt`, `SyncthingSyncDialog.kt`, `SettingsScreen.kt`):**
+  - **Instant State Observer:** Continuously observes application DataStore preferences in real time with 500ms debouncing, immediately serializing full snapshots to `Documents/SalaryCalculator/SalaryCalculator_Latest.json` and timestamped archives on any user edit (shifts, rates, deductions, tax codes, employer profiles).
+  - **Multi-Phone Synchronization:** Allows continuous synchronization across multiple Android phones and private NAS clusters (`syncthing.449100.xyz`) without requiring manual exports.
+  - **Syncthing REST API Connectivity:** Full REST integration supporting self-hosted instances with `X-API-Key` authentication, real-time connectivity ping tests, and remote folder scan triggers (`/rest/db/scan?folder=...`).
+  - **1-Tap Syncthing Restore & Snapshot Pruning:** Automatically maintains the 15 most recent timestamped backups and provides 1-tap ledger restoration from synced files with live JSON schema validation.
 
 - **Cutoff-Window-Aware Payslip Auditor & 1-Tap Payroll Dispute Emailer (`PayslipParserEngine.kt`, `PayslipAuditEngine.kt`, `PayslipAuditDialog.kt`, `ShiftHeatmapCard.kt`):**
   - **Automated Payslip OCR Import:** Scans payslips from camera captures, gallery photos, and multi-page PDFs with on-device ML Kit OCR to extract Employee Name, Payroll Ref, NI Number, Process Date, Tax Period, Tax Code, Basic Paid Hours (units), Hourly Rate, Bank Holiday uplift hours & rate, Gross, PAYE, NI, and Net Pay.

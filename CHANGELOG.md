@@ -4,6 +4,24 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.1-alpha] - 2026-09-25 (VersionCode: 44)
+### Added / Changed
+- **Real-Time Automatic Syncthing Backup on Every Change (`FEAT-907`) (`AutoBackupObserver.kt`, `MainActivity.kt`, `SyncthingSyncEngine.kt`, `LedgerBackupManager.kt`)**:
+  - Implemented `AutoBackupObserver` listening continuously to reactive DataStore state mutations.
+  - Automatically serializes and saves a complete `BackupBundle` snapshot (`SalaryCalculator_Latest.json` and timestamped snapshots) to `Documents/SalaryCalculator/` whenever the user alters shifts, rates, settings, employer profiles, tax codes, or custom deductions.
+  - Debounces rapid input sequences by 500ms for battery and disk I/O efficiency.
+  - Automatically prunes older timestamped backup files (maintaining the 15 most recent snapshots) while keeping `SalaryCalculator_Latest.json` permanently up to date.
+  - Includes restore lifecycle guards (`AutoBackupObserver.setRestoring`) preventing recursive export loops while restoring bundles.
+
+### Bugs Found & Fixed
+- **Sync Overwrite Guard**: Ensured that full-state restores do not trigger redundant re-export cycles during active preference population.
+
+### What Needs to Be Fixed / Pending
+- Automated background WorkManager detection for changes made by other paired phones.
+- Overtime rule triggers based on cumulative weekly threshold exceeding 37.5 hours.
+
+---
+
 ## [25.0-alpha] - 2026-09-25 (VersionCode: 43)
 ### Added / Changed
 - **Universal Multi-Currency Conversion & Live Periodic FX Sync (`FEAT-903`) (`MultiCurrencyConverterEngine.kt`, `CurrencySettingsDialog.kt`, `LiveFxWorker.kt`, `CalculatorScreen.kt`)**:

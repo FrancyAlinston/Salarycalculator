@@ -262,6 +262,16 @@ object SyncthingSyncEngine {
             timestampedFile.writeText(jsonString, Charsets.UTF_8)
             latestFile.writeText(jsonString, Charsets.UTF_8)
 
+            // Prune older timestamped backups (keep 15 most recent)
+            try {
+                val timestampedFiles = dir.listFiles { f ->
+                    f.isFile && f.name.startsWith("SalaryCalculator_Backup_") && f.name.endsWith(".json")
+                }?.sortedByDescending { it.lastModified() }
+                if (timestampedFiles != null && timestampedFiles.size > 15) {
+                    timestampedFiles.drop(15).forEach { it.delete() }
+                }
+            } catch (_: Exception) {}
+
             // Optionally notify Syncthing server to scan
             if (serverUrl.isNotBlank() && apiKey.isNotBlank()) {
                 try {
@@ -269,7 +279,7 @@ object SyncthingSyncEngine {
                 } catch (_: Exception) {}
             }
 
-            Result.success(timestampedFile)
+            Result.success(latestFile)
         } catch (e: Exception) {
             Result.failure(e)
         }
