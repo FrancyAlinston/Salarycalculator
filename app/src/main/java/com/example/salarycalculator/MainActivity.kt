@@ -18,6 +18,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.example.salarycalculator.domain.SalaryRepository
 import com.example.salarycalculator.domain.ThemeMode
 import com.example.salarycalculator.theme.SalaryCalculatorTheme
@@ -46,6 +50,7 @@ class MainActivity : FragmentActivity() {
         val salaryRepo = SalaryRepository(this)
         com.example.salarycalculator.domain.LiveFxWorker.schedulePeriodicSync(this)
         com.example.salarycalculator.domain.LiveFxWorker.runOneTimeSync(this)
+        handleBackupIntent(intent, salaryRepo)
 
         enableEdgeToEdge()
         setContent {
@@ -173,5 +178,57 @@ class MainActivity : FragmentActivity() {
             .build()
 
         prompt.authenticate(promptInfo)
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        handleBackupIntent(intent, SalaryRepository(this))
+    }
+
+    private fun handleBackupIntent(intent: android.content.Intent?, salaryRepo: SalaryRepository) {
+        if (intent == null) return
+        val restoreJsonB64 = intent.getStringExtra("restore_json_b64")
+        val restoreJson = if (!restoreJsonB64.isNullOrBlank()) {
+            try {
+                String(android.util.Base64.decode(restoreJsonB64, android.util.Base64.DEFAULT), Charsets.UTF_8)
+            } catch (_: Exception) { null }
+        } else {
+            intent.getStringExtra("restore_json")
+        }
+        val restoreFilePath = intent.getStringExtra("restore_file_path")
+        val uri = intent.data
+
+        if (restoreFilePath.isNullOrBlank() && restoreJson.isNullOrBlank() && uri == null) return
+
+        kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+            val jsonContent = when {
+                !restoreJson.isNullOrBlank() -> restoreJson
+                !restoreFilePath.isNullOrBlank() -> {
+                    try { java.io.File(restoreFilePath).readText() } catch (_: Exception) { null }
+                }
+                uri != null -> {
+                    try {
+                        contentResolver.openInputStream(uri)?.use { stream ->
+                            java.io.BufferedReader(java.io.InputStreamReader(stream)).readText()
+                        }
+                    } catch (_: Exception) { null }
+                }
+                else -> null
+            }
+
+            if (!jsonContent.isNullOrBlank()) {
+                val parseResult = com.example.salarycalculator.domain.LedgerBackupManager.parseBackupJson(jsonContent)
+                if (parseResult.isSuccess) {
+                    com.example.salarycalculator.domain.LedgerBackupManager.restoreBundle(salaryRepo, parseResult.getOrThrow())
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        android.widget.Toast.makeText(
+                            this@MainActivity,
+                            "2026 Rota & Shifts Imported Successfully!",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+        }
     }
 }
