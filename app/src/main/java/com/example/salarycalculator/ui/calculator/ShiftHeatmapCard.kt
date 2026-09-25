@@ -80,6 +80,7 @@ fun ShiftHeatmapCard(
     // Load persisted schedule from DataStore
     LaunchedEffect(Unit) {
         salaryRepository.getAnnualShiftSchedule().collect { jsonStr ->
+            multiYearShifts.clear()
             if (jsonStr.isNotBlank()) {
                 val parsed = SalaryRepository.parseShiftScheduleJson(jsonStr)
                 parsed.forEach { (targetKey, dayMap) ->

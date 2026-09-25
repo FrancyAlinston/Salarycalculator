@@ -64,7 +64,10 @@ data class BackupBundle(
     val autoBackupFrequency: String = "DISABLED",
     val googleAccountEmail: String = "",
     val googleDriveAutoSync: Boolean = true,
-    val googleDriveLastSync: String = ""
+    val googleDriveLastSync: String = "",
+    val deviceName: String = "",
+    val deviceModel: String = "",
+    val deviceId: String = ""
 )
 
 object LedgerBackupManager {
@@ -126,8 +129,35 @@ object LedgerBackupManager {
             autoBackupFrequency = repository.getAutoBackupFrequency().first().name,
             googleAccountEmail = repository.getGoogleAccountEmail().first(),
             googleDriveAutoSync = repository.getGoogleDriveAutoSync().first(),
-            googleDriveLastSync = repository.getGoogleDriveLastSync().first()
+            googleDriveLastSync = repository.getGoogleDriveLastSync().first(),
+            deviceName = getDeviceName(),
+            deviceModel = getDeviceModel()
         )
+    }
+
+    fun getDeviceName(): String {
+        return try {
+            val manufacturer = android.os.Build.MANUFACTURER ?: "Android"
+            val model = android.os.Build.MODEL ?: "Device"
+            val capitalizedManufacturer = manufacturer.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString()
+            }
+            if (model.startsWith(capitalizedManufacturer, ignoreCase = true)) {
+                model
+            } else {
+                "$capitalizedManufacturer $model"
+            }
+        } catch (_: Exception) {
+            "Android Device"
+        }
+    }
+
+    fun getDeviceModel(): String {
+        return try {
+            android.os.Build.MODEL ?: "Device"
+        } catch (_: Exception) {
+            "Device"
+        }
     }
 
     /**
@@ -309,6 +339,16 @@ object LedgerBackupManager {
             val syncthingKey = root["syncthingApiKey"]?.jsonPrimitive?.content ?: ""
             val syncthingFolder = root["syncthingFolderId"]?.jsonPrimitive?.content ?: "salary-calculator"
             val syncthingAuto = root["syncthingAutoSync"]?.jsonPrimitive?.booleanOrNull ?: false
+            val customCloudEndpoint = root["customCloudEndpoint"]?.jsonPrimitive?.content ?: ""
+            val customCloudToken = root["customCloudToken"]?.jsonPrimitive?.content ?: ""
+            val autoCloudSync = root["autoCloudSyncEnabled"]?.jsonPrimitive?.booleanOrNull ?: false
+            val autoFreq = root["autoBackupFrequency"]?.jsonPrimitive?.content ?: "DISABLED"
+            val googleEmail = root["googleAccountEmail"]?.jsonPrimitive?.content ?: ""
+            val googleAuto = root["googleDriveAutoSync"]?.jsonPrimitive?.booleanOrNull ?: true
+            val googleLast = root["googleDriveLastSync"]?.jsonPrimitive?.content ?: ""
+            val devName = root["deviceName"]?.jsonPrimitive?.content ?: ""
+            val devModel = root["deviceModel"]?.jsonPrimitive?.content ?: ""
+            val devId = root["deviceId"]?.jsonPrimitive?.content ?: ""
 
             val bundle = BackupBundle(
                 version = root["version"]?.jsonPrimitive?.intOrNull ?: 1,
@@ -339,7 +379,17 @@ object LedgerBackupManager {
                 syncthingServerUrl = syncthingUrl,
                 syncthingApiKey = syncthingKey,
                 syncthingFolderId = syncthingFolder,
-                syncthingAutoSync = syncthingAuto
+                syncthingAutoSync = syncthingAuto,
+                customCloudEndpoint = customCloudEndpoint,
+                customCloudToken = customCloudToken,
+                autoCloudSyncEnabled = autoCloudSync,
+                autoBackupFrequency = autoFreq,
+                googleAccountEmail = googleEmail,
+                googleDriveAutoSync = googleAuto,
+                googleDriveLastSync = googleLast,
+                deviceName = devName,
+                deviceModel = devModel,
+                deviceId = devId
             )
 
             Result.success(bundle)

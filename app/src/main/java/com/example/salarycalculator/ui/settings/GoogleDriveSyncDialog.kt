@@ -5,8 +5,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,11 +18,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.salarycalculator.domain.*
+import com.example.salarycalculator.theme.Amber60
 import com.example.salarycalculator.theme.Emerald60
 import com.example.salarycalculator.theme.Rose60
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -42,6 +47,13 @@ fun GoogleDriveSyncDialog(
     val savedEmail by salaryRepository.getGoogleAccountEmail().collectAsState(initial = "")
     val savedAutoSync by salaryRepository.getGoogleDriveAutoSync().collectAsState(initial = true)
     val savedLastSync by salaryRepository.getGoogleDriveLastSync().collectAsState(initial = "")
+    val historyRecords by salaryRepository.getSalaryHistory().collectAsState(initial = emptyList())
+    val annualShiftSchedule by salaryRepository.getAnnualShiftSchedule().collectAsState(initial = "")
+
+    val localShiftCount = remember(annualShiftSchedule) {
+        val parsed = SalaryRepository.parseShiftScheduleJson(annualShiftSchedule)
+        parsed.values.sumOf { it.size }
+    }
 
     var signedInAccount by remember { mutableStateOf<GoogleSignInAccount?>(GoogleDriveSyncEngine.getSignedInAccount(context)) }
     var autoSyncEnabled by remember(savedAutoSync) { mutableStateOf(savedAutoSync) }
@@ -49,8 +61,35 @@ fun GoogleDriveSyncDialog(
     var statusMessage by remember { mutableStateOf<String?>(null) }
     var isSuccess by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+    var isLoadingBackups by remember { mutableStateOf(false) }
+
+    var remoteBackups by remember { mutableStateOf<List<RemoteDeviceBackup>>(emptyList()) }
+    var selectedBackupForRestore by remember { mutableStateOf<RemoteDeviceBackup?>(null) }
+
+    val currentDeviceName = remember { LedgerBackupManager.getDeviceName() }
 
     val googleSignInClient = remember { GoogleDriveSyncEngine.getGoogleSignInClient(context) }
+
+    fun refreshRemoteBackups(account: GoogleSignInAccount) {
+        isLoadingBackups = true
+        scope.launch {
+            try {
+                val res = GoogleDriveSyncEngine.listRemoteDeviceBackups(context, account)
+                if (res.isSuccess) {
+                    remoteBackups = res.getOrThrow()
+                }
+            } catch (_: Exception) {
+            } finally {
+                isLoadingBackups = false
+            }
+        }
+    }
+
+    LaunchedEffect(signedInAccount) {
+        signedInAccount?.let { acc ->
+            refreshRemoteBackups(acc)
+        }
+    }
 
     val signInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -65,6 +104,7 @@ fun GoogleDriveSyncDialog(
                         salaryRepository.setGoogleAccountEmail(account.email ?: "")
                         statusMessage = "Connected to Google Account: ${account.email}"
                         isSuccess = true
+                        refreshRemoteBackups(account)
                     }
                 }
             } catch (e: Exception) {
@@ -158,6 +198,7 @@ fun GoogleDriveSyncDialog(
                                 onClick = {
                                     googleSignInClient.signOut().addOnCompleteListener {
                                         signedInAccount = null
+                                        remoteBackups = emptyList()
                                         scope.launch {
                                             salaryRepository.setGoogleAccountEmail("")
                                         }
@@ -203,94 +244,263 @@ fun GoogleDriveSyncDialog(
                     }
                 }
 
-                // Action Buttons: Manual Sync & Restore
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Current Device Card & Manual Upload
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Button(
-                        onClick = {
-                            val account = signedInAccount ?: GoogleDriveSyncEngine.getSignedInAccount(context)
-                            if (account == null) {
-                                statusMessage = "Please sign in with your Google account first."
-                                isSuccess = false
-                                return@Button
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("This Device", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                Text(currentDeviceName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                             }
-                            isLoading = true
-                            statusMessage = null
-                            scope.launch {
-                                try {
-                                    val bundle = LedgerBackupManager.createFullBackupBundle(salaryRepository)
-                                    val result = GoogleDriveSyncEngine.uploadBackupToDrive(context, account, bundle)
-                                    if (result.isSuccess) {
-                                        val nowStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
-                                        salaryRepository.setGoogleDriveLastSync(nowStr)
-                                        statusMessage = "Backup successfully uploaded to Google Drive!"
-                                        isSuccess = true
-                                    } else {
-                                        statusMessage = "Sync failed: ${result.exceptionOrNull()?.localizedMessage}"
-                                        isSuccess = false
-                                    }
-                                } catch (e: Exception) {
-                                    statusMessage = "Sync error: ${e.localizedMessage}"
-                                    isSuccess = false
-                                } finally {
-                                    isLoading = false
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("$localShiftCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                    Text("Heatmap Shifts", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
                                 }
                             }
-                        },
-                        modifier = Modifier.weight(1f),
-                        enabled = !isLoading && signedInAccount != null,
-                        shape = RoundedCornerShape(10.dp)
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text("${historyRecords.size}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                    Text("Salary Records", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                }
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                val account = signedInAccount ?: GoogleDriveSyncEngine.getSignedInAccount(context)
+                                if (account == null) {
+                                    statusMessage = "Please sign in with your Google account first."
+                                    isSuccess = false
+                                    return@Button
+                                }
+                                isLoading = true
+                                statusMessage = null
+                                scope.launch {
+                                    try {
+                                        val bundle = LedgerBackupManager.createFullBackupBundle(salaryRepository)
+                                        val result = GoogleDriveSyncEngine.uploadBackupToDrive(context, account, bundle)
+                                        if (result.isSuccess) {
+                                            val nowStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                                            salaryRepository.setGoogleDriveLastSync(nowStr)
+                                            statusMessage = "Successfully uploaded $currentDeviceName backup to Google Drive!"
+                                            isSuccess = true
+                                            refreshRemoteBackups(account)
+                                        } else {
+                                            statusMessage = "Upload failed: ${result.exceptionOrNull()?.localizedMessage}"
+                                            isSuccess = false
+                                        }
+                                    } catch (e: Exception) {
+                                        statusMessage = "Upload error: ${e.localizedMessage}"
+                                        isSuccess = false
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isLoading && signedInAccount != null,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Upload This Device's Data to Drive", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                // Cloud Device Backups Section (Choose Device to Restore From)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Backup Now", style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            text = "Cloud Device Backups",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (signedInAccount != null) {
+                            IconButton(
+                                onClick = { refreshRemoteBackups(signedInAccount!!) },
+                                enabled = !isLoadingBackups,
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                if (isLoadingBackups) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Default.Refresh, contentDescription = "Refresh Backups", modifier = Modifier.size(18.dp))
+                                }
+                            }
                         }
                     }
 
-                    FilledTonalButton(
-                        onClick = {
-                            val account = signedInAccount ?: GoogleDriveSyncEngine.getSignedInAccount(context)
-                            if (account == null) {
-                                statusMessage = "Please sign in with your Google account first."
-                                isSuccess = false
-                                return@FilledTonalButton
-                            }
-                            isLoading = true
-                            statusMessage = null
-                            scope.launch {
-                                try {
-                                    val result = GoogleDriveSyncEngine.downloadBackupFromDrive(context, account)
-                                    if (result.isSuccess) {
-                                        val bundle = result.getOrThrow()
-                                        LedgerBackupManager.restoreBundle(salaryRepository, bundle)
-                                        val nowStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
-                                        salaryRepository.setGoogleDriveLastSync(nowStr)
-                                        statusMessage = "Successfully restored ${bundle.records.size} salary records and shift schedule from Google Drive!"
-                                        isSuccess = true
-                                    } else {
-                                        statusMessage = "Restore failed: ${result.exceptionOrNull()?.localizedMessage}"
-                                        isSuccess = false
+                    if (signedInAccount == null) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Sign in to view and restore backups from your other connected phones.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    } else if (isLoadingBackups && remoteBackups.isEmpty()) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    } else if (remoteBackups.isEmpty()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "No device backups found in Google Drive yet. Tap 'Upload This Device's Data' above to create your first cloud backup.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            remoteBackups.forEach { backup ->
+                                Surface(
+                                    color = if (backup.isCurrentDevice) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, if (backup.isCurrentDevice) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outlineVariant),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Icon(
+                                                    if (backup.isCurrentDevice) Icons.Default.Smartphone else Icons.Default.Devices,
+                                                    contentDescription = null,
+                                                    tint = if (backup.isCurrentDevice) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Text(
+                                                    text = backup.deviceName,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+
+                                            Surface(
+                                                color = if (backup.isCurrentDevice) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                                                shape = RoundedCornerShape(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = if (backup.isCurrentDevice) "This Phone" else "Other Phone",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = if (backup.isCurrentDevice) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "🗓 ${backup.shiftCount} Shifts",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text("•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                            Text(
+                                                text = "💼 ${backup.recordCount} Records",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text("•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                                            Text(
+                                                text = "£%.2f/hr".format(backup.hourlyRate),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = "Synced: ${backup.modifiedTime}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+
+                                            FilledTonalButton(
+                                                onClick = {
+                                                    selectedBackupForRestore = backup
+                                                },
+                                                enabled = !isLoading,
+                                                shape = RoundedCornerShape(8.dp),
+                                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                modifier = Modifier.height(34.dp)
+                                            ) {
+                                                Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Restore from ${backup.deviceName.split(" ").firstOrNull() ?: "Device"}", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
                                     }
-                                } catch (e: Exception) {
-                                    statusMessage = "Restore error: ${e.localizedMessage}"
-                                    isSuccess = false
-                                } finally {
-                                    isLoading = false
                                 }
                             }
-                        },
-                        modifier = Modifier.weight(1f),
-                        enabled = !isLoading && signedInAccount != null,
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Restore Drive", style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
 
@@ -336,7 +546,7 @@ fun GoogleDriveSyncDialog(
                     ) {
                         Icon(Icons.Outlined.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                         Text(
-                            text = "Backups are stored inside your private Google Drive AppData folder. It is hidden from regular Drive files and is strictly accessible by this app across all your signed-in devices.",
+                            text = "Backups are stored inside your private Google Drive AppData folder. Each device uploads its own snapshot, allowing you to seamlessly choose and restore shift schedules and records across your phones.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 14.sp
@@ -351,4 +561,83 @@ fun GoogleDriveSyncDialog(
             }
         }
     )
+
+    // Confirmation Dialog before restoring from selected device
+    if (selectedBackupForRestore != null) {
+        val backupToRestore = selectedBackupForRestore!!
+        AlertDialog(
+            onDismissRequest = { selectedBackupForRestore = null },
+            icon = {
+                Icon(Icons.Default.CloudDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            },
+            title = {
+                Text("Restore from ${backupToRestore.deviceName}?", fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "This will replace your current shift heatmap schedule and salary ledger with data from ${backupToRestore.deviceName}:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("• Heatmap Shifts: ${backupToRestore.shiftCount} shifts", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            Text("• Salary Records: ${backupToRestore.recordCount} monthly records", style = MaterialTheme.typography.bodySmall)
+                            Text("• Hourly Wage Rate: £%.2f/hr".format(backupToRestore.hourlyRate), style = MaterialTheme.typography.bodySmall)
+                            Text("• Tax Code: ${backupToRestore.taxCode}", style = MaterialTheme.typography.bodySmall)
+                            Text("• Backup Timestamp: ${backupToRestore.modifiedTime}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val targetBackup = backupToRestore
+                        selectedBackupForRestore = null
+                        val account = signedInAccount ?: GoogleDriveSyncEngine.getSignedInAccount(context)
+                        if (account == null) {
+                            statusMessage = "Please sign in with your Google account first."
+                            isSuccess = false
+                            return@Button
+                        }
+                        isLoading = true
+                        statusMessage = null
+                        scope.launch {
+                            try {
+                                val result = GoogleDriveSyncEngine.downloadBackupByFileId(context, account, targetBackup.fileId)
+                                if (result.isSuccess) {
+                                    val bundle = result.getOrThrow()
+                                    LedgerBackupManager.restoreBundle(salaryRepository, bundle)
+                                    val nowStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                                    salaryRepository.setGoogleDriveLastSync(nowStr)
+                                    statusMessage = "Successfully restored ${targetBackup.shiftCount} shifts and ${bundle.records.size} records from ${targetBackup.deviceName}!"
+                                    isSuccess = true
+                                } else {
+                                    statusMessage = "Restore failed: ${result.exceptionOrNull()?.localizedMessage}"
+                                    isSuccess = false
+                                }
+                            } catch (e: Exception) {
+                                statusMessage = "Restore error: ${e.localizedMessage}"
+                                isSuccess = false
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    }
+                ) {
+                    Text("Confirm Restore", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedBackupForRestore = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }

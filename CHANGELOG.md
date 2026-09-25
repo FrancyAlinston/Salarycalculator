@@ -4,6 +4,24 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.3] - 2026-09-25 (VersionCode: 47)
+### Added / Changed
+- **Multi-Device Cloud Backup Separation & Device-Targeted Restore (`FEAT-909`) (`GoogleDriveSyncEngine.kt`, `GoogleDriveSyncDialog.kt`, `LedgerBackupManager.kt`, `ShiftHeatmapCard.kt`, `GoogleDriveSyncEngineTest.kt`)**:
+  - Implemented multi-device backup separation in Google Drive AppData folder (`SalaryCalculator_Device_<DeviceName>.json`).
+  - Added **"Cloud Device Backups"** catalog inside Google Drive Sync dialog, listing all connected phones (e.g. Pixel 8 Pro, Redmi Note 10 Pro) with device name, sync date/time, shifts count, and record count.
+  - Added **"Choose Device to Restore From"** with 1-tap restore action and confirmation modal showing shift count, wage rate, and tax code before restoring.
+  - Resolved Heatmap multi-device sync drift by clearing in-memory shift caches on new schedule emissions so that restored device heatmaps immediately update across the entire app.
+  - Included device metadata (`deviceName`, `deviceModel`) and auto-enriched backup bundles on cloud upload.
+
+### Bugs Found & Fixed
+- **Heatmap State Overwrite Drift**: Fixed issue where `ShiftHeatmapCard` did not clear previous in-memory state when loading a newly restored annual shift schedule from DataStore.
+- **Single-File Cloud Collision**: Fixed single-file overwrite collision where multiple phones writing to `SalaryCalculator_Latest.json` overwrote each other's snapshots without distinction.
+
+### What Needs to Be Fixed / Pending
+- Overtime rule triggers based on cumulative weekly threshold exceeding 37.5 hours.
+
+---
+
 ## [25.2] - 2026-09-25 (VersionCode: 46)
 ### Added / Changed
 - **Official Stable Release Track Transition (`@rules:stable_versioning_standard`)**:
