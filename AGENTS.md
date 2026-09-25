@@ -72,10 +72,13 @@ These rules define the mandatory behavioral constraints, development workflows, 
 
 - **Automated Commit & Push on Every Change (`@rules:auto_git_sync`)**:
   - On any completed change, feature, bugfix, or update, automatically stage all changes (`git add .`), create a semantic commit (`git commit -m "..."`), and push to all active branches (`alpha`, `stable`, `Beta`) on both remotes (`origin` and `github`).
+- **Stable Versioning Standard (`@rules:stable_versioning_standard`)**:
+  - All release versions MUST now follow stable semantic release versioning format (`vX.Y` or `X.Y`, e.g., `25.2`, `26.0`) with NO `-alpha` or `-beta` tags/suffixes attached to `versionName`, git tags, changelog headers, or release binary names.
+  - The application has graduated into official stable production. All future builds, version bumps, and deployments default strictly to the clean stable version format.
 - **Version Tracking & Changelog Integrity (`@rules:version_changelog_tracking`)**:
   - Increment `versionCode` and update `versionName` in [`app/build.gradle.kts`](app/build.gradle.kts) whenever user-facing changes, schema updates, or calculation adjustments occur.
   - Every version change MUST have a structured entry in [`CHANGELOG.md`](CHANGELOG.md) with 4 categorized sections:
-    1. **Version Header**: `[VersionName] - YYYY-MM-DD (VersionCode: N)`
+    1. **Version Header**: `[VersionName] - YYYY-MM-DD (VersionCode: N)` (e.g., `[25.2] - 2026-09-25 (VersionCode: 46)`)
     2. **Added / Changed**: Detailed explanation of new features and architectural changes.
     3. **Bugs Found & Fixed**: Bugs, glitches, deprecations, or build issues fixed.
     4. **What Needs to Be Fixed / Pending**: Unresolved issues or upcoming features scheduled.

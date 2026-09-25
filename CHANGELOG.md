@@ -4,8 +4,10 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [25.2-alpha] - 2026-09-25 (VersionCode: 45)
+## [25.2] - 2026-09-25 (VersionCode: 46)
 ### Added / Changed
+- **Official Stable Release Track Transition (`@rules:stable_versioning_standard`)**:
+  - Graduated the application from `-alpha` tag to official stable release tracks across all builds, git tags, and deployment targets.
 - **Google Account & Drive AppData Cloud Synchronization (`FEAT-908`) (`GoogleDriveSyncEngine.kt`, `GoogleDriveSyncDialog.kt`, `GoogleDriveSyncEngineTest.kt`, `AutoBackupObserver.kt`, `SalaryRepository.kt`, `SettingsScreen.kt`)**:
   - Integrated Google Identity & Play Services Auth with OAuth 2.0 `https://www.googleapis.com/auth/drive.appdata` scope.
   - Seamless 1-tap "Sign In with Google" button inside Settings $\rightarrow$ Data Backup & Restore.

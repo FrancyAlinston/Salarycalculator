@@ -7,11 +7,7 @@ DEVICE_IPS=(
     "192.168.8.168" # Redmi Note 10 Pro
 )
 
-APK_FILE="${1:-APKs/Salarycalculator-v25.2-alpha-debug.apk}"
-
-if [ ! -f "$APK_FILE" ]; then
-    APK_FILE=$(ls -t APKs/*.apk 2>/dev/null | head -n 1)
-fi
+APK_FILE="${1:-$(ls -t APKs/*-debug.apk APKs/*.apk 2>/dev/null | head -n 1)}"
 
 echo "Deploying APK: $APK_FILE"
 
