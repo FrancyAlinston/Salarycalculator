@@ -31,7 +31,8 @@ import java.util.Locale
 @Suppress("DEPRECATION")
 object GoogleDriveSyncEngine {
 
-    val DRIVE_APPDATA_SCOPE = Scope("https://www.googleapis.com/auth/drive.appdata")
+    const val DRIVE_APPDATA_SCOPE_URI = "https://www.googleapis.com/auth/drive.appdata"
+    val DRIVE_APPDATA_SCOPE by lazy { Scope(DRIVE_APPDATA_SCOPE_URI) }
     private const val DRIVE_FILE_NAME = "SalaryCalculator_Latest.json"
     private const val DRIVE_API_FILES_URL = "https://www.googleapis.com/drive/v3/files"
     private const val DRIVE_UPLOAD_URL = "https://www.googleapis.com/upload/drive/v3/files"
@@ -43,6 +44,8 @@ object GoogleDriveSyncEngine {
         prettyPrint = true
     }
 
+    const val WEB_CLIENT_ID = "35214185270-ua6im0rbukgail01ognhcnhb5hbbrb0v.apps.googleusercontent.com"
+
     /**
      * Builds GoogleSignInClient configured for Google Drive AppData folder access.
      */
@@ -50,6 +53,7 @@ object GoogleDriveSyncEngine {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestScopes(DRIVE_APPDATA_SCOPE)
+            .requestIdToken(WEB_CLIENT_ID)
             .build()
         return GoogleSignIn.getClient(context, gso)
     }

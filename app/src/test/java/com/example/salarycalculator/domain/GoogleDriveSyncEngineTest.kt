@@ -37,6 +37,6 @@ class GoogleDriveSyncEngineTest {
 
     @Test
     fun driveAppDataScope_isCorrectUrl() {
-        assertEquals("https://www.googleapis.com/auth/drive.appdata", GoogleDriveSyncEngine.DRIVE_APPDATA_SCOPE.scopeUri)
+        assertEquals("https://www.googleapis.com/auth/drive.appdata", GoogleDriveSyncEngine.DRIVE_APPDATA_SCOPE_URI)
     }
 }
