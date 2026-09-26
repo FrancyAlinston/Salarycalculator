@@ -161,3 +161,22 @@ input[type="range"] {
     top: 5.5rem;
   }
 }
+
+/* Security & Anti-Inspection Guard */
+.confidential-text,
+#res-net-pay,
+#res-gross-pay,
+#res-total-deductions,
+.salary-value,
+.tax-table {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+#app-shell.locked {
+  filter: blur(25px);
+  pointer-events: none;
+  user-select: none;
+}
+

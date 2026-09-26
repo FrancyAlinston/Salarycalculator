@@ -6,6 +6,7 @@ import { TaxEngine, TaxRegion, TaxYear, StudentLoanPlan } from './taxEngine.js';
 import { Store, ThemeMode, ThemePalette } from './store.js';
 import { HeatmapManager } from './heatmap.js';
 import { AuthManager } from './auth.js';
+import { SecurityGuard } from './security.js';
 
 class App {
   constructor() {
@@ -23,6 +24,7 @@ class App {
   }
 
   init() {
+    SecurityGuard.init();
     this.applyThemeAndPalette();
     this.setupNavigation();
     this.setupCalculatorListeners();
@@ -105,6 +107,7 @@ class App {
         }
         if (appShell) {
           appShell.classList.remove('hidden');
+          appShell.classList.remove('locked');
         }
 
         if (authChipName) authChipName.textContent = account.name || account.email;
@@ -130,8 +133,10 @@ class App {
 
       } else {
         // Unauthenticated: Lock App and Enforce Mandatory Gatekeeper
+        SecurityGuard.sanitizeConfidentialDOM();
         if (appShell) {
           appShell.classList.add('hidden');
+          appShell.classList.add('locked');
         }
         if (gateScreen) {
           gateScreen.classList.remove('hidden');
