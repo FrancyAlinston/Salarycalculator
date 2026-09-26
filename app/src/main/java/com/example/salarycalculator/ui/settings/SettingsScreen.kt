@@ -7,6 +7,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import com.example.salarycalculator.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -57,6 +65,8 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val sspDailyRate by salaryRepository.getSspDailyRate().collectAsState(initial = 23.35)
     val sspWaitingDays by salaryRepository.getSspWaitingDays().collectAsState(initial = 3)
     val weeklyOvertimeThreshold by salaryRepository.getWeeklyOvertimeThreshold().collectAsState(initial = 37.5)
+    val googleAccountEmail by salaryRepository.getGoogleAccountEmail().collectAsState(initial = "")
+    val googleAccountName by salaryRepository.getGoogleAccountName().collectAsState(initial = "")
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
@@ -1368,18 +1378,60 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                 }
                             }
 
-                            Button(
-                                onClick = { showGoogleDriveSyncDialog = true },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            ) {
-                                Icon(Icons.Outlined.CloudSync, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Google Drive AppData Sync", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                            // FEAT-935: Enhanced Google Account & Drive Cloud Sync Card
+                            if (googleAccountEmail.isNotBlank()) {
+                                Surface(
+                                    onClick = { showGoogleDriveSyncDialog = true },
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.ic_google_logo),
+                                            contentDescription = "Google Account",
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = if (googleAccountName.isNotBlank()) googleAccountName else "Google Account",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = googleAccountEmail,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        Icon(
+                                            Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            } else {
+                                Button(
+                                    onClick = { showGoogleDriveSyncDialog = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                ) {
+                                    Icon(Icons.Outlined.CloudSync, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Google Drive AppData Sync", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                }
                             }
 
                             Button(

@@ -39,6 +39,10 @@ import kotlinx.coroutines.launch
 
 import com.example.salarycalculator.ui.settings.ProfileManagerDialog
 import com.example.salarycalculator.ui.settings.CurrencySettingsDialog
+import com.example.salarycalculator.ui.settings.GoogleDriveSyncDialog
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.example.salarycalculator.R
 
 @Composable
 fun CalculatorScreen(
@@ -67,6 +71,8 @@ fun CalculatorScreen(
     val secondaryCurrency by salaryRepository.getSecondaryCurrency().collectAsState(initial = "USD")
     val cachedCurrencyRates by salaryRepository.getCachedCurrencyRates().collectAsState(initial = emptyMap())
     val defaultHoursPerDay by salaryRepository.getDefaultHoursPerDay().collectAsState(initial = 12.0)
+    val googleAccountEmail by salaryRepository.getGoogleAccountEmail().collectAsState(initial = "")
+    val googleAccountName by salaryRepository.getGoogleAccountName().collectAsState(initial = "")
     val today = remember { java.util.Calendar.getInstance() }
     val curYear = today.get(java.util.Calendar.YEAR)
     val curMonth = today.get(java.util.Calendar.MONTH) + 1
@@ -156,6 +162,7 @@ fun CalculatorScreen(
     var showMultiCurrencyDialog by remember { mutableStateOf(false) }
     var showSspHolidayDialog by remember { mutableStateOf(false) }
     var showShiftRateDifferentialDialog by remember { mutableStateOf(false) }
+    var showGoogleDriveDialog by remember { mutableStateOf(false) }
     var saveMonthYear by remember { mutableStateOf("August 2026") }
     var saveNote by remember { mutableStateOf("") }
     var selectedTaxMonth by remember { mutableStateOf(5) } // Default to Month 5 (August) per care worker calibration
@@ -299,6 +306,9 @@ fun CalculatorScreen(
                             studentLoanPlan = studentLoanPlan,
                             standardPay = standardPay,
                             activeProfileName = activeProfile?.name,
+                            googleAccountEmail = googleAccountEmail,
+                            googleAccountName = googleAccountName,
+                            onGoogleAccountClick = { showGoogleDriveDialog = true },
                             onProfileClick = { showProfileDialog = true },
                             onTaxCodeClick = { showTaxExplainerDialog = true },
                             onNavigateToSettings = onNavigateToSettings,
@@ -508,6 +518,9 @@ fun CalculatorScreen(
                             studentLoanPlan = studentLoanPlan,
                             standardPay = standardPay,
                             activeProfileName = activeProfile?.name,
+                            googleAccountEmail = googleAccountEmail,
+                            googleAccountName = googleAccountName,
+                            onGoogleAccountClick = { showGoogleDriveDialog = true },
                             onProfileClick = { showProfileDialog = true },
                             onTaxCodeClick = { showTaxExplainerDialog = true },
                             onNavigateToSettings = onNavigateToSettings,
@@ -1106,6 +1119,13 @@ fun CalculatorScreen(
                 onDismiss = { showTaxMonthDialog = false }
             )
         }
+        // FEAT-935: Google Account & Cloud Sync Dialog
+        if (showGoogleDriveDialog) {
+            GoogleDriveSyncDialog(
+                salaryRepository = salaryRepository,
+                onDismiss = { showGoogleDriveDialog = false }
+            )
+        }
     }
 }
 
@@ -1128,6 +1148,9 @@ private fun AppHeaderSection(
     studentLoanPlan: StudentLoanPlan = StudentLoanPlan.NONE,
     standardPay: Double,
     activeProfileName: String? = null,
+    googleAccountEmail: String = "",
+    googleAccountName: String = "",
+    onGoogleAccountClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
     onTaxCodeClick: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -1171,24 +1194,65 @@ private fun AppHeaderSection(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                Surface(
-                    onClick = onNavigateToSettings,
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
-                    shape = RoundedCornerShape(12.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    // FEAT-935: Google Account Profile Header Chip
+                    if (googleAccountEmail.isNotBlank()) {
+                        Surface(
+                            onClick = onGoogleAccountClick,
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_google_logo),
+                                    contentDescription = "Google Account",
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                val displayName = if (googleAccountName.isNotBlank()) googleAccountName.split(" ").first() else googleAccountEmail.substringBefore("@")
+                                Text(
+                                    text = displayName,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    maxLines = 1
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981))
+                                )
+                            }
+                        }
+                    }
+
+                    Surface(
+                        onClick = onNavigateToSettings,
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.8f),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(
-                            text = "£${"%.2f".format(defaultHourlyRate)}/hr",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            maxLines = 1
-                        )
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "£${"%.2f".format(defaultHourlyRate)}/hr",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                maxLines = 1
+                            )
+                            Icon(Icons.Default.Settings, contentDescription = "Settings", modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        }
                     }
                 }
             }

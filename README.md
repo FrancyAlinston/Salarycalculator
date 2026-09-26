@@ -4,6 +4,15 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Instant Cloud Restore Prompt on First Login (`FEAT-937`) (`GoogleAuthGateScreen.kt`, `GoogleDriveSyncEngine.kt`, `LedgerBackupManager.kt`):**
+  - **Automated Remote Backup Detection:** Immediately scans Google Drive AppData folder upon Google authorization for previous backups across all user devices.
+  - **1-Tap Cloud Restore:** Allows restoring full payroll history, multi-year shift rosters, statutory rates, and employer profiles before entering the main app.
+  - **Start Fresh Option:** Gives users the choice to start anew while safely keeping remote backups intact.
+
+- **Google Account Profile Header Chip & Direct Cloud Sync (`FEAT-935`, `FEAT-936`) (`CalculatorScreen.kt`, `SettingsScreen.kt`, `MainActivity.kt`):**
+  - **Top Bar Profile Chip:** Sleek account badge in `AppHeaderSection` showing user avatar, name, and live green connection status dot with direct 1-tap launcher for `GoogleDriveSyncDialog`.
+  - **Biometric + Google Hybrid Security Flow:** Fast local biometric unlock paired with encrypted background Google account cloud synchronization.
+
 - **Mandatory Google Authentication Gatekeeper Screen (`FEAT-934`) (`GoogleAuthGateScreen.kt`, `MainActivity.kt`, `SalaryRepository.kt`):**
   - **Full-Screen Security Gate:** Requires mandatory Google Sign-In upon first opening the application before revealing any payroll data, confidential shift rosters, or settings.
   - **Encrypted Cloud Continuity:** Automatically hooks user account credentials (`google_account_email`, `google_account_name`) into private Google Drive AppData synchronization and multi-device calendar features.

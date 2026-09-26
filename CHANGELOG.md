@@ -4,6 +4,32 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.1] - 2026-09-26 (VersionCode: 55)
+### Added / Changed
+- **Instant Cloud Restore Prompt on First Login (`FEAT-937`) (`GoogleAuthGateScreen.kt`, `GoogleDriveSyncEngine.kt`, `LedgerBackupManager.kt`, `SalaryRepository.kt`)**:
+  - Added smart automated remote backup inspection in Google Drive AppData private storage immediately upon initial Google account authorization.
+  - If existing backups are discovered from prior sessions or other devices, the user is presented with a streamlined **Instant Cloud Restore** interface:
+    - **1-Tap "Restore Everything from Cloud" Button**: Automatically downloads the latest remote backup bundle and restores complete application state (payroll ledgers, shift schedules, overtime, tax rules, and profiles) before entering the app.
+    - **"Start Fresh" Option**: Allows starting with clean baseline data without losing remote backups.
+  - Provides clear visual feedback including timestamp, device identifier, and total ledger record counts.
+
+- **Biometric + Google Auth Hybrid Authentication Flow (`FEAT-936`) (`MainActivity.kt`, `GoogleAuthGateScreen.kt`, `BiometricLockOverlay.kt`, `SalaryRepository.kt`)**:
+  - Implemented seamless dual-layer security chaining: mandatory Google Sign-In establishes initial identity and encrypted cloud connectivity, while Biometric Auth (fingerprint/face unlock) provides ultra-fast day-to-day app unlock.
+  - Preserves Google account authentication tokens across sessions and allows biometric unlocking without requiring repeated Google OAuth round-trips.
+
+- **Google Account Profile Header Chip & Status Badge (`FEAT-935`) (`CalculatorScreen.kt`, `SettingsScreen.kt`, `SalaryRepository.kt`, `GoogleDriveSyncDialog.kt`)**:
+  - Integrated a sleek **Google Account Profile Chip** in the main calculator top bar header (`AppHeaderSection`) showing user avatar, name, and live green connection status dot.
+  - Tapping the header chip directly launches `GoogleDriveSyncDialog` for 1-tap manual sync, backup inspection, or account switching.
+  - Enhanced `SettingsScreen.kt` cloud backup card with active account email, user display name, and cloud sync status.
+
+### Bugs Found & Fixed
+- None.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.0] - 2026-09-26 (VersionCode: 54)
 ### Added / Changed
 - **Mandatory Google Authentication Gatekeeper Screen (`FEAT-934`) (`GoogleAuthGateScreen.kt`, `MainActivity.kt`, `SalaryRepository.kt`, `GoogleAuthPersistenceTest.kt`, `ic_google_logo.xml`)**:
