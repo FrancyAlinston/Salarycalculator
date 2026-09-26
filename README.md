@@ -4,6 +4,10 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Full Shift, Overtime, Annual Leave & Sick Pay Settings Suite (`FEAT-958`) (`web/index.html`, `web/js/app.js`, `web/js/store.js`):**
+  - **100% Android APK Settings Parity:** Configurable standard shift duration (12.0h, 7.5h, 8.0h, 10.0h), weekday/weekend/bank-holiday overtime multipliers (1.0x–3.0x), weekly overtime thresholds (37.5h, 40.0h, 48.0h), Annual Leave (A/L) daily hours & custom rates, and Statutory Sick Pay (SSP) daily rates & waiting days.
+  - **Instant Bidirectional Cloud Persistence:** Real-time synchronization to local storage and NAS SQLite `/api/backup`.
+
 - **Active Month Visual Badges on Calculator & Audit Suite (`FEAT-957`) (`web/index.html`, `web/js/app.js`):**
   - **Hero Take-Home Pay Month Badge:** Displays prominent cyan glass badge (`#res-target-month-badge`, e.g., `📅 August 2026`) in the Hero Net Pay card and monthly frequency subtext (`/ August`) showing exactly which roster month is actively evaluated.
   - **Dynamic Payslip & Configurator Month Headers:** Payslip Audit breakdown card and Hours Configurator headers reflect the active target month in real-time as users navigate the calendar.

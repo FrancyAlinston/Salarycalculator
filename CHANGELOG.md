@@ -4,6 +4,33 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.1] - 2026-09-26 (VersionCode: 65)
+### Added / Changed
+- **Comprehensive Shift, Overtime, Annual Leave & Sick Pay Settings Suite (`FEAT-958`) (`web/index.html`, `web/js/app.js`, `web/js/store.js`)**:
+  - **100% Android APK Settings Parity in Web Suite**:
+    - **Shift Patterns & Overtime Rules Card**:
+      - Configurable Standard Shift Length (`default_hours_per_day` - e.g. 12.0h, 7.5h, 8.0h, 10.0h with 1-tap quick preset chips).
+      - Weekday Overtime Multipliers (1.0x, 1.25x, 1.5x, 1.75x, 2.0x).
+      - Weekend Overtime Multipliers (1.0x, 1.25x, 1.5x, 1.75x, 2.0x, 2.25x, 2.5x).
+      - Bank Holiday Overtime Multipliers (1.0x, 1.5x, 2.0x, 2.5x, 3.0x).
+      - Weekly Overtime Thresholds (Disabled, 37.5h UK Standard, 40.0h, 48.0h WTD Max).
+    - **Annual Leave (A/L) Settings Card**:
+      - Configurable A/L Hours Per Day (7.5h Standard, 8.0h, 12.0h Long Day presets).
+      - Custom A/L Hourly Rate (£/hr override, defaulting to base rate).
+    - **Statutory Sick Pay (SSP) Settings Card**:
+      - Configurable SSP Daily Rate (£23.35 UK Standard, £25.00, £30.00 presets).
+      - SSP Unpaid Qualifying Waiting Days (0, 1, 2, or 3 Statutory Days).
+  - **Instant Cross-Platform Persistence & NAS Synchronization**:
+    - All setting adjustments immediately persist to `localStorage` and automatically sync to the NAS SQLite `/api/backup` server, updating both the heatmap roster engine and calculator take-home pay formulas.
+
+### Bugs Found & Fixed
+- Added dedicated settings cards on the web suite for shift durations, overtime multipliers, annual leave hours, and statutory sick pay rules matching the mobile APK Settings screen.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [27.0] - 2026-09-26 (VersionCode: 64)
 ### Added / Changed
 - **Active Month Visual Badges on Calculator & Audit Suite (`FEAT-957`) (`web/index.html`, `web/js/app.js`)**:

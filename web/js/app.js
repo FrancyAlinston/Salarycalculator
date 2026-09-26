@@ -279,6 +279,25 @@ class App {
     this.setVal('select-student-loan', Store.getStudentLoanPlan());
     this.setChecked('switch-marriage-allowance', Store.hasMarriageAllowance());
     this.setChecked('switch-blind-allowance', Store.hasBlindAllowance());
+
+    // Settings Tab Values (Full APK Parity)
+    const hpd = Store.getHoursPerDay();
+    this.setVal('setting-hours-per-day', hpd);
+    this.setText('label-setting-hours-per-day', `${parseFloat(hpd || 12).toFixed(1)}h`);
+    this.setVal('setting-overtime-multiplier', Store.getOvertimeMultiplier());
+    this.setVal('setting-weekend-overtime', Store.getWeekendOvertimeMultiplier());
+    this.setVal('setting-bank-holiday-overtime', Store.getBankHolidayOvertimeMultiplier());
+    this.setVal('setting-weekly-threshold', Store.getWeeklyOvertimeThreshold());
+
+    const alHrs = Store.getAnnualLeaveHoursPerDay();
+    this.setVal('setting-al-hours-per-day', alHrs);
+    this.setText('label-setting-al-hours-per-day', `${parseFloat(alHrs || 7.5).toFixed(1)}h`);
+    this.setVal('setting-al-hourly-rate', Store.getAnnualLeaveHourlyRate() || '');
+
+    const sspRate = Store.getSspDailyRate();
+    this.setVal('setting-ssp-daily-rate', sspRate);
+    this.setText('label-setting-ssp-daily-rate', `£${parseFloat(sspRate || 23.35).toFixed(2)}`);
+    this.setVal('setting-ssp-waiting-days', Store.getSspWaitingDays());
   }
 
   setVal(id, val) {
@@ -610,15 +629,101 @@ class App {
       });
     });
 
-    // Standard Shift Length in Settings
-    const shiftLenInput = document.getElementById('settings-shift-length');
-    if (shiftLenInput) {
-      shiftLenInput.value = Store.getHoursPerDay();
-      shiftLenInput.addEventListener('change', (e) => {
-        Store.setHoursPerDay(e.target.value);
+    // Shift Hours Per Day
+    const hpdInput = document.getElementById('setting-hours-per-day');
+    hpdInput?.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value) || 12.0;
+      Store.setHoursPerDay(val);
+      this.setText('label-setting-hours-per-day', `${val.toFixed(1)}h`);
+      this.heatmap?.render();
+      this.syncRosterHoursToCalculator();
+      this.recalculate();
+      Store.syncToNasServer();
+    });
+
+    document.querySelectorAll('[data-set-hpd]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = parseFloat(btn.getAttribute('data-set-hpd')) || 12.0;
+        this.setVal('setting-hours-per-day', val);
+        this.setText('label-setting-hours-per-day', `${val.toFixed(1)}h`);
+        Store.setHoursPerDay(val);
         this.heatmap?.render();
+        this.syncRosterHoursToCalculator();
+        this.recalculate();
+        Store.syncToNasServer();
       });
-    }
+    });
+
+    // Overtime Multipliers
+    document.getElementById('setting-overtime-multiplier')?.addEventListener('change', (e) => {
+      Store.setOvertimeMultiplier(e.target.value);
+      this.setVal('input-overtime-multiplier', e.target.value);
+      this.recalculate();
+      Store.syncToNasServer();
+    });
+
+    document.getElementById('setting-weekend-overtime')?.addEventListener('change', (e) => {
+      Store.setWeekendOvertimeMultiplier(e.target.value);
+      Store.syncToNasServer();
+    });
+
+    document.getElementById('setting-bank-holiday-overtime')?.addEventListener('change', (e) => {
+      Store.setBankHolidayOvertimeMultiplier(e.target.value);
+      Store.syncToNasServer();
+    });
+
+    document.getElementById('setting-weekly-threshold')?.addEventListener('change', (e) => {
+      Store.setWeeklyOvertimeThreshold(e.target.value);
+      Store.syncToNasServer();
+    });
+
+    // Annual Leave Settings
+    const alHrsInput = document.getElementById('setting-al-hours-per-day');
+    alHrsInput?.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value) || 7.5;
+      Store.setAnnualLeaveHoursPerDay(val);
+      this.setText('label-setting-al-hours-per-day', `${val.toFixed(1)}h`);
+      Store.syncToNasServer();
+    });
+
+    document.querySelectorAll('[data-set-al-hrs]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = parseFloat(btn.getAttribute('data-set-al-hrs')) || 7.5;
+        this.setVal('setting-al-hours-per-day', val);
+        this.setText('label-setting-al-hours-per-day', `${val.toFixed(1)}h`);
+        Store.setAnnualLeaveHoursPerDay(val);
+        Store.syncToNasServer();
+      });
+    });
+
+    document.getElementById('setting-al-hourly-rate')?.addEventListener('change', (e) => {
+      Store.setAnnualLeaveHourlyRate(e.target.value);
+      Store.syncToNasServer();
+    });
+
+    // Statutory Sick Pay (SSP) Settings
+    const sspRateInput = document.getElementById('setting-ssp-daily-rate');
+    sspRateInput?.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value) || 23.35;
+      Store.setSspDailyRate(val);
+      this.setText('label-setting-ssp-daily-rate', `£${val.toFixed(2)}`);
+      Store.syncToNasServer();
+    });
+
+    document.querySelectorAll('[data-set-ssp-rate]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = parseFloat(btn.getAttribute('data-set-ssp-rate')) || 23.35;
+        this.setVal('setting-ssp-daily-rate', val);
+        this.setText('label-setting-ssp-daily-rate', `£${val.toFixed(2)}`);
+        Store.setSspDailyRate(val);
+        Store.syncToNasServer();
+      });
+    });
+
+    document.getElementById('setting-ssp-waiting-days')?.addEventListener('change', (e) => {
+      Store.setSspWaitingDays(e.target.value);
+      Store.syncToNasServer();
+    });
   }
 
   setupBackupRestore() {
