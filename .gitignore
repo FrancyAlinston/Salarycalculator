@@ -20,5 +20,7 @@ __pycache__/
 *.py[cod]
 Salarycalculator.code-workspace
 *.code-workspace
+client_secret*.json
+credentials*.json
 
 
