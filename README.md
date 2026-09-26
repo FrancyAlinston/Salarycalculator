@@ -4,6 +4,12 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Cross-Platform Modern Web Application (`FEAT-945`) (`web/index.html`, `web/js/app.js`, `web/js/taxEngine.js`, `web/js/store.js`, `web/js/heatmap.js`, `web/css/styles.css`):**
+  - **Identical Modern UI & Google Sign-In:** Complete web companion matching the Material 3 & glassmorphic dark theme of the Android app, with Google Account login, profile header chip, and instant cloud restore prompt (`FEAT-937`).
+  - **Dynamic Screen & Foldable Dual-Pane:** Responsive desktop dual-pane layout, mobile bottom tab bar, smooth view transitions, and theme customizers (Dark Glass, Light, Solar ☀️, Ocean, Emerald, Violet, Amber).
+  - **Exact UK Tax Engine & 7-Column Shift Roster:** 100% mathematical parity for UK PAYE, Scottish 6-tier rates, Class 1 NI, Student Loans, Overtime, Annual Leave, Statutory Sick Pay (`SSP`), and 1-tap shift cycling.
+  - **100% Android APK Interoperability:** Export and import JSON backup bundles seamlessly across web and mobile.
+
 - **Wear OS Companion & Rich Shift Notification Integration (`FEAT-941` / `PEND-901`) (`WearShiftNotificationManager.kt`, `WearShiftActionReceiver.kt`, `DutyShiftReminderWorker.kt`, `SettingsScreen.kt`):**
   - **Wear OS Extensible Notifications:** Direct pre-shift countdown reminders pushed to connected Wear OS smart watches (Pixel Watch, Samsung Galaxy Watch) and Android heads-up alerts.
   - **1-Tap Watch Quick Actions:** Perform shift updates right from your wrist with actionable notification buttons:

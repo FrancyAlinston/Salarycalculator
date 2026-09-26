@@ -4,6 +4,34 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.3] - 2026-09-26 (VersionCode: 57)
+### Added / Changed
+- **Full Cross-Platform Modern Web Application (`FEAT-945`) (`web/index.html`, `web/js/app.js`, `web/js/taxEngine.js`, `web/js/store.js`, `web/js/heatmap.js`, `web/js/auth.js`, `web/css/styles.css`, `scripts/serve_web.py`)**:
+  - Built a comprehensive, responsive web application matching the Android app architecture and Material 3 design system.
+  - **Google Account Authentication & Instant Cloud Restore (`FEAT-937` Web)**:
+    - Integrated Google Identity Services (GIS) OAuth and instant cloud backup inspection.
+    - 1-tap **"Restore Everything from Cloud"** prompt to restore rosters, tax rules, and payroll history on web.
+    - Google Account profile header chip with live green connection dot and account status.
+  - **100% Tax & NI Engine Parity (`taxEngine.js`)**:
+    - Complete UK PAYE, Scottish 6-tier rates, Class 1 National Insurance, Student Loans (Plans 1, 2, 4, 5, Postgraduate), Pension salary sacrifice/relief, Marriage Allowance, Blind Person's Allowance, Overtime multipliers, Annual Leave, and Statutory Sick Pay (`SSP`).
+  - **Interactive 7-Column Shift Heatmap Roster (`heatmap.js`)**:
+    - Full 7-column calendar grid with 1-tap shift cycling (`Off` $\to$ `Emerald Std` $\to$ `Amber OT` $\to$ `Blue A/L` $\to$ `Purple SSP` $\to$ `Off`), Pay Day & Cutoff markers, Today highlight ring, and monthly statistics.
+  - **Dynamic Screen & Foldable Dual-Pane Support**:
+    - Desktop & Foldable split-screen dual pane layout (`@media (min-width: 1024px)`) and fluid mobile navigation.
+    - Smooth animations, view transitions, and glassmorphic translucent effects (`backdrop-filter: blur(20px)`).
+    - Themes (Dark Glass, Light, Solar ☀️) and Palettes (Ocean Sapphire, Emerald, Midnight Violet, Sunset Amber).
+  - **100% APK Interoperability**:
+    - Export and import `.json` backup bundles matching Android `BackupBundle` v2 format for seamless cross-device state portability.
+  - **Local Web Server**: Added `scripts/serve_web.py` to run the web application locally or host on any web server/CDN.
+
+### Bugs Found & Fixed
+- None.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.2] - 2026-09-26 (VersionCode: 56)
 ### Added / Changed
 - **Wear OS Companion & Rich Shift Notification Integration (`FEAT-941` / `PEND-901`) (`WearShiftNotificationManager.kt`, `WearShiftActionReceiver.kt`, `DutyShiftReminderWorker.kt`, `SettingsScreen.kt`, `MainActivity.kt`, `WearShiftNotificationManagerTest.kt`)**:
