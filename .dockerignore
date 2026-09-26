@@ -1,0 +1,11 @@
+.git
+.gradle
+.idea
+.venv
+__pycache__
+*.apk
+APKs/
+app/build/
+build/
+local.properties
+.DS_Store

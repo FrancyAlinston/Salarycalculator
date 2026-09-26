@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **UGOS Docker Management App & NAS Deployment (`FEAT-947`) (`Dockerfile`, `docker-compose.yml`, `server.py`):**
+  - **UGREEN NAS UGOS Docker App Integration:** Pre-configured `docker-compose.yml` and `Dockerfile` matching the container patterns established in the IQVIA project for 1-click container management on UGREEN NAS.
+  - **Zero-Latency Container Runtime:** Lightweight Python 3.11 container (`salarycalculator-web`) running at port `8085:8080`, with active container healthchecks (`GET /api/status`), SPA route fallbacks, and persistent storage bindings (`./data:/app/data` and `./web:/app/web:ro`).
+  - **Instant Local Deployment:** Run via `docker compose up -d` or import directly in the UGOS Docker management app.
+
 - **Cloudflare Pages & PWA Edge Optimization (`FEAT-946`) (`web/_headers`, `web/_redirects`, `web/manifest.json`, `web/sw.js`, `wrangler.toml`, `scripts/deploy_cloudflare.sh`):**
   - **Cloudflare Edge Performance & Security:** Optimized with `_headers` configuring HSTS, Content Security Policy for Google Identity Services, and immutable asset caching (`Cache-Control: public, max-age=31536000, immutable`).
   - **Standalone PWA & Offline Service Worker:** Installable as an offline-first Progressive Web App across Windows, macOS, Linux, Android Chrome, and iOS Safari.

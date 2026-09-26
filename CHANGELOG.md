@@ -4,6 +4,27 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.5] - 2026-09-26 (VersionCode: 59)
+### Added / Changed
+- **UGOS Docker Management App & Container Deployment (`FEAT-947`) (`Dockerfile`, `docker-compose.yml`, `server.py`, `.dockerignore`, `data/`)**:
+  - **UGOS Docker App Compatibility**:
+    - Created production `docker-compose.yml` and multi-stage `Dockerfile` tailored for the UGREEN NAS UGOS Docker management app, mirroring the architecture and conventions established in the IQVIA project.
+    - Container named `salarycalculator-web`, configured with port mapping `8085:8080`, restart policy `always`, volume binds (`./web:/app/web:ro` and `./data:/app/data`), and active healthcheck (`GET /api/status`).
+  - **Standalone Lightweight Python Server (`server.py`)**:
+    - Implemented high-performance, low-memory Python server serving the web client, Single Page Application (SPA) routing fallbacks, correct modern MIME types (`.webmanifest`, `.js`, `.json`, `.svg`, `.css`), and security/CORS headers.
+    - Integrated instant Docker container healthcheck endpoint (`/api/status` & `/health`) returning JSON telemetry (`status: healthy`, `version: 26.5`, `environment: DOCKER_ENV`).
+  - **NAS Data & Volume Mount Security**:
+    - Auto-enforced container startup permissions (`chmod -R 777 /app/data`) for unhindered volume mounting and data persistence across UGOS UID/GID boundaries.
+    - Added `.dockerignore` to streamline container image build performance.
+
+### Bugs Found & Fixed
+- None.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.4] - 2026-09-26 (VersionCode: 58)
 ### Added / Changed
 - **Cloudflare Pages Edge Optimization & Progressive Web App (PWA) (`FEAT-946`) (`web/_headers`, `web/_redirects`, `web/_routes.json`, `web/manifest.json`, `web/sw.js`, `wrangler.toml`, `scripts/deploy_cloudflare.sh`)**:

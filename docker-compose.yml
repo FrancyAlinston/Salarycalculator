@@ -1,0 +1,19 @@
+services:
+  salarycalculator-web:
+    build: .
+    container_name: salarycalculator-web
+    restart: always
+    ports:
+      - "8085:8080"
+    volumes:
+      - ./web:/app/web:ro
+      - ./data:/app/data
+    environment:
+      - DOCKER_ENV=true
+      - PORT=8080
+      - HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
