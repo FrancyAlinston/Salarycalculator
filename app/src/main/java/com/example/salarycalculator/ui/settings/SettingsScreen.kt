@@ -67,6 +67,9 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     val weeklyOvertimeThreshold by salaryRepository.getWeeklyOvertimeThreshold().collectAsState(initial = 37.5)
     val googleAccountEmail by salaryRepository.getGoogleAccountEmail().collectAsState(initial = "")
     val googleAccountName by salaryRepository.getGoogleAccountName().collectAsState(initial = "")
+    val wearOsNotificationsEnabled by salaryRepository.getWearOsNotificationsEnabled().collectAsState(initial = true)
+    val wearOsPreShiftMinutes by salaryRepository.getWearOsPreShiftReminderMinutes().collectAsState(initial = 30)
+    val wearOsActionsEnabled by salaryRepository.getWearOsActionsEnabled().collectAsState(initial = true)
 
     var inputTaxCode by remember(taxCode) { mutableStateOf(taxCode) }
     var inputHourlyRate by remember(hourlyRate) { mutableStateOf(hourlyRate.toString()) }
@@ -92,6 +95,9 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
     var selectedBiometricTimeout by remember(biometricTimeoutSeconds) { mutableStateOf(biometricTimeoutSeconds) }
     var switchAutoCloudSync by remember(autoCloudSyncEnabled) { mutableStateOf(autoCloudSyncEnabled) }
     var selectedAutoBackupFrequency by remember(autoBackupFrequency) { mutableStateOf(autoBackupFrequency) }
+    var switchWearOsNotifications by remember(wearOsNotificationsEnabled) { mutableStateOf(wearOsNotificationsEnabled) }
+    var selectedWearOsPreShiftMinutes by remember(wearOsPreShiftMinutes) { mutableStateOf(wearOsPreShiftMinutes) }
+    var switchWearOsActions by remember(wearOsActionsEnabled) { mutableStateOf(wearOsActionsEnabled) }
 
     var showProfileDialog by remember { mutableStateOf(false) }
     var showBackupDialog by remember { mutableStateOf(false) }
@@ -1045,6 +1051,118 @@ fun SettingsScreen(salaryRepository: SalaryRepository, modifier: Modifier = Modi
                                     label = { Text(label) },
                                     shape = RoundedCornerShape(10.dp)
                                 )
+                            }
+                        }
+                    }
+                }
+
+                // 5d. Wear OS & Smart Watch Companion (FEAT-941)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Outlined.Watch, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text("Wear OS & Smart Watch Companion", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        }
+
+                        Text(
+                            text = "Sync duty shift alerts, commute countdowns, and 1-tap overtime logging directly to your Wear OS watch (Pixel Watch, Galaxy Watch) or heads-up notifications.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Wear OS Shift Alerts", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                Text("Dispatch rich notifications before scheduled duty shifts", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Switch(
+                                checked = switchWearOsNotifications,
+                                onCheckedChange = {
+                                    switchWearOsNotifications = it
+                                    scope.launch { salaryRepository.setWearOsNotificationsEnabled(it) }
+                                }
+                            )
+                        }
+
+                        if (switchWearOsNotifications) {
+                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Pre-Shift Alert Lead Time", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf(15 to "15 min", 30 to "30 min (Default)", 45 to "45 min", 60 to "1 hour").forEach { (mins, label) ->
+                                        FilterChip(
+                                            selected = selectedWearOsPreShiftMinutes == mins,
+                                            onClick = {
+                                                selectedWearOsPreShiftMinutes = mins
+                                                scope.launch { salaryRepository.setWearOsPreShiftReminderMinutes(mins) }
+                                            },
+                                            label = { Text(label) },
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Watch Quick Actions", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                    Text("Enable 'Log +2h OT' and 'Mark Attended' directly on watch", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = switchWearOsActions,
+                                    onCheckedChange = {
+                                        switchWearOsActions = it
+                                        scope.launch { salaryRepository.setWearOsActionsEnabled(it) }
+                                    }
+                                )
+                            }
+
+                            Button(
+                                onClick = {
+                                    val dispatched = WearShiftNotificationManager.sendTestNotification(context, switchWearOsActions)
+                                    scope.launch {
+                                        if (dispatched) {
+                                            snackbarHostState.showSnackbar("⌚ Test shift alert sent to watch & heads-up notification!")
+                                        } else {
+                                            snackbarHostState.showSnackbar("⚠️ Notification permission needed to preview shift alerts")
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            ) {
+                                Icon(Icons.Outlined.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Send Test Notification to Watch", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

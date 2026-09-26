@@ -23,9 +23,15 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
+import com.example.salarycalculator.domain.DutyShiftReminderWorker
 import com.example.salarycalculator.domain.GoogleDriveSyncEngine
 import com.example.salarycalculator.domain.SalaryRepository
 import com.example.salarycalculator.domain.ThemeMode
+import com.example.salarycalculator.domain.WearShiftNotificationManager
 import com.example.salarycalculator.theme.SalaryCalculatorTheme
 import com.example.salarycalculator.ui.auth.GoogleAuthGateScreen
 
@@ -33,6 +39,10 @@ class MainActivity : FragmentActivity() {
 
     private var lastPauseTimestamp: Long = 0L
     private var requiresReauth by mutableStateOf(false)
+
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ -> }
 
     override fun onPause() {
         super.onPause()
@@ -51,10 +61,18 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
 
         val salaryRepo = SalaryRepository(this)
+        WearShiftNotificationManager.createNotificationChannels(this)
+        DutyShiftReminderWorker.schedulePeriodicCheck(this)
         com.example.salarycalculator.domain.LiveFxWorker.schedulePeriodicSync(this)
         com.example.salarycalculator.domain.LiveFxWorker.runOneTimeSync(this)
         com.example.salarycalculator.domain.AutoBackupObserver.startObserving(this, lifecycleScope)
         handleBackupIntent(intent, salaryRepo)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
 
         enableEdgeToEdge()
         setContent {

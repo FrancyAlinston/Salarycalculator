@@ -89,6 +89,9 @@ class SalaryRepository(private val context: Context) {
     private val COMMUTE_MINUTES_KEY = intPreferencesKey("commute_minutes")
     private val TRAFFIC_BUFFER_MINUTES_KEY = intPreferencesKey("traffic_buffer_minutes")
     private val ALARM_VIBRATE_KEY = booleanPreferencesKey("alarm_vibrate")
+    private val WEAR_OS_NOTIFICATIONS_ENABLED_KEY = booleanPreferencesKey("wear_os_notifications_enabled")
+    private val WEAR_OS_PRE_SHIFT_REMINDER_MINUTES_KEY = intPreferencesKey("wear_os_pre_shift_reminder_minutes")
+    private val WEAR_OS_ACTIONS_ENABLED_KEY = booleanPreferencesKey("wear_os_actions_enabled")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -1241,6 +1244,48 @@ class SalaryRepository(private val context: Context) {
     suspend fun setAlarmVibrate(vibrate: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[ALARM_VIBRATE_KEY] = vibrate
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getWearOsNotificationsEnabled(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[WEAR_OS_NOTIFICATIONS_ENABLED_KEY] ?: true
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setWearOsNotificationsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[WEAR_OS_NOTIFICATIONS_ENABLED_KEY] = enabled
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getWearOsPreShiftReminderMinutes(): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[WEAR_OS_PRE_SHIFT_REMINDER_MINUTES_KEY] ?: 30
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setWearOsPreShiftReminderMinutes(minutes: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[WEAR_OS_PRE_SHIFT_REMINDER_MINUTES_KEY] = minutes
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getWearOsActionsEnabled(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[WEAR_OS_ACTIONS_ENABLED_KEY] ?: true
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setWearOsActionsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[WEAR_OS_ACTIONS_ENABLED_KEY] = enabled
         }
     }
 

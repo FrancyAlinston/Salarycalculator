@@ -4,6 +4,14 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Wear OS Companion & Rich Shift Notification Integration (`FEAT-941` / `PEND-901`) (`WearShiftNotificationManager.kt`, `WearShiftActionReceiver.kt`, `DutyShiftReminderWorker.kt`, `SettingsScreen.kt`):**
+  - **Wear OS Extensible Notifications:** Direct pre-shift countdown reminders pushed to connected Wear OS smart watches (Pixel Watch, Samsung Galaxy Watch) and Android heads-up alerts.
+  - **1-Tap Watch Quick Actions:** Perform shift updates right from your wrist with actionable notification buttons:
+    - `"Log +2h OT"`: Adds overtime directly into today's shift roster.
+    - `"Mark Attended"`: Records standard duty shift completion.
+    - `"Snooze 15m"`: Postpones reminder alerts.
+  - **Configurable Pre-Shift Lead Times:** Set reminder alerts (15m, 30m, 45m, 60m) and preview alerts via the 1-tap **"Send Test Notification to Watch"** button in Settings.
+
 - **Instant Cloud Restore Prompt on First Login (`FEAT-937`) (`GoogleAuthGateScreen.kt`, `GoogleDriveSyncEngine.kt`, `LedgerBackupManager.kt`):**
   - **Automated Remote Backup Detection:** Immediately scans Google Drive AppData folder upon Google authorization for previous backups across all user devices.
   - **1-Tap Cloud Restore:** Allows restoring full payroll history, multi-year shift rosters, statutory rates, and employer profiles before entering the main app.

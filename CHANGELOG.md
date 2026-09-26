@@ -4,6 +4,29 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.2] - 2026-09-26 (VersionCode: 56)
+### Added / Changed
+- **Wear OS Companion & Rich Shift Notification Integration (`FEAT-941` / `PEND-901`) (`WearShiftNotificationManager.kt`, `WearShiftActionReceiver.kt`, `DutyShiftReminderWorker.kt`, `SettingsScreen.kt`, `MainActivity.kt`, `WearShiftNotificationManagerTest.kt`)**:
+  - Implemented high-priority **Wear OS Extensible Notifications** (`WearShiftNotificationManager.kt`) dispatching pre-shift countdown reminders directly to paired Wear OS smart watches (Pixel Watch, Galaxy Watch) and Android heads-up displays.
+  - **1-Tap Interactive Watch Quick Actions**:
+    - **"Log +2h OT"**: Adds extra overtime hours directly to the current shift roster without needing to open the phone app.
+    - **"Mark Attended"**: Instantly records today's standard working duty shift.
+    - **"Snooze 15m"**: Postpones shift reminder alerts.
+  - **Wear OS & Smart Watch Settings Card (`SettingsScreen.kt`)**:
+    - Toggle Wear OS shift notifications on/off.
+    - Configurable Pre-Shift Alert Lead Times (15 min, 30 min, 45 min, 1 hour).
+    - Toggle Watch Quick Action buttons.
+    - 1-Tap **"Send Test Notification to Watch"** preview trigger.
+  - **Background WorkManager Shift Observer (`DutyShiftReminderWorker.kt`)**: Periodic worker monitors shift rosters and dispatches Wear OS heads-up alerts ahead of scheduled duty times.
+
+### Bugs Found & Fixed
+- None.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.1] - 2026-09-26 (VersionCode: 55)
 ### Added / Changed
 - **Instant Cloud Restore Prompt on First Login (`FEAT-937`) (`GoogleAuthGateScreen.kt`, `GoogleDriveSyncEngine.kt`, `LedgerBackupManager.kt`, `SalaryRepository.kt`)**:

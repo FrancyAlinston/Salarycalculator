@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:allowBackup="true"
@@ -31,6 +34,17 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
+
+        <receiver
+            android:name=".receiver.WearShiftActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.salarycalculator.ACTION_LOG_EXTRA_OT" />
+                <action android:name="com.example.salarycalculator.ACTION_MARK_ATTENDED" />
+                <action android:name="com.example.salarycalculator.ACTION_SNOOZE_NOTIFICATION" />
+                <action android:name="com.example.salarycalculator.ACTION_TEST_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".widget.ShiftHeatmapWidgetProvider"
