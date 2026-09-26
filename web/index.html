@@ -48,51 +48,155 @@
 </head>
 <body class="bg-slate-950 text-slate-100 flex flex-col min-h-screen selection:bg-primary selection:text-white">
 
-  <!-- Top App Bar Navigation Header -->
-  <header class="sticky top-0 z-40 w-full backdrop-blur-xl bg-slate-900/80 border-b border-slate-800/80 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-lg">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-400 flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">
-        💰
-      </div>
-      <div>
-        <h1 class="text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
-          Salary Calculator <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">v26.2 Web</span>
-        </h1>
-        <p class="text-xs text-slate-400">UK PAYE, National Insurance & Roster Suite</p>
-      </div>
+  <!-- ========================================== -->
+  <!-- MANDATORY GOOGLE AUTHENTICATION GATEKEEPER -->
+  <!-- ========================================== -->
+  <div id="auth-gate-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-950 overflow-y-auto">
+    <!-- Ambient Background Glow -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <div class="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px]"></div>
+      <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-500/20 rounded-full blur-[120px]"></div>
     </div>
 
-    <!-- Right Controls: Google Auth Profile Chip & Nav -->
-    <div class="flex items-center gap-3">
-      <!-- Google Auth Chip -->
-      <button id="btn-open-auth-modal" class="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 text-xs font-semibold text-slate-200 transition-all hover:scale-105 active:scale-95 shadow-md">
-        <span id="auth-chip-status" class="w-2 h-2 rounded-full bg-slate-500 transition-colors"></span>
-        <img id="auth-chip-avatar" src="https://lh3.googleusercontent.com/a/default-user" alt="Avatar" class="w-5 h-5 rounded-full bg-slate-700">
-        <div class="text-left hidden sm:block">
-          <span id="auth-chip-name" class="block leading-none font-bold">Sign In</span>
-          <span id="auth-chip-email" class="text-[10px] text-slate-400 leading-none block mt-0.5">Google Cloud Sync</span>
+    <div class="relative max-w-lg w-full glass-card rounded-3xl p-6 sm:p-10 border border-slate-800 shadow-2xl space-y-6 text-center">
+      <!-- App Icon / Lock Emblem -->
+      <div class="relative w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-emerald-400 p-0.5 shadow-2xl shadow-blue-500/30">
+        <div class="w-full h-full bg-slate-900 rounded-[22px] flex items-center justify-center text-4xl">
+          💰
         </div>
-      </button>
-    </div>
-  </header>
+        <div class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center text-xs shadow">
+          🔒
+        </div>
+      </div>
 
-  <!-- Navigation Tab Bar (Desktop / Tablet / Mobile) -->
-  <nav class="sticky top-[69px] z-30 w-full backdrop-blur-md bg-slate-900/60 border-b border-slate-800/50 px-4 sm:px-8 py-2">
-    <div class="max-w-6xl mx-auto flex items-center justify-around sm:justify-start gap-2 sm:gap-4 overflow-x-auto">
-      <button data-tab-target="calculator" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-white bg-slate-800/80 shadow border border-slate-700/40">
-        <span>🧮</span> Calculator
-      </button>
-      <button data-tab-target="heatmap" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent">
-        <span>📅</span> Shift Heatmap
-      </button>
-      <button data-tab-target="history" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent">
-        <span>📈</span> History & P60
-      </button>
-      <button data-tab-target="settings" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent">
-        <span>⚙️</span> Settings
-      </button>
+      <!-- Header & Information -->
+      <div class="space-y-2">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[11px] font-bold text-blue-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+          CONFIDENTIAL SALARY & ROSTER SUITE
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          Mandatory Google Sign-In
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-md mx-auto">
+          Please authenticate with your Google account to unlock your personal salary computations, tax codes, and duty shift schedule.
+        </p>
+      </div>
+
+      <!-- Security & Privacy Guarantee Cards -->
+      <div class="grid grid-cols-3 gap-2 text-left py-2">
+        <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-1">
+          <span class="text-base">🛡️</span>
+          <p class="text-[10px] font-bold text-slate-200">Zero Leakage</p>
+          <p class="text-[9px] text-slate-400 leading-tight">Data hidden until verified</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-1">
+          <span class="text-base">☁️</span>
+          <p class="text-[10px] font-bold text-slate-200">Cloud Sync</p>
+          <p class="text-[9px] text-slate-400 leading-tight">Pixel & Watch continuity</p>
+        </div>
+        <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800/80 space-y-1">
+          <span class="text-base">🇬🇧</span>
+          <p class="text-[10px] font-bold text-slate-200">HMRC Engine</p>
+          <p class="text-[9px] text-slate-400 leading-tight">2024/25 & 2025/26 PAYE</p>
+        </div>
+      </div>
+
+      <!-- Google GIS Button & Interactive Auth Options -->
+      <div class="space-y-4 pt-2">
+        <div id="g_id_onload"
+             data-client_id="YOUR_GOOGLE_CLIENT_ID"
+             data-callback="handleGoogleCredentialResponse"
+             data-auto_prompt="false">
+        </div>
+        <div class="g_id_signin flex justify-center"
+             data-type="standard"
+             data-size="large"
+             data-theme="filled_black"
+             data-text="sign_in_with"
+             data-shape="pill"
+             data-logo_alignment="left">
+        </div>
+
+        <div class="relative flex py-1 items-center">
+          <div class="flex-grow border-t border-slate-800"></div>
+          <span class="flex-shrink mx-3 text-[10px] text-slate-500 uppercase tracking-widest font-bold">Authorized Account Access</span>
+          <div class="flex-grow border-t border-slate-800"></div>
+        </div>
+
+        <!-- Direct Form for Instant Account Access -->
+        <form id="form-gate-signin" class="space-y-3">
+          <input type="email" id="gate-email-input" required placeholder="Google Account Email (e.g. francyalinston@gmail.com)" value="francyalinston@gmail.com" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+          <input type="text" id="gate-name-input" required placeholder="Display Name (e.g. Francy Alinston)" value="Francy Alinston" class="w-full bg-slate-900/90 border border-slate-700/80 rounded-2xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all">
+          <button type="submit" id="btn-gate-signin" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
+            <span>🔓</span> Sign In & Unlock Salary Suite
+          </button>
+        </form>
+      </div>
+
+      <p class="text-[10px] text-slate-500">
+        🔒 All calculations run locally in your browser. Encrypted with client-side DataStore tokens.
+      </p>
     </div>
-  </nav>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- PROTECTED APPLICATION SHELL (GATED VIEW)   -->
+  <!-- ========================================== -->
+  <div id="app-shell" class="hidden flex flex-col min-h-screen">
+
+    <!-- Top App Bar Navigation Header -->
+    <header class="sticky top-0 z-40 w-full backdrop-blur-xl bg-slate-900/80 border-b border-slate-800/80 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-lg">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-400 flex items-center justify-center text-xl shadow-lg shadow-blue-500/20">
+          💰
+        </div>
+        <div>
+          <h1 class="text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
+            Salary Calculator <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">v26.5</span>
+          </h1>
+          <p class="text-xs text-slate-400">UK PAYE, National Insurance & Roster Suite</p>
+        </div>
+      </div>
+
+      <!-- Right Controls: Google Auth Profile Chip & Sign Out -->
+      <div class="flex items-center gap-3">
+        <!-- Google Auth Chip -->
+        <button id="btn-open-auth-modal" class="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-slate-800/90 hover:bg-slate-750 border border-slate-700/80 text-xs font-semibold text-slate-200 transition-all hover:scale-105 active:scale-95 shadow-md">
+          <span id="auth-chip-status" class="w-2 h-2 rounded-full bg-emerald-400 transition-colors shadow shadow-emerald-400/50"></span>
+          <img id="auth-chip-avatar" src="https://lh3.googleusercontent.com/a/default-user" alt="Avatar" class="w-5 h-5 rounded-full bg-slate-700">
+          <div class="text-left hidden sm:block">
+            <span id="auth-chip-name" class="block leading-none font-bold">Google User</span>
+            <span id="auth-chip-email" class="text-[10px] text-emerald-400 leading-none block mt-0.5">Connected</span>
+          </div>
+        </button>
+
+        <!-- Instant Sign Out / Lock Button -->
+        <button id="btn-lock-app" title="Lock App & Sign Out" class="p-2 rounded-full bg-slate-800/90 hover:bg-rose-500/20 hover:text-rose-400 border border-slate-700/80 text-slate-400 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tab Bar (Desktop / Tablet / Mobile) -->
+    <nav class="sticky top-[69px] z-30 w-full backdrop-blur-md bg-slate-900/60 border-b border-slate-800/50 px-4 sm:px-8 py-2">
+      <div class="max-w-6xl mx-auto flex items-center justify-around sm:justify-start gap-2 sm:gap-4 overflow-x-auto">
+        <button data-tab-target="calculator" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-white bg-slate-800/80 shadow border border-slate-700/40">
+          <span>🧮</span> Calculator
+        </button>
+        <button data-tab-target="heatmap" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent">
+          <span>📅</span> Shift Heatmap
+        </button>
+        <button data-tab-target="history" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent">
+          <span>📈</span> History & P60
+        </button>
+        <button data-tab-target="settings" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800/50 border border-transparent">
+          <span>⚙️</span> Settings
+        </button>
+      </div>
+    </nav>
 
   <!-- Main Content Container -->
   <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8">
@@ -391,52 +495,7 @@
 
   </main>
 
-  <!-- Google Sign In Modal -->
-  <div id="auth-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md items-center justify-center p-4">
-    <div class="glass-card rounded-3xl p-6 sm:p-8 max-w-md w-full border border-slate-700/70 shadow-2xl space-y-5">
-      <div class="text-center space-y-2">
-        <div class="w-14 h-14 mx-auto rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl shadow">
-          🔐
-        </div>
-        <h3 class="text-xl font-bold text-white">Google Account Sign-In</h3>
-        <p class="text-xs text-slate-400">Sign in with your Google account to enable seamless cloud synchronization with your Android Salary Calculator app.</p>
-      </div>
 
-      <!-- Google Button container for GIS -->
-      <div id="g_id_onload"
-           data-client_id="YOUR_GOOGLE_CLIENT_ID"
-           data-callback="handleGoogleCredentialResponse"
-           data-auto_prompt="false">
-      </div>
-      <div class="g_id_signin flex justify-center"
-           data-type="standard"
-           data-size="large"
-           data-theme="filled_black"
-           data-text="sign_in_with"
-           data-shape="pill"
-           data-logo_alignment="left">
-      </div>
-
-      <div class="relative flex py-2 items-center">
-        <div class="flex-grow border-t border-slate-700"></div>
-        <span class="flex-shrink mx-3 text-[11px] text-slate-500 uppercase tracking-widest font-bold">Or Direct Connect</span>
-        <div class="flex-grow border-t border-slate-700"></div>
-      </div>
-
-      <!-- Direct / Offline Mock Input for Testing -->
-      <div class="space-y-3">
-        <input type="email" id="mock-email-input" placeholder="Google Account Email (e.g. user@gmail.com)" value="user@gmail.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white">
-        <input type="text" id="mock-name-input" placeholder="Display Name (e.g. Francy Alinston)" value="Francy Alinston" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white">
-        <button id="btn-mock-signin" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20">
-          Sign In & Sync Cloud State
-        </button>
-      </div>
-
-      <button id="btn-close-auth-modal" class="w-full py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white">
-        Cancel
-      </button>
-    </div>
-  </div>
 
   <!-- Instant Cloud Restore Prompt Modal (FEAT-937) -->
   <div id="cloud-restore-modal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md items-center justify-center p-4">
@@ -464,10 +523,12 @@
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer class="w-full border-t border-slate-800/80 py-6 px-4 text-center text-xs text-slate-500">
-    <p>Salary Calculator & Roster Suite © 2026. UK Tax & NI Engine adhering strictly to HMRC 2024/25 & 2025/26 guidelines.</p>
-  </footer>
+    <!-- Footer -->
+    <footer class="w-full border-t border-slate-800/80 py-6 px-4 text-center text-xs text-slate-500">
+      <p>Salary Calculator & Roster Suite © 2026. UK Tax & NI Engine adhering strictly to HMRC 2024/25 & 2025/26 guidelines.</p>
+    </footer>
+
+  </div><!-- End of #app-shell -->
 
   <script type="module" src="js/app.js"></script>
 </body>

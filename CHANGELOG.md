@@ -4,6 +4,26 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.6] - 2026-09-26 (VersionCode: 60)
+### Added / Changed
+- **Mandatory Google Authentication Gatekeeper on Web Client (`FEAT-951`) (`web/index.html`, `web/js/auth.js`, `web/js/app.js`, `web/css/styles.css`)**:
+  - **Zero-Data Leakage First View (`#auth-gate-screen`)**:
+    - Gated the entire web application behind a full-screen mandatory Google authentication gatekeeper matching the mobile app's security model (`FEAT-934`).
+    - Entire application shell (`#app-shell`), navigation tabs, shift rosters, settings, and salary calculations remain completely hidden and locked until the user signs in.
+  - **Instant Account Access & 1-Tap Lockout**:
+    - Integrated Google Identity Services (GIS) button and direct account authorization form.
+    - Added instant **"Lock & Sign Out"** button (`#btn-lock-app`) in the top app bar to immediately wipe active session tokens and return to the secure gatekeeper screen.
+  - **Dual-Tier Cloud & NAS Restore Check**:
+    - Upon login, automatically scans both Google Drive AppData cache and the local NAS SQLite backend (`/api/backup`) for previous roster and payroll backups, prompting 1-tap instant restoration.
+
+### Bugs Found & Fixed
+- Fixed unauthenticated salary details exposure on initial web client load.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.5] - 2026-09-26 (VersionCode: 59)
 ### Added / Changed
 - **UGOS Docker Management App & Container Deployment (`FEAT-947`) (`Dockerfile`, `docker-compose.yml`, `server.py`, `.dockerignore`, `data/`)**:

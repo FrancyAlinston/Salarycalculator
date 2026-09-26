@@ -25,21 +25,10 @@ class App {
   init() {
     this.applyThemeAndPalette();
     this.setupNavigation();
-    this.setupAuth();
     this.setupCalculatorListeners();
     this.setupSettingsListeners();
     this.setupBackupRestore();
-    
-    // Initialize Heatmap
-    this.heatmap = new HeatmapManager('heatmap-container', () => {
-      this.syncRosterHoursToCalculator();
-      this.recalculate();
-    });
-    this.heatmap.render();
-
-    // Initial Salary Calculation
-    this.recalculate();
-    this.fetchLiveCurrencyRates();
+    this.setupAuth();
   }
 
   applyThemeAndPalette() {
@@ -99,51 +88,74 @@ class App {
   }
 
   setupAuth() {
-    const authChip = document.getElementById('google-auth-chip');
-    const authModal = document.getElementById('auth-modal');
+    const gateScreen = document.getElementById('auth-gate-screen');
+    const appShell = document.getElementById('app-shell');
+    const authChipName = document.getElementById('auth-chip-name');
+    const authChipEmail = document.getElementById('auth-chip-email');
+    const authChipStatus = document.getElementById('auth-chip-status');
+    const authChipAvatar = document.getElementById('auth-chip-avatar');
     const authBtn = document.getElementById('btn-open-auth-modal');
 
     AuthManager.init((account) => {
       if (account && account.isAuthenticated) {
-        document.getElementById('auth-chip-name').textContent = account.name || account.email;
-        document.getElementById('auth-chip-email').textContent = account.email;
-        document.getElementById('auth-chip-status').classList.remove('bg-slate-500');
-        document.getElementById('auth-chip-status').classList.add('bg-emerald-400');
-        if (account.picture) {
-          const avatar = document.getElementById('auth-chip-avatar');
-          if (avatar) avatar.src = account.picture;
+        // Authenticated: Hide Gatekeeper and Reveal Protected App
+        if (gateScreen) {
+          gateScreen.classList.add('hidden');
+          gateScreen.classList.remove('flex');
         }
+        if (appShell) {
+          appShell.classList.remove('hidden');
+        }
+
+        if (authChipName) authChipName.textContent = account.name || account.email;
+        if (authChipEmail) authChipEmail.textContent = account.email;
+        if (authChipStatus) {
+          authChipStatus.classList.remove('bg-slate-500');
+          authChipStatus.classList.add('bg-emerald-400');
+        }
+        if (account.picture && authChipAvatar) {
+          authChipAvatar.src = account.picture;
+        }
+
+        // Initialize and compute salary once authenticated
+        if (!this.heatmap) {
+          this.heatmap = new HeatmapManager('heatmap-container', () => {
+            this.syncRosterHoursToCalculator();
+            this.recalculate();
+          });
+        }
+        this.heatmap.render();
+        this.recalculate();
+        this.fetchLiveCurrencyRates();
+
       } else {
-        document.getElementById('auth-chip-name').textContent = 'Sign In with Google';
-        document.getElementById('auth-chip-email').textContent = 'Cloud Sync Off';
-        document.getElementById('auth-chip-status').classList.add('bg-slate-500');
-        document.getElementById('auth-chip-status').classList.remove('bg-emerald-400');
+        // Unauthenticated: Lock App and Enforce Mandatory Gatekeeper
+        if (appShell) {
+          appShell.classList.add('hidden');
+        }
+        if (gateScreen) {
+          gateScreen.classList.remove('hidden');
+          gateScreen.classList.add('flex');
+        }
+
+        if (authChipName) authChipName.textContent = 'Sign In';
+        if (authChipEmail) authChipEmail.textContent = 'Locked';
+        if (authChipStatus) {
+          authChipStatus.classList.add('bg-slate-500');
+          authChipStatus.classList.remove('bg-emerald-400');
+        }
       }
     });
 
     authBtn?.addEventListener('click', () => {
       const current = Store.getGoogleAccount();
       if (current.isAuthenticated) {
-        if (confirm(`Signed in as ${current.email}. Do you want to sign out?`)) {
+        if (confirm(`Signed in as ${current.email}.\n\nDo you want to sign out and lock the Salary Calculator suite?`)) {
           AuthManager.logout();
         }
       } else {
-        authModal?.classList.remove('hidden');
-        authModal?.classList.add('flex');
+        AuthManager.logout();
       }
-    });
-
-    document.getElementById('btn-close-auth-modal')?.addEventListener('click', () => {
-      authModal?.classList.add('hidden');
-      authModal?.classList.remove('flex');
-    });
-
-    document.getElementById('btn-mock-signin')?.addEventListener('click', () => {
-      const email = document.getElementById('mock-email-input')?.value || 'user@example.com';
-      const name = document.getElementById('mock-name-input')?.value || 'Google User';
-      AuthManager.login({ email, name, picture: '' });
-      authModal?.classList.add('hidden');
-      authModal?.classList.remove('flex');
     });
   }
 

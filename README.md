@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Mandatory Google Authentication Gatekeeper on Web (`FEAT-951`) (`web/index.html`, `web/js/auth.js`, `web/js/app.js`):**
+  - **Zero Data Exposure on First Load:** Gated the entire web application behind a full-screen mandatory Google authentication gatekeeper matching the mobile app's security architecture (`FEAT-934`). All salary calculations, confidential tax codes, duty shift rosters, and navigation bars remain completely hidden until verified.
+  - **Instant Multi-Device Cloud & NAS Restore:** Automatically queries Google Drive AppData and local NAS SQLite storage (`/api/backup`) upon login to offer 1-tap instant restoration of shift rosters and payroll logs.
+  - **1-Tap Lockout & Sign Out:** Dedicated lock button in the top bar to instantly clear active sessions and return to the secure gatekeeper screen.
+
 - **UGOS Docker Management App & NAS Deployment (`FEAT-947`) (`Dockerfile`, `docker-compose.yml`, `server.py`):**
   - **UGREEN NAS UGOS Docker App Integration:** Pre-configured `docker-compose.yml` and `Dockerfile` matching the container patterns established in the IQVIA project for 1-click container management on UGREEN NAS.
   - **Zero-Latency Container Runtime:** Lightweight Python 3.11 container (`salarycalculator-web`) running at port `8085:8080`, with active container healthchecks (`GET /api/status`), SPA route fallbacks, and persistent storage bindings (`./data:/app/data` and `./web:/app/web:ro`).

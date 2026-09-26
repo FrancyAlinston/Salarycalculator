@@ -1,6 +1,7 @@
 /**
  * Google Authentication & Identity Service
  * Connects with Google Sign-In & Google Drive AppData Cloud Sync
+ * Controls the Mandatory Authentication Gatekeeper
  */
 
 import { Store } from './store.js';
@@ -11,11 +12,13 @@ export class AuthManager {
   static init(callback) {
     this.onAuthStateChanged = callback;
     const currentAccount = Store.getGoogleAccount();
-    if (currentAccount && currentAccount.isAuthenticated) {
-      if (this.onAuthStateChanged) this.onAuthStateChanged(currentAccount);
+    
+    // Always trigger state update initially to enforce gating
+    if (this.onAuthStateChanged) {
+      this.onAuthStateChanged(currentAccount || { isAuthenticated: false });
     }
 
-    // Try initializing Google Identity Services if client ID is configured
+    // Google Identity Services SDK callback handler
     window.handleGoogleCredentialResponse = (response) => {
       try {
         const payload = this.parseJwt(response.credential);
@@ -31,6 +34,33 @@ export class AuthManager {
         console.error('Google Auth Failed', e);
       }
     };
+
+    // Listen for Gate Form Submission
+    const gateForm = document.getElementById('form-gate-signin');
+    if (gateForm) {
+      gateForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const emailInput = document.getElementById('gate-email-input');
+        const nameInput = document.getElementById('gate-name-input');
+        const email = (emailInput?.value || '').trim() || 'user@gmail.com';
+        const name = (nameInput?.value || '').trim() || 'Authorized User';
+
+        this.login({
+          email,
+          name,
+          picture: 'https://lh3.googleusercontent.com/a/default-user',
+          isAuthenticated: true
+        });
+      });
+    }
+
+    // Listen for Sign Out / Lock App Button
+    const lockBtn = document.getElementById('btn-lock-app');
+    if (lockBtn) {
+      lockBtn.addEventListener('click', () => {
+        this.logout();
+      });
+    }
   }
 
   static parseJwt(token) {
@@ -49,8 +79,8 @@ export class AuthManager {
     };
     Store.setGoogleAccount(updated);
 
-    // Check if cloud backup exists in mock/cloud storage and prompt instant restore
-    this.checkCloudBackups(updated.email);
+    // Check if cloud or NAS backup exists and prompt instant restore
+    this.checkCloudAndNasBackups(updated.email);
 
     if (this.onAuthStateChanged) {
       this.onAuthStateChanged(updated);
@@ -64,29 +94,42 @@ export class AuthManager {
     }
   }
 
-  static checkCloudBackups(email) {
-    // Check if cloud backup exists for this account
+  static async checkCloudAndNasBackups(email) {
+    // 1. Check local cloud cache
     const cloudBackupKey = `cloud_backup_${email}`;
     const remoteBackupJson = localStorage.getItem(cloudBackupKey);
     if (remoteBackupJson) {
       try {
         const bundle = JSON.parse(remoteBackupJson);
-        // Show Instant Cloud Restore Prompt
         setTimeout(() => {
-          this.showInstantRestoreModal(bundle);
-        }, 500);
+          this.showInstantRestoreModal(bundle, 'Google Drive Cloud');
+        }, 400);
+        return;
       } catch {}
     }
+
+    // 2. Check NAS SQLite server backup endpoint
+    try {
+      const res = await fetch('/api/backup');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.backup) {
+          setTimeout(() => {
+            this.showInstantRestoreModal(data.backup, 'UGOS NAS Storage');
+          }, 400);
+        }
+      }
+    } catch {}
   }
 
-  static showInstantRestoreModal(bundle) {
+  static showInstantRestoreModal(bundle, source = 'Cloud') {
     const modal = document.getElementById('cloud-restore-modal');
     if (!modal) return;
 
     const detailsEl = document.getElementById('cloud-restore-details');
     if (detailsEl) {
       const ts = bundle.exportTimestamp ? new Date(bundle.exportTimestamp).toLocaleDateString() : 'Recent';
-      detailsEl.textContent = `Found remote cloud backup from ${ts} (${bundle.deviceModel || 'Android Pixel 8 Pro'}). Would you like to restore your full payroll records and shift calendar?`;
+      detailsEl.textContent = `Found remote ${source} backup from ${ts} (${bundle.deviceModel || 'Android Pixel 8 Pro'}). Would you like to restore your full payroll records and shift calendar?`;
     }
 
     modal.classList.remove('hidden');
