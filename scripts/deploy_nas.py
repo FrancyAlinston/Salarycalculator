@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """
 Deploy Salary Calculator Web Container to UGREEN UGOS NAS Docker Management App
+Target: NVMe Volume 2 (/volume2/docker/salarycalculator) with UGOS DB Auto-Registration
 """
+import base64
 import os
+import sqlite3
 import sys
 import tarfile
 import tempfile
@@ -19,10 +22,11 @@ except ImportError:
 HOST = "192.168.8.100"
 USERNAME = "Francy"
 PASSWORD = "Alen@2020"
-TARGET_DIR = "/volume1/docker/salarycalculator"
+TARGET_DIR = "/volume2/docker/salarycalculator"
+LEGACY_DIR = "/volume1/docker/salarycalculator"
 PORT = 8085
 
-print(f"🚀 Preparing deployment for Salary Calculator to UGOS NAS ({HOST})...")
+print(f"🚀 Deploying Salary Calculator to UGOS NAS NVMe Volume ({TARGET_DIR})...")
 
 project_dir = Path(__file__).resolve().parent.parent
 temp_tar = Path(tempfile.gettempdir()) / "salarycalculator-src.tar.gz"
@@ -71,20 +75,22 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
 try:
     print(f"🔌 Connecting to {USERNAME}@{HOST}...")
-    ssh.connect(HOST, username=USERNAME, password=PASSWORD, timeout=10)
+    ssh.connect(HOST, username=USERNAME, password=PASSWORD, timeout=15)
     print("✅ Connected to NAS.")
 
-    print("🛑 Stopping and removing previous container if existing...")
+    print("🛑 Stopping previous container and cleaning legacy paths...")
     stdin, stdout, stderr = ssh.exec_command(f"echo '{PASSWORD}' | sudo -S docker rm -f salarycalculator-web 2>/dev/null || true")
     stdout.channel.recv_exit_status()
+    stdin, stdout, stderr = ssh.exec_command(f"echo '{PASSWORD}' | sudo -S rm -rf {LEGACY_DIR} 2>/dev/null || true")
+    stdout.channel.recv_exit_status()
 
-    print(f"📁 Creating target project folder in {TARGET_DIR}...")
+    print(f"📁 Creating target project folder in NVMe {TARGET_DIR}...")
     stdin, stdout, stderr = ssh.exec_command(f"echo '{PASSWORD}' | sudo -S mkdir -p {TARGET_DIR}/data {TARGET_DIR}/web")
     stdout.channel.recv_exit_status()
     stdin, stdout, stderr = ssh.exec_command(f"echo '{PASSWORD}' | sudo -S chmod -R 777 {TARGET_DIR}")
     stdout.channel.recv_exit_status()
 
-    print("📤 Uploading source files to NAS...")
+    print("📤 Uploading source files to NVMe Volume...")
     stdin, stdout, stderr = ssh.exec_command(f"cat > {TARGET_DIR}/salarycalculator-src.tar.gz")
     with open(temp_tar, 'rb') as f:
         stdin.write(f.read())
@@ -109,7 +115,7 @@ try:
     )
     stdout.channel.recv_exit_status()
 
-    print(f"🐳 Building and launching container in UGOS Docker App (Port {PORT})...")
+    print(f"🐳 Building and launching container on NVMe Volume (Port {PORT})...")
     stdin, stdout, stderr = ssh.exec_command(
         f"cd {TARGET_DIR} && echo '{PASSWORD}' | sudo -S docker compose -f docker-compose.yaml up -d --build"
     )
@@ -137,6 +143,32 @@ try:
     exit_status = channel.recv_exit_status()
     print(f"\n✨ Docker compose execution completed with exit code {exit_status}")
 
+    print("\n📋 Registering Project in UGOS Docker App Database...")
+    db_register_script = f"""
+import sqlite3
+from datetime import datetime
+
+db_path = '/volume1/@appstore/com.ugreen.docker/db/docker_info_log.db'
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+now = datetime.now().isoformat()
+
+cur.execute('''
+INSERT OR REPLACE INTO compose (name, state, path, content, app_id, container_num, created_at, updated_at)
+VALUES (?, 1, ?, '', '', 1, ?, ?)
+''', ('salarycalculator', '{TARGET_DIR}/docker-compose.yaml', now, now))
+
+conn.commit()
+
+cur.execute("SELECT name, state, path, container_num FROM compose WHERE name='salarycalculator'")
+row = cur.fetchone()
+print(f"Registered UGOS Project: {{row}}")
+conn.close()
+"""
+    b64_db = base64.b64encode(db_register_script.encode('utf-8')).decode('ascii')
+    stdin, stdout, stderr = ssh.exec_command(f"echo '{PASSWORD}' | sudo -S python3 -c 'import base64; exec(base64.b64decode(\"{b64_db}\").decode(\"utf-8\"))'")
+    print(stdout.read().decode('utf-8'))
+
     # Verify docker ps
     print("\n🔍 Checking running docker containers in UGOS:")
     stdin, stdout, stderr = ssh.exec_command(f"echo '{PASSWORD}' | sudo -S docker ps --filter name=salarycalculator-web")
@@ -151,5 +183,5 @@ finally:
     if temp_tar.exists():
         temp_tar.unlink()
 
-print(f"\n🎉 Successfully deployed Salary Calculator to UGOS Docker Management App!")
+print(f"\n🎉 Successfully deployed and registered Salary Calculator on UGOS NVMe Volume 2!")
 print(f"🌐 Access URL: http://{HOST}:{PORT} or http://localhost:{PORT}")
