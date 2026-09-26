@@ -4,6 +4,23 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.9] - 2026-09-26 (VersionCode: 53)
+### Added / Changed
+- **Interactive Home Screen Widget Tap-to-Log Shift Cycling (`FEAT-930`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftCycleEngine.kt`, `widget_shift_heatmap.xml`, `ShiftCycleEngineTest.kt`)**:
+  - Added an interactive **Today Quick Shift Pill** (`widget_btn_quick_log_today`) in the widget header displaying today's live shift status and dynamic color badge (`Today: 12h`, `Today: 12h OT`, `Today: A/L`, `Today: SSP`, `Today: Off`).
+  - **1-Tap Direct Shift Logging**: Tapping the pill broadcasts `ACTION_CYCLE_TODAY_SHIFT` to cycle today's shift through all status states without opening the app:
+    $$\text{Off (0.0)} \longrightarrow \text{Standard Shift (e.g. 12h)} \longrightarrow \text{Overtime (12h OT)} \longrightarrow \text{Annual Leave (A/L)} \longrightarrow \text{Sick Pay (SSP)} \longrightarrow \text{Off (0.0)}$$
+  - **Instant Visual & Haptic Feedback**: Triggers real-time Android confirmation toast messages (`Logged Today: 12h Duty Shift`, etc.) and immediately updates the widget canvas, pill styling, and monthly gross pay summary.
+  - **Today Date Highlight Ring**: Highlighted today's cell on the widget canvas with a distinct Cyan (`#38BDF8`) highlight outline ring.
+
+### Bugs Found & Fixed
+- None.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [25.8] - 2026-09-26 (VersionCode: 52)
 ### Added / Changed
 - **Full-Size Android Shift Heatmap Widget Canvas Maximization (`FEAT-927`) (`ShiftHeatmapWidgetProvider.kt`, `widget_shift_heatmap.xml`, `SalaryRepository.kt`)**:

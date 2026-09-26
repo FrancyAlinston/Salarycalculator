@@ -4,9 +4,10 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
-- **Interactive Android Home Screen Shift Heatmap Widget (`FEAT-926`, `FEAT-927`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftHeatmapWidgetManager.kt`, `widget_shift_heatmap.xml`):**
+- **Interactive Android Home Screen Shift Heatmap Widget (`FEAT-926`, `FEAT-927`, `FEAT-930`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftCycleEngine.kt`, `ShiftHeatmapWidgetManager.kt`, `widget_shift_heatmap.xml`):**
   - **Live Full-Size Home Screen Roster Widget:** Direct on-screen 7-column shift heatmap displaying current month scheduled shifts, overtime, holiday days, and sick days, utilizing 100% of the user-configured widget canvas size.
-  - **Dynamic High-DPI Heatmap Canvas:** Pixel-perfect rendering of Emerald (Standard Shifts), Amber (Overtime), Blue (Annual Leave A/L), Purple (Statutory Sick Pay SSP), and Off days with real-time Pay Day and Cutoff indicators, scaling dynamically upon resizing.
+  - **1-Tap Interactive Tap-to-Log Quick Shift Pill:** Tappable "Today" status pill in the widget header enables direct 1-tap shift cycling (`Off` $\to$ `Standard Shift` $\to$ `Overtime` $\to$ `Annual Leave` $\to$ `Sick Pay SSP` $\to$ `Off`) without opening the app, accompanied by instantaneous toast notifications and automatic gross salary recalculation.
+  - **Dynamic High-DPI Heatmap Canvas & Today Highlight Ring:** Pixel-perfect rendering of Emerald (Standard Shifts), Amber (Overtime), Blue (Annual Leave A/L), Purple (Statutory Sick Pay SSP), and Off days with real-time Pay Day and Cutoff indicators, Cyan outline ring for Today's date, and dynamic scaling upon resizing.
   - **Adaptive Transparent & Glassmorphic Theming:** Supports translucent dark glass (`#E6151A22`) and 100% fully transparent (`#00000000`) modes to seamlessly blend with any device wallpaper.
   - **Real-Time Automatic Sync:** Instantly refreshes widget display whenever shifts are updated, imported via OCR, or edited in the main app.
 

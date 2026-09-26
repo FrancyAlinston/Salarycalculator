@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:padding="6dp">
 
-    <!-- Clean Header: Month Title & Summary (No extra icons) -->
+    <!-- Clean Header: Month Title, Interactive Today Shift Pill & Gross Summary -->
     <LinearLayout
         android:id="@+id/widget_title_container"
         android:layout_width="match_parent"
@@ -26,6 +26,24 @@
             android:text="September 2026"
             android:textColor="#FFFFFFFF"
             android:textSize="13.5sp"
+            android:textStyle="bold" />
+
+        <!-- FEAT-930: Interactive Quick Shift Pill (1-tap to cycle today's shift) -->
+        <TextView
+            android:id="@+id/widget_btn_quick_log_today"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/widget_pill_off_bg"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingStart="7dp"
+            android:paddingTop="2.5dp"
+            android:paddingEnd="7dp"
+            android:paddingBottom="2.5dp"
+            android:text="Today: Off"
+            android:textColor="#FFFFFFFF"
+            android:textSize="10.5sp"
             android:textStyle="bold" />
 
         <TextView
