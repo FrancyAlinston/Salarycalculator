@@ -104,6 +104,12 @@ These rules define the mandatory behavioral constraints, development workflows, 
 
 ## 5. Testing, Verification & Cleanup Standards (`@rules:mandatory_testing_and_cleanup`)
 
+- **Mandatory Synchronized Phone & NAS Docker Deployment (`@rules:mandatory_phone_and_nas_docker_deployment`)**:
+  - Whenever code changes, bugfixes, UI updates, or version bumps occur, ALWAYS update, build, and deploy to **BOTH**:
+    1. **Connected Physical Android Devices & Watch Targets**: Execute [`scripts/install_to_devices.sh`](scripts/install_to_devices.sh) to deploy builds directly across active wireless ADB targets (Pixel 8 Pro, Redmi Note 10 Pro, Galaxy Watch).
+    2. **UGOS NAS NVMe Docker Container**: Execute `python3 scripts/deploy_nas.py` to rebuild and redeploy the live `salarycalculator-web` container on NVMe `/volume2/docker/salarycalculator` and update the UGOS Docker App database.
+  - Never update only one platform in isolation; both phone APK and NAS web container must always remain updated and synchronized with 100% tax engine and feature parity.
+
 - **Multi-Device Target Registry (`@rules:multi_device_deployment_registry`)**:
   - Automatically attempt deployment to registered wireless ADB targets whenever available:
     - Primary Device: `192.168.8.246` / `192.168.8.178` (Pixel 8 Pro)
