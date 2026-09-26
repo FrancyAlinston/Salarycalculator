@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Mandatory Google Authentication Gatekeeper Screen (`FEAT-934`) (`GoogleAuthGateScreen.kt`, `MainActivity.kt`, `SalaryRepository.kt`):**
+  - **Full-Screen Security Gate:** Requires mandatory Google Sign-In upon first opening the application before revealing any payroll data, confidential shift rosters, or settings.
+  - **Encrypted Cloud Continuity:** Automatically hooks user account credentials (`google_account_email`, `google_account_name`) into private Google Drive AppData synchronization and multi-device calendar features.
+  - **Seamless Zero-Friction Auto-Auth:** Automatically recognizes existing authorized device Google accounts on initial launch for instantaneous access.
+
 - **Interactive Android Home Screen Shift Heatmap Widget (`FEAT-926`, `FEAT-927`, `FEAT-930`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftCycleEngine.kt`, `ShiftHeatmapWidgetManager.kt`, `widget_shift_heatmap.xml`):**
   - **Live Full-Size Home Screen Roster Widget:** Direct on-screen 7-column shift heatmap displaying current month scheduled shifts, overtime, holiday days, and sick days, utilizing 100% of the user-configured widget canvas size.
   - **1-Tap Interactive Tap-to-Log Quick Shift Pill:** Tappable "Today" status pill in the widget header enables direct 1-tap shift cycling (`Off` $\to$ `Standard Shift` $\to$ `Overtime` $\to$ `Annual Leave` $\to$ `Sick Pay SSP` $\to$ `Off`) without opening the app, accompanied by instantaneous toast notifications and automatic gross salary recalculation.

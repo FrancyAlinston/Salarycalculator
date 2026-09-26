@@ -73,6 +73,7 @@ class SalaryRepository(private val context: Context) {
     private val PREFERRED_CURRENCY_KEY = stringPreferencesKey("preferred_currency")
     private val SECONDARY_CURRENCY_KEY = stringPreferencesKey("secondary_currency")
     private val GOOGLE_ACCOUNT_EMAIL_KEY = stringPreferencesKey("google_account_email")
+    private val GOOGLE_ACCOUNT_NAME_KEY = stringPreferencesKey("google_account_name")
     private val GOOGLE_DRIVE_AUTO_SYNC_KEY = booleanPreferencesKey("google_drive_auto_sync")
     private val GOOGLE_DRIVE_LAST_SYNC_KEY = stringPreferencesKey("google_drive_last_sync")
     private val AUTO_UPDATE_RATES_KEY = booleanPreferencesKey("auto_update_rates")
@@ -1029,6 +1030,20 @@ class SalaryRepository(private val context: Context) {
     suspend fun setGoogleAccountEmail(email: String) {
         context.dataStore.edit { preferences ->
             preferences[GOOGLE_ACCOUNT_EMAIL_KEY] = email.trim()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getGoogleAccountName(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[GOOGLE_ACCOUNT_NAME_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setGoogleAccountName(name: String) {
+        context.dataStore.edit { preferences ->
+            preferences[GOOGLE_ACCOUNT_NAME_KEY] = name.trim()
         }
     }
 

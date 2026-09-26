@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -22,9 +23,11 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.salarycalculator.domain.GoogleDriveSyncEngine
 import com.example.salarycalculator.domain.SalaryRepository
 import com.example.salarycalculator.domain.ThemeMode
 import com.example.salarycalculator.theme.SalaryCalculatorTheme
+import com.example.salarycalculator.ui.auth.GoogleAuthGateScreen
 
 class MainActivity : FragmentActivity() {
 
@@ -59,7 +62,22 @@ class MainActivity : FragmentActivity() {
             val themePalette by salaryRepo.getThemePalette().collectAsState(initial = com.example.salarycalculator.domain.ThemePalette.OCEAN)
             val isBiometricEnabled by salaryRepo.getBiometricLockEnabled().collectAsState(initial = false)
             val timeoutSeconds by salaryRepo.getBiometricTimeoutSeconds().collectAsState(initial = 0L)
+            val googleEmail by salaryRepo.getGoogleAccountEmail().collectAsState(initial = null)
+            val context = LocalContext.current
+            val scope = rememberCoroutineScope()
+
             var isAuthenticated by remember { mutableStateOf(!isBiometricEnabled) }
+
+            // Auto-detect existing authorized Google session on device if DataStore was empty
+            LaunchedEffect(googleEmail) {
+                if (googleEmail != null && googleEmail!!.isBlank()) {
+                    val lastAccount = GoogleDriveSyncEngine.getSignedInAccount(context)
+                    if (lastAccount != null && !lastAccount.email.isNullOrBlank()) {
+                        salaryRepo.setGoogleAccountEmail(lastAccount.email ?: "")
+                        salaryRepo.setGoogleAccountName(lastAccount.displayName ?: "")
+                    }
+                }
+            }
 
             // Evaluate background-to-foreground timeout
             LaunchedEffect(requiresReauth) {
@@ -88,58 +106,90 @@ class MainActivity : FragmentActivity() {
 
             SalaryCalculatorTheme(themeMode = themeMode, themePalette = themePalette) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    if (isBiometricEnabled && !isAuthenticated) {
-                        // Lock screen overlay
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(0.9f),
-                                shape = RoundedCornerShape(24.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    when {
+                        // Initial loading state while DataStore is first read
+                        googleEmail == null -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(28.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                CircularProgressIndicator(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 3.dp
+                                )
+                            }
+                        }
+
+                        // MANDATORY GOOGLE AUTHENTICATION GATE:
+                        // If no Google account is signed in, user cannot see or access the app
+                        googleEmail!!.isBlank() -> {
+                            GoogleAuthGateScreen(
+                                salaryRepository = salaryRepo,
+                                onAuthenticated = { account ->
+                                    scope.launch {
+                                        salaryRepo.setGoogleAccountEmail(account.email ?: "")
+                                        salaryRepo.setGoogleAccountName(account.displayName ?: "")
+                                    }
+                                }
+                            )
+                        }
+
+                        // Biometric Lock Screen Overlay (if biometrics enabled)
+                        isBiometricEnabled && !isAuthenticated -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(0.9f),
+                                    shape = RoundedCornerShape(24.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(56.dp)
-                                    )
-                                    Text(
-                                        text = "Salary Calculator Locked",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = "Please authenticate with your fingerprint, face, or device PIN to access your salary records.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Button(
-                                        onClick = {
-                                            showBiometricPrompt { success ->
-                                                isAuthenticated = success
-                                            }
-                                        },
-                                        shape = RoundedCornerShape(14.dp),
-                                        modifier = Modifier.fillMaxWidth()
+                                    Column(
+                                        modifier = Modifier.padding(28.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
-                                        Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.size(20.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Unlock with Biometrics", fontWeight = FontWeight.Bold)
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(56.dp)
+                                        )
+                                        Text(
+                                            text = "Salary Calculator Locked",
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Please authenticate with your fingerprint, face, or device PIN to access your salary records.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Button(
+                                            onClick = {
+                                                showBiometricPrompt { success ->
+                                                    isAuthenticated = success
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(14.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Icon(Icons.Default.Fingerprint, contentDescription = null, modifier = Modifier.size(20.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Unlock with Biometrics", fontWeight = FontWeight.Bold)
+                                        }
                                     }
                                 }
                             }
                         }
-                    } else {
-                        MainNavigation(salaryRepo)
+
+                        // Main Application Interface
+                        else -> {
+                            MainNavigation(salaryRepo)
+                        }
                     }
                 }
             }

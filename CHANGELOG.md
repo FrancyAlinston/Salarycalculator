@@ -4,6 +4,23 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.0] - 2026-09-26 (VersionCode: 54)
+### Added / Changed
+- **Mandatory Google Authentication Gatekeeper Screen (`FEAT-934`) (`GoogleAuthGateScreen.kt`, `MainActivity.kt`, `SalaryRepository.kt`, `GoogleAuthPersistenceTest.kt`, `ic_google_logo.xml`)**:
+  - Implemented a mandatory full-screen **Google Sign-In Gatekeeper** (`GoogleAuthGateScreen.kt`) on initial launch, locking application access until a Google account is authenticated.
+  - Users cannot access confidential payroll ledgers, shift rosters, custom tax deductions, or salary histories without signing in with their Google account.
+  - Seamlessly links account identity (`google_account_email`, `google_account_name`) with automated Google Drive AppData private cloud sync and multi-device shift calendar synchronization.
+  - Added modern Google branding with official 4-color `ic_google_logo.xml` vector asset and real-time error banner handling.
+  - Auto-detects active authorized device Google accounts on initial launch for seamless zero-friction sign-in.
+
+### Bugs Found & Fixed
+- None.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [25.9] - 2026-09-26 (VersionCode: 53)
 ### Added / Changed
 - **Interactive Home Screen Widget Tap-to-Log Shift Cycling (`FEAT-930`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftCycleEngine.kt`, `widget_shift_heatmap.xml`, `ShiftCycleEngineTest.kt`)**:
