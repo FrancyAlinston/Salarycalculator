@@ -4,6 +4,24 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.8] - 2026-09-26 (VersionCode: 52)
+### Added / Changed
+- **Full-Size Android Shift Heatmap Widget Canvas Maximization (`FEAT-927`) (`ShiftHeatmapWidgetProvider.kt`, `widget_shift_heatmap.xml`, `SalaryRepository.kt`)**:
+  - Rewrote widget provider data loading to directly query Jetpack DataStore Preferences via `SalaryRepository.kt` flow collection, ensuring all duty dates, standard hours, overtime, annual leave (`A/L`), and statutory sick pay (`SSP`) render accurately.
+  - Maximized heatmap grid dimensions to fill 100% of the user-configured widget container on the Android home screen.
+  - Implemented dynamic real-time resizing via `onAppWidgetOptionsChanged()` and `appWidgetManager.getAppWidgetOptions(appWidgetId)` to compute pixel-perfect cell dimensions, corner radii, borders, and high-DPI typography.
+  - Streamlined widget layout by removing unnecessary navigation icon buttons to focus on the current month's shift heatmap and maximize readable cell area.
+  - Wired two-way automatic widget update dispatching to `SalaryRepository.setAnnualShiftSchedule` and `setWidgetTransparentMode`.
+
+### Bugs Found & Fixed
+- **Widget DataStore Reading**: Resolved issue where widget previously read empty `SharedPreferences` instead of Jetpack DataStore protobuf storage, causing blank calendar tiles.
+- **Widget Tap Handler**: Configured root, title, and canvas tap targets to launch `MainActivity` directly into the shift schedule interface.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [25.7] - 2026-09-25 (VersionCode: 51)
 ### Added / Changed
 - **Android Home Screen Interactive Shift Heatmap Widget (`FEAT-926`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftHeatmapWidgetManager.kt`, `widget_shift_heatmap.xml`, `AndroidManifest.xml`)**:

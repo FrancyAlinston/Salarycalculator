@@ -702,6 +702,7 @@ class SalaryRepository(private val context: Context) {
             val cleanToSave = if (parsed.isNotEmpty()) encodeShiftSchedule(parsed) else scheduleJson
             preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = cleanToSave
         }
+        com.example.salarycalculator.widget.ShiftHeatmapWidgetManager.updateAllWidgets(context)
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
@@ -1183,6 +1184,7 @@ class SalaryRepository(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences[WIDGET_TRANSPARENT_MODE_KEY] = transparent
         }
+        com.example.salarycalculator.widget.ShiftHeatmapWidgetManager.updateAllWidgets(context)
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE

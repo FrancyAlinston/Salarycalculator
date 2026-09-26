@@ -5,95 +5,40 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_glass_bg"
     android:orientation="vertical"
-    android:padding="10dp">
+    android:padding="6dp">
 
-    <!-- Header Navigation & Info Bar -->
+    <!-- Clean Header: Month Title & Summary (No extra icons) -->
     <LinearLayout
-        android:id="@+id/widget_header_bar"
+        android:id="@+id/widget_title_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingBottom="6dp">
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="4dp">
 
-        <LinearLayout
-            android:id="@+id/widget_title_container"
+        <TextView
+            android:id="@+id/widget_month_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:text="September 2026"
+            android:textColor="#FFFFFFFF"
+            android:textSize="13.5sp"
+            android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/widget_month_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="September 2026"
-                android:textColor="#FFFFFFFF"
-                android:textSize="14sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/widget_summary_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="16 Shifts • £2,461.44 Gross"
-                android:textColor="#B3FFFFFF"
-                android:textSize="10.5sp" />
-        </LinearLayout>
-
-        <!-- Navigation & Mode Buttons -->
-        <LinearLayout
+        <TextView
+            android:id="@+id/widget_summary_text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <ImageButton
-                android:id="@+id/widget_btn_prev"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:background="@drawable/widget_btn_bg"
-                android:contentDescription="Previous Month"
-                android:padding="5dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_widget_prev" />
-
-            <ImageButton
-                android:id="@+id/widget_btn_today"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginStart="4dp"
-                android:background="@drawable/widget_btn_bg"
-                android:contentDescription="Current Month"
-                android:padding="6dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_widget_today" />
-
-            <ImageButton
-                android:id="@+id/widget_btn_next"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginStart="4dp"
-                android:background="@drawable/widget_btn_bg"
-                android:contentDescription="Next Month"
-                android:padding="5dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_widget_next" />
-
-            <ImageButton
-                android:id="@+id/widget_btn_transparency"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginStart="4dp"
-                android:background="@drawable/widget_btn_bg"
-                android:contentDescription="Toggle Transparent Mode"
-                android:padding="6dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_widget_opacity" />
-        </LinearLayout>
+            android:text="16 Shifts • £2,461.44"
+            android:textColor="#34D399"
+            android:textSize="11sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Calendar Heatmap Dynamic Canvas -->
+    <!-- Full-Size Shift Heatmap Canvas -->
     <ImageView
         android:id="@+id/widget_heatmap_image"
         android:layout_width="match_parent"

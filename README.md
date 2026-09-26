@@ -4,10 +4,10 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
-- **Interactive Android Home Screen Shift Heatmap Widget (`FEAT-926`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftHeatmapWidgetManager.kt`, `widget_shift_heatmap.xml`):**
-  - **Live Home Screen Roster Widget:** Direct on-screen interactive 7-column shift heatmap displaying the user's scheduled shifts, holiday days, and sick days.
-  - **In-Widget Month Scrolling:** Step forward (`>`) and backward (`<`) through months or reset to "Today" directly from the Android home screen without opening the app.
-  - **Adaptive Transparent & Glassmorphic Theming:** Includes a 1-tap opacity toggle (`widget_btn_transparency`) on the widget header to switch between translucent glass (`#E6151A22`) and 100% fully transparent (`#00000000`) modes to blend with any device wallpaper.
+- **Interactive Android Home Screen Shift Heatmap Widget (`FEAT-926`, `FEAT-927`) (`ShiftHeatmapWidgetProvider.kt`, `ShiftHeatmapWidgetManager.kt`, `widget_shift_heatmap.xml`):**
+  - **Live Full-Size Home Screen Roster Widget:** Direct on-screen 7-column shift heatmap displaying current month scheduled shifts, overtime, holiday days, and sick days, utilizing 100% of the user-configured widget canvas size.
+  - **Dynamic High-DPI Heatmap Canvas:** Pixel-perfect rendering of Emerald (Standard Shifts), Amber (Overtime), Blue (Annual Leave A/L), Purple (Statutory Sick Pay SSP), and Off days with real-time Pay Day and Cutoff indicators, scaling dynamically upon resizing.
+  - **Adaptive Transparent & Glassmorphic Theming:** Supports translucent dark glass (`#E6151A22`) and 100% fully transparent (`#00000000`) modes to seamlessly blend with any device wallpaper.
   - **Real-Time Automatic Sync:** Instantly refreshes widget display whenever shifts are updated, imported via OCR, or edited in the main app.
 
 - **Commute & Traffic Pre-Alarm Buffer Engine (`FEAT-925`) & Vibration Presets (`FEAT-923`) (`DutyAlarmManager.kt`, `MonthCalendarSyncDialog.kt`):**

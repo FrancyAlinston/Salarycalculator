@@ -98,6 +98,7 @@ fun ShiftCalendarDialog(
                 try {
                     val jsonStr = SalaryRepository.encodeShiftSchedule(multiYearShifts)
                     salaryRepository.setAnnualShiftSchedule(jsonStr)
+                    com.example.salarycalculator.widget.ShiftHeatmapWidgetManager.updateAllWidgets(context)
                 } catch (_: Exception) {}
             }
         }
