@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Cloudflare Pages & PWA Edge Optimization (`FEAT-946`) (`web/_headers`, `web/_redirects`, `web/manifest.json`, `web/sw.js`, `wrangler.toml`, `scripts/deploy_cloudflare.sh`):**
+  - **Cloudflare Edge Performance & Security:** Optimized with `_headers` configuring HSTS, Content Security Policy for Google Identity Services, and immutable asset caching (`Cache-Control: public, max-age=31536000, immutable`).
+  - **Standalone PWA & Offline Service Worker:** Installable as an offline-first Progressive Web App across Windows, macOS, Linux, Android Chrome, and iOS Safari.
+  - **1-Click Cloudflare Deployment:** Direct Wrangler configuration (`wrangler.toml`) and deployment script (`scripts/deploy_cloudflare.sh`).
+
 - **Cross-Platform Modern Web Application (`FEAT-945`) (`web/index.html`, `web/js/app.js`, `web/js/taxEngine.js`, `web/js/store.js`, `web/js/heatmap.js`, `web/css/styles.css`):**
   - **Identical Modern UI & Google Sign-In:** Complete web companion matching the Material 3 & glassmorphic dark theme of the Android app, with Google Account login, profile header chip, and instant cloud restore prompt (`FEAT-937`).
   - **Dynamic Screen & Foldable Dual-Pane:** Responsive desktop dual-pane layout, mobile bottom tab bar, smooth view transitions, and theme customizers (Dark Glass, Light, Solar ☀️, Ocean, Emerald, Violet, Amber).

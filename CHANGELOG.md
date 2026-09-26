@@ -4,6 +4,28 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.4] - 2026-09-26 (VersionCode: 58)
+### Added / Changed
+- **Cloudflare Pages Edge Optimization & Progressive Web App (PWA) (`FEAT-946`) (`web/_headers`, `web/_redirects`, `web/_routes.json`, `web/manifest.json`, `web/sw.js`, `wrangler.toml`, `scripts/deploy_cloudflare.sh`)**:
+  - **Cloudflare Edge Security & Performance Headers (`_headers`)**:
+    - Configured HSTS, CSP, X-Content-Type-Options, X-Frame-Options, and `Cross-Origin-Opener-Policy: same-origin-allow-popups` for seamless Google Identity Services (GIS) compatibility.
+    - Set immutable long-term edge caching for static JS/CSS assets (`public, max-age=31536000, immutable`) and revalidation rules for `sw.js` and `index.html`.
+  - **Cloudflare SPA Routing & Fallbacks (`_redirects`, `_routes.json`)**:
+    - Added edge routing rules for zero-delay Single Page Application routing.
+  - **PWA Web App Manifest & Service Worker (`manifest.json`, `sw.js`)**:
+    - Enabled offline caching and installation as a standalone desktop/mobile app.
+    - Network-first caching for live forex/crypto exchange rates and stale-while-revalidate for application assets.
+  - **Direct Cloudflare Deployment Workflow (`wrangler.toml`, `deploy_cloudflare.sh`)**:
+    - Configured Wrangler deployment configuration and 1-click publishing script.
+
+### Bugs Found & Fixed
+- None.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.3] - 2026-09-26 (VersionCode: 57)
 ### Added / Changed
 - **Full Cross-Platform Modern Web Application (`FEAT-945`) (`web/index.html`, `web/js/app.js`, `web/js/taxEngine.js`, `web/js/store.js`, `web/js/heatmap.js`, `web/js/auth.js`, `web/css/styles.css`, `scripts/serve_web.py`)**:
