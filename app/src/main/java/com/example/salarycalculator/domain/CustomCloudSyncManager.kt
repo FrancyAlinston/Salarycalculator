@@ -115,8 +115,22 @@ object CustomCloudSyncManager {
             if (responseCode in 200..299) {
                 val reader = BufferedReader(InputStreamReader(connection.inputStream, "UTF-8"))
                 val responseString = reader.use { it.readText() }
-                val bundle = json.decodeFromString<BackupBundle>(responseString)
-                Result.success(bundle)
+                val parsed = LedgerBackupManager.parseBackupJson(responseString)
+                if (parsed.isSuccess) {
+                    parsed
+                } else {
+                    try {
+                        val root = json.parseToJsonElement(responseString)
+                        if (root is kotlinx.serialization.json.JsonObject && root.containsKey("backup")) {
+                            val backupNode = root["backup"]
+                            LedgerBackupManager.parseBackupJson(backupNode.toString())
+                        } else {
+                            Result.failure(Exception("Could not parse backup from server response"))
+                        }
+                    } catch (e: Exception) {
+                        Result.failure(e)
+                    }
+                }
             } else {
                 Result.failure(Exception("Download failed with HTTP $responseCode: ${connection.responseMessage}"))
             }

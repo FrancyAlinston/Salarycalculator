@@ -4,6 +4,29 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.7] - 2026-09-26 (VersionCode: 61)
+### Added / Changed
+- **Bidirectional Real-Time Auto-Sync Engine (`FEAT-952`) (`web/js/app.js`, `web/js/store.js`, `web/js/heatmap.js`, `app/src/main/java/com/example/salarycalculator/domain/AutoBackupObserver.kt`, `app/src/main/java/com/example/salarycalculator/domain/CustomCloudSyncManager.kt`, `MainActivity.kt`)**:
+  - **Full Web-Mobile Feature & Data Parity**:
+    - Web suite automatically imports and renders all data from the mobile APK backup on login: 7-column shift heatmap calendar across all 2026 months (February through September with Emerald duty shifts, Blue A/L annual leave, Amber OT, Purple SSP), monthly payroll history records in "History & P60", employer profiles, statutory rates, and correct hourly rate (£12.82/hr).
+    - Added seamless bidirectional synchronization: any shift toggle, input edit, or record save on the web immediately posts to `/api/backup` on the NAS SQLite server.
+    - Android APK's `AutoBackupObserver` and `MainActivity` now synchronize automatically with `/api/backup` on data mutations and app startup.
+  - **10-Second Background Polling on Web**:
+    - Web client continuously polls `/api/backup` every 10 seconds in the background; whenever shifts or salary records are updated from the phone, the web heatmap, calculator, and history cards update instantly without page reloads.
+  - **Anti-Inspection & Security Hardening**:
+    - Hardened unauthenticated DOM sanitization, right-click suppression, and shortcut blocking in `web/js/security.js`.
+  - **Project Root Reorganization**:
+    - Reorganized repository structure: shifted backup JSON files into `data/backups/` and OAuth secret files into `data/secrets/` with updated `.gitignore` rules.
+
+### Bugs Found & Fixed
+- Fixed web client not auto-loading complete shift heatmap calendar, monthly payroll history, and employer profiles upon authentication.
+- Fixed shift toggling and wage updates on web not automatically reflecting in mobile APK.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.6] - 2026-09-26 (VersionCode: 60)
 ### Added / Changed
 - **Mandatory Google Authentication Gatekeeper on Web Client (`FEAT-951`) (`web/index.html`, `web/js/auth.js`, `web/js/app.js`, `web/css/styles.css`)**:

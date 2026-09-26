@@ -66,6 +66,7 @@ export class HeatmapManager {
     }
 
     Store.setDayShift(this.selectedYear, this.selectedMonth, day, nextHours);
+    Store.syncToNasServer();
     this.render();
     if (this.onShiftChanged) this.onShiftChanged();
   }
@@ -113,10 +114,10 @@ export class HeatmapManager {
 
     for (let d = 1; d <= daysInMonth; d++) {
       const hrs = monthShifts[d] || 0.0;
-      if (hrs === -999.0) {
-        alDaysCount++;
-      } else if (hrs === -888.0) {
+      if (hrs === -888.0) {
         sspDaysCount++;
+      } else if (hrs < 0.0) {
+        alDaysCount++;
       } else if (hrs > 0.0) {
         stdShiftsCount++;
         totalDutyHours += hrs;
@@ -193,14 +194,14 @@ export class HeatmapManager {
       let cellBg = 'bg-slate-800/40 hover:bg-slate-800/80 border-slate-700/40 text-slate-300';
       let badgeHtml = '';
 
-      if (hours === -999.0) {
-        // Annual Leave (Blue A/L)
-        cellBg = 'bg-blue-950/80 hover:bg-blue-900/90 border-blue-500/50 text-blue-200 shadow-blue-900/20';
-        badgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-blue-500 text-white shadow">A/L</span>`;
-      } else if (hours === -888.0) {
+      if (hours === -888.0) {
         // Statutory Sick Pay (Purple SSP)
         cellBg = 'bg-purple-950/80 hover:bg-purple-900/90 border-purple-500/50 text-purple-200 shadow-purple-900/20';
         badgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-purple-500 text-white shadow">SSP</span>`;
+      } else if (hours < 0.0) {
+        // Annual Leave (Blue A/L)
+        cellBg = 'bg-blue-950/80 hover:bg-blue-900/90 border-blue-500/50 text-blue-200 shadow-blue-900/20';
+        badgeHtml = `<span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-blue-500 text-white shadow">A/L</span>`;
       } else if (hours > 0.0) {
         const std = Store.getHoursPerDay() || 12.0;
         if (hours > std) {

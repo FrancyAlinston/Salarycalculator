@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Bidirectional Real-Time Auto-Sync Engine (`FEAT-952`) (`web/js/app.js`, `web/js/store.js`, `web/js/heatmap.js`, `AutoBackupObserver.kt`, `CustomCloudSyncManager.kt`):**
+  - **100% Web & Mobile Feature Parity:** On login, the web suite automatically synchronizes and renders all data from the mobile APK backup: full 7-column shift heatmap calendar across all 2026 months (Feb through Sep with Emerald duty shifts, Blue A/L annual leave, Amber OT, Purple SSP), monthly payroll history records in "History & P60", custom employer profiles, and statutory rates (£12.82/hr).
+  - **Instant Bidirectional Synchronization:** Any shift cycle, input modification, or record save on the web immediately syncs to `/api/backup` on the NAS SQLite server. Android APK's `AutoBackupObserver` automatically syncs local mutations back to NAS.
+  - **10-Second Background Polling:** Web client polls `/api/backup` every 10 seconds to update changes made from the mobile phone in real-time without manual page reloads.
+
 - **Mandatory Google Authentication Gatekeeper on Web (`FEAT-951`) (`web/index.html`, `web/js/auth.js`, `web/js/app.js`):**
   - **Zero Data Exposure on First Load:** Gated the entire web application behind a full-screen mandatory Google authentication gatekeeper matching the mobile app's security architecture (`FEAT-934`). All salary calculations, confidential tax codes, duty shift rosters, and navigation bars remain completely hidden until verified.
   - **Instant Multi-Device Cloud & NAS Restore:** Automatically queries Google Drive AppData and local NAS SQLite storage (`/api/backup`) upon login to offer 1-tap instant restoration of shift rosters and payroll logs.

@@ -72,6 +72,22 @@ object AutoBackupObserver {
                                 }
                             }
                         }
+
+                        // NAS SQLite Backend & Cloudflare Web Sync
+                        val configuredEndpoint = repository.getCustomCloudEndpoint().first()
+                        val targetEndpoints = listOfNotNull(
+                            configuredEndpoint.ifBlank { null },
+                            "http://192.168.8.100:8085/api/backup",
+                            "https://salary-calculator.449100.xyz/api/backup"
+                        ).distinct()
+                        val token = repository.getCustomCloudToken().first()
+
+                        for (ep in targetEndpoints) {
+                            try {
+                                val pushRes = CustomCloudSyncManager.pushBackup(ep, token, bundle)
+                                if (pushRes.isSuccess) break
+                            } catch (_: Exception) {}
+                        }
                     } catch (_: Exception) {
                         // Resilient error handling - never crash UI thread
                     }

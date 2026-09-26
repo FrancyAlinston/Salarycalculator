@@ -22,5 +22,6 @@ Salarycalculator.code-workspace
 *.code-workspace
 client_secret*.json
 credentials*.json
-
-
+*.db
+data/secrets/
+data/*.db

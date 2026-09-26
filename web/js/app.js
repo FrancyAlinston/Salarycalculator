@@ -98,7 +98,7 @@ class App {
     const authChipAvatar = document.getElementById('auth-chip-avatar');
     const authBtn = document.getElementById('btn-open-auth-modal');
 
-    AuthManager.init((account) => {
+    AuthManager.init(async (account) => {
       if (account && account.isAuthenticated) {
         // Authenticated: Hide Gatekeeper and Reveal Protected App
         if (gateScreen) {
@@ -120,19 +120,13 @@ class App {
           authChipAvatar.src = account.picture;
         }
 
-        // Initialize and compute salary once authenticated
-        if (!this.heatmap) {
-          this.heatmap = new HeatmapManager('heatmap-container', () => {
-            this.syncRosterHoursToCalculator();
-            this.recalculate();
-          });
-        }
-        this.heatmap.render();
-        this.recalculate();
-        this.fetchLiveCurrencyRates();
+        // Auto-fetch latest NAS backup & synchronize state across Web and Android APK
+        await this.loadNasBackupAndRefresh();
+        this.startNasSyncPolling();
 
       } else {
         // Unauthenticated: Lock App and Enforce Mandatory Gatekeeper
+        if (this.pollingInterval) clearInterval(this.pollingInterval);
         SecurityGuard.sanitizeConfidentialDOM();
         if (appShell) {
           appShell.classList.add('hidden');
@@ -162,6 +156,69 @@ class App {
         AuthManager.logout();
       }
     });
+  }
+
+  async loadNasBackupAndRefresh() {
+    try {
+      const email = Store.getGoogleAccount().email;
+      const res = await fetch(`/api/backup?email=${encodeURIComponent(email || '')}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.backup) {
+          Store.importBackupBundle(data.backup);
+          this.lastSyncTimestamp = data.created_at || Date.now();
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch initial NAS backup:', e);
+    }
+
+    this.populateInitialValues();
+
+    if (!this.heatmap) {
+      this.heatmap = new HeatmapManager('heatmap-container', () => {
+        this.syncRosterHoursToCalculator();
+        this.recalculate();
+      });
+    }
+    this.heatmap.render();
+    this.syncRosterHoursToCalculator();
+    this.recalculate();
+    this.fetchLiveCurrencyRates();
+    if (this.currentTab === 'history') {
+      this.renderHistory();
+    }
+  }
+
+  startNasSyncPolling() {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+    this.pollingInterval = setInterval(async () => {
+      const currentAcc = Store.getGoogleAccount();
+      if (!currentAcc || !currentAcc.isAuthenticated) return;
+      try {
+        const email = currentAcc.email;
+        const res = await fetch(`/api/backup?email=${encodeURIComponent(email || '')}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && data.backup) {
+            const serverTs = data.created_at || 0;
+            if (serverTs > (this.lastSyncTimestamp || 0)) {
+              this.lastSyncTimestamp = serverTs;
+              Store.importBackupBundle(data.backup);
+              this.populateInitialValues();
+              this.heatmap?.render();
+              this.syncRosterHoursToCalculator();
+              this.recalculate();
+              if (this.currentTab === 'history') {
+                this.renderHistory();
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Quietly retry on next interval
+      }
+    }, 10000);
   }
 
   setupCalculatorListeners() {
@@ -252,6 +309,7 @@ class App {
         break;
     }
     this.recalculate();
+    Store.syncToNasServer();
   }
 
   syncRosterHoursToCalculator() {
@@ -375,27 +433,56 @@ class App {
 
   saveCurrentToHistory() {
     const now = new Date();
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
     const monthLabel = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
     const gross = parseFloat(document.getElementById('res-gross-pay')?.textContent.replace(/[^0-9.]/g, '')) || 0.0;
     const net = parseFloat(document.getElementById('res-net-pay')?.textContent.replace(/[^0-9.]/g, '')) || 0.0;
     const tax = parseFloat(document.getElementById('breakdown-paye-tax')?.textContent.replace(/[^0-9.]/g, '')) || 0.0;
     const ni = parseFloat(document.getElementById('breakdown-ni')?.textContent.replace(/[^0-9.]/g, '')) || 0.0;
+    const pension = parseFloat(document.getElementById('breakdown-pension')?.textContent.replace(/[^0-9.]/g, '')) || 0.0;
+    const stdHours = parseFloat(document.getElementById('input-standard-hours')?.value) || 0.0;
+    const otHours = parseFloat(document.getElementById('input-overtime-hours')?.value) || 0.0;
+    const hourlyRate = parseFloat(document.getElementById('input-hourly-rate')?.value) || Store.getHourlyRate();
+    const hpd = Store.getHoursPerDay() || 12.0;
+    const daysWorked = hpd > 0 ? (stdHours / hpd) : 0;
 
     const record = {
       id: 'rec_' + Date.now(),
+      monthYear: monthLabel,
       month: monthLabel,
-      timestamp: now.toISOString(),
+      timestamp: now.getTime(),
+      daysWorked: daysWorked,
+      hoursPerDay: hpd,
+      overtimeHours: otHours,
+      overtimeMultiplier: Store.getOvertimeMultiplier(),
+      hourlyRate: hourlyRate,
       grossPay: gross,
+      salarySacrifice: 0.0,
+      pensionRate: Store.getPensionRate(),
+      pensionContribution: pension,
+      employerPension: 0.0,
+      taxablePay: gross - pension,
+      incomeTax: tax,
+      nationalInsurance: ni,
+      studentLoanPlan: Store.getStudentLoanPlan(),
+      studentLoanDeduction: 0.0,
+      totalDeductions: tax + ni + pension,
       netPay: net,
-      taxDeduction: tax,
-      niDeduction: ni,
-      taxCode: Store.getTaxCode()
+      taxCode: Store.getTaxCode(),
+      taxRegion: Store.getTaxRegion(),
+      note: 'Saved from Web Suite'
     };
 
     Store.addSalaryRecord(record);
-    alert(`Saved ${monthLabel} payslip record to History!`);
+    Store.syncToNasServer();
+    alert(`Saved ${monthLabel} payslip record to History and synced with mobile app!`);
+    if (this.currentTab === 'history') {
+      this.renderHistory();
+    }
   }
 
   renderHistory() {
@@ -403,35 +490,51 @@ class App {
     if (!container) return;
 
     const records = Store.getSalaryHistory();
-    if (records.length === 0) {
+    if (!records || records.length === 0) {
       container.innerHTML = `
-        <div class="glass-card rounded-2xl p-8 text-center text-slate-400 border border-slate-700/60">
-          <p class="text-base font-semibold mb-1">No Saved Salary History Records</p>
-          <p class="text-xs text-slate-500">Click "Save Monthly Record" in the calculator to record this month's payslip.</p>
+        <div class="glass-card rounded-2xl p-8 text-center text-slate-400 border border-slate-700/60 shadow-xl">
+          <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-3 text-2xl">📑</div>
+          <p class="text-base font-semibold text-white mb-1">No Saved Salary History Records</p>
+          <p class="text-xs text-slate-400">Click "Save Monthly Record" in the calculator or log shifts in your Android app to record payslips.</p>
         </div>
       `;
       return;
     }
 
-    let html = `
-      <div class="grid gap-3">
-    `;
+    let html = `<div class="grid gap-3">`;
 
     records.forEach(r => {
+      const monthTitle = r.monthYear || r.month || 'Payslip Record';
+      const taxCode = r.taxCode || '1257L';
+      const gross = (r.grossPay || 0.0);
+      const net = (r.netPay || 0.0);
+      const tax = r.taxDeduction !== undefined ? r.taxDeduction : (r.incomeTax || 0.0);
+      const ni = r.niDeduction !== undefined ? r.niDeduction : (r.nationalInsurance || 0.0);
+
       html += `
-        <div class="glass-card rounded-2xl p-4 border border-slate-700/60 flex flex-wrap items-center justify-between gap-4">
+        <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-700/60 shadow-lg flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h4 class="text-lg font-bold text-white">${r.month}</h4>
-            <span class="text-xs text-slate-400 font-mono">Tax Code: ${r.taxCode || '1257L'}</span>
+            <h4 class="text-lg font-bold text-white flex items-center gap-2">
+              <span>🗓️</span> ${monthTitle}
+            </h4>
+            <div class="flex items-center gap-2 mt-1 text-xs text-slate-400 font-mono">
+              <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700">Code: ${taxCode}</span>
+              ${r.daysWorked ? `<span>${r.daysWorked.toFixed(1)} Days Worked</span>` : ''}
+              ${r.hourlyRate ? `<span>@ £${r.hourlyRate.toFixed(2)}/h</span>` : ''}
+            </div>
           </div>
-          <div class="flex items-center gap-4 text-right">
+          <div class="flex items-center gap-4 sm:gap-6 text-right">
             <div>
-              <span class="text-xs text-slate-400 block">Gross</span>
-              <span class="text-sm font-semibold text-slate-200">£${r.grossPay.toFixed(2)}</span>
+              <span class="text-xs text-slate-400 block">Gross Pay</span>
+              <span class="text-sm sm:text-base font-semibold text-slate-200">£${gross.toFixed(2)}</span>
+            </div>
+            <div>
+              <span class="text-xs text-rose-400/80 block">Tax + NI</span>
+              <span class="text-xs sm:text-sm font-medium text-rose-300">-£${(tax + ni).toFixed(2)}</span>
             </div>
             <div>
               <span class="text-xs text-emerald-400 font-semibold block">Net Take-Home</span>
-              <span class="text-base font-bold text-emerald-300">£${r.netPay.toFixed(2)}</span>
+              <span class="text-base sm:text-lg font-bold text-emerald-300">£${net.toFixed(2)}</span>
             </div>
           </div>
         </div>

@@ -215,53 +215,87 @@ export class Store {
     };
   }
 
+  static async syncToNasServer() {
+    try {
+      const bundle = this.exportBackupBundle();
+      const email = this.getGoogleAccount().email || 'francyalinston@gmail.com';
+      await fetch('/api/backup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, bundle })
+      });
+    } catch (e) {
+      console.warn('NAS auto-sync deferred:', e);
+    }
+  }
+
   static importBackupBundle(bundle) {
     if (!bundle) return false;
     try {
       if (bundle.taxCode) this.setTaxCode(bundle.taxCode);
-      if (bundle.defaultHourlyRate) this.setHourlyRate(bundle.defaultHourlyRate);
-      if (bundle.defaultHoursPerDay) this.setHoursPerDay(bundle.defaultHoursPerDay);
+      const rate = bundle.hourlyRate !== undefined ? bundle.hourlyRate : bundle.defaultHourlyRate;
+      if (rate !== undefined) this.setHourlyRate(rate);
+
+      const hpd = bundle.hoursPerDay !== undefined ? bundle.hoursPerDay : bundle.defaultHoursPerDay;
+      if (hpd !== undefined) this.setHoursPerDay(hpd);
+
       if (bundle.themeMode) this.setThemeMode(bundle.themeMode);
       if (bundle.themePalette) this.setThemePalette(bundle.themePalette);
       if (bundle.taxRegion) this.setTaxRegion(bundle.taxRegion);
       if (bundle.taxYear) this.setTaxYear(bundle.taxYear);
-      if (bundle.pensionRate) this.setPensionRate(bundle.pensionRate);
+      if (bundle.pensionRate !== undefined) this.setPensionRate(bundle.pensionRate);
       if (bundle.studentLoanPlan) this.setStudentLoanPlan(bundle.studentLoanPlan);
-      if (bundle.overtimeMultiplier) this.setOvertimeMultiplier(bundle.overtimeMultiplier);
-      if (bundle.weekendOvertimeMultiplier) this.setWeekendOvertimeMultiplier(bundle.weekendOvertimeMultiplier);
-      if (bundle.bankHolidayOvertimeMultiplier) this.setBankHolidayOvertimeMultiplier(bundle.bankHolidayOvertimeMultiplier);
-      if (bundle.weeklyOvertimeThreshold) this.setWeeklyOvertimeThreshold(bundle.weeklyOvertimeThreshold);
+      if (bundle.overtimeMultiplier !== undefined) this.setOvertimeMultiplier(bundle.overtimeMultiplier);
+      if (bundle.weekendOvertimeMultiplier !== undefined) this.setWeekendOvertimeMultiplier(bundle.weekendOvertimeMultiplier);
+      if (bundle.bankHolidayOvertimeMultiplier !== undefined) this.setBankHolidayOvertimeMultiplier(bundle.bankHolidayOvertimeMultiplier);
+      if (bundle.weeklyOvertimeThreshold !== undefined) this.setWeeklyOvertimeThreshold(bundle.weeklyOvertimeThreshold);
       if (typeof bundle.hasMarriageAllowance === 'boolean') this.setMarriageAllowance(bundle.hasMarriageAllowance);
       if (typeof bundle.hasBlindPersonsAllowance === 'boolean') this.setBlindAllowance(bundle.hasBlindPersonsAllowance);
-      if (bundle.annualLeaveHourlyRate) this.setAnnualLeaveHourlyRate(bundle.annualLeaveHourlyRate);
-      if (bundle.annualLeaveHoursPerDay) this.setAnnualLeaveHoursPerDay(bundle.annualLeaveHoursPerDay);
-      if (bundle.sspDailyRate) this.setSspDailyRate(bundle.sspDailyRate);
-      if (bundle.sspWaitingDays) this.setSspWaitingDays(bundle.sspWaitingDays);
+      if (bundle.annualLeaveHourlyRate !== undefined) this.setAnnualLeaveHourlyRate(bundle.annualLeaveHourlyRate);
+      if (bundle.annualLeaveHoursPerDay !== undefined) this.setAnnualLeaveHoursPerDay(bundle.annualLeaveHoursPerDay);
+      if (bundle.sspDailyRate !== undefined) this.setSspDailyRate(bundle.sspDailyRate);
+      if (bundle.sspWaitingDays !== undefined) this.setSspWaitingDays(bundle.sspWaitingDays);
 
+      // Annual Shift Schedule (JSON string or object)
       if (bundle.annualShiftScheduleJson) {
         try {
-          const parsed = JSON.parse(bundle.annualShiftScheduleJson);
+          const parsed = typeof bundle.annualShiftScheduleJson === 'string' 
+            ? JSON.parse(bundle.annualShiftScheduleJson) 
+            : bundle.annualShiftScheduleJson;
           this.setShiftSchedule(parsed);
         } catch {}
       }
-      if (bundle.employerProfilesJson) {
+
+      // Profiles (Array or JSON string)
+      if (Array.isArray(bundle.profiles)) {
+        this.setProfiles(bundle.profiles);
+      } else if (bundle.employerProfilesJson) {
         try {
           const parsed = JSON.parse(bundle.employerProfilesJson);
           this.setProfiles(parsed);
         } catch {}
       }
-      if (bundle.customDeductionsJson) {
+
+      // Custom Deductions (Array or JSON string)
+      if (Array.isArray(bundle.customDeductions)) {
+        this.setCustomDeductions(bundle.customDeductions);
+      } else if (bundle.customDeductionsJson) {
         try {
           const parsed = JSON.parse(bundle.customDeductionsJson);
           this.setCustomDeductions(parsed);
         } catch {}
       }
-      if (bundle.salaryHistoryJson) {
+
+      // Salary History Records (Array from APK `records` or JSON string from Web `salaryHistoryJson`)
+      if (Array.isArray(bundle.records)) {
+        this.setSalaryHistory(bundle.records);
+      } else if (bundle.salaryHistoryJson) {
         try {
           const parsed = JSON.parse(bundle.salaryHistoryJson);
           this.setSalaryHistory(parsed);
         } catch {}
       }
+
       return true;
     } catch (e) {
       console.error('Import failed', e);

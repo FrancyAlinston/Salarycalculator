@@ -61,6 +61,22 @@ def init_db():
             )
         """)
         conn.commit()
+
+        # Auto-seed initial backup from file if database is empty
+        cursor.execute("SELECT COUNT(*) FROM backups")
+        count = cursor.fetchone()[0]
+        if count == 0:
+            seed_path = os.path.join(DATA_DIR, "backups", "SalaryCalculator_2026_Rota_Backup.json")
+            if os.path.exists(seed_path):
+                with open(seed_path, "r", encoding="utf-8") as f:
+                    seed_json = f.read()
+                cursor.execute(
+                    "INSERT INTO backups (email, bundle_json, created_at) VALUES (?, ?, ?)",
+                    ("francyalinston@gmail.com", seed_json, time.time())
+                )
+                conn.commit()
+                print(f"📦 Auto-seeded initial rota and payroll backup into SQLite from {seed_path}")
+
         conn.close()
         print(f"✅ SQLite Database initialized at {DB_PATH}")
     except Exception as e:
