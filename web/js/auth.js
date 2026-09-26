@@ -35,24 +35,34 @@ export class AuthManager {
       }
     };
 
-    // Listen for Gate Form Submission
-    const gateForm = document.getElementById('form-gate-signin');
-    if (gateForm) {
-      gateForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const emailInput = document.getElementById('gate-email-input');
-        const nameInput = document.getElementById('gate-name-input');
-        const email = (emailInput?.value || '').trim() || 'user@gmail.com';
-        const name = (nameInput?.value || '').trim() || 'Authorized User';
+    // Listen for Global GIS Authentication Event
+    window.addEventListener('salary_calc_auth_login', (e) => {
+      if (e.detail) {
+        this.login(e.detail);
+      }
+    });
 
-        this.login({
-          email,
-          name,
-          picture: 'https://lh3.googleusercontent.com/a/default-user',
-          isAuthenticated: true
-        });
+    // Listen for Gate Form Submission & Button Click
+    const handleDirectLogin = (e) => {
+      if (e) e.preventDefault();
+      const emailInput = document.getElementById('gate-email-input');
+      const nameInput = document.getElementById('gate-name-input');
+      const email = (emailInput?.value || '').trim() || 'francyalinston@gmail.com';
+      const name = (nameInput?.value || '').trim() || 'Francy Alinston';
+
+      this.login({
+        email,
+        name,
+        picture: 'https://lh3.googleusercontent.com/a/default-user',
+        isAuthenticated: true
       });
-    }
+    };
+
+    const gateForm = document.getElementById('form-gate-signin');
+    gateForm?.addEventListener('submit', handleDirectLogin);
+
+    const gateBtn = document.getElementById('btn-gate-signin');
+    gateBtn?.addEventListener('click', handleDirectLogin);
 
     // Listen for Sign Out / Lock App Button
     const lockBtn = document.getElementById('btn-lock-app');

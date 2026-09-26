@@ -13,6 +13,38 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <!-- Immediate Global GIS Callback Handler -->
+  <script>
+    window.handleGoogleCredentialResponse = function(response) {
+      try {
+        const base64Url = response.credential.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        const payload = JSON.parse(jsonPayload);
+        const account = {
+          email: payload.email,
+          name: payload.name || payload.given_name || 'Google User',
+          picture: payload.picture || '',
+          isAuthenticated: true,
+          sub: payload.sub
+        };
+        localStorage.setItem('salary_calc_google_account', JSON.stringify(account));
+        
+        // Immediate DOM unlock
+        const gate = document.getElementById('auth-gate-screen');
+        const shell = document.getElementById('app-shell');
+        if (gate) { gate.classList.add('hidden'); gate.classList.remove('flex'); }
+        if (shell) { shell.classList.remove('hidden'); }
+        
+        window.dispatchEvent(new CustomEvent('salary_calc_auth_login', { detail: account }));
+      } catch (e) {
+        console.error('GIS Auth Callback Error', e);
+      }
+    };
+  </script>
+
   <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   
