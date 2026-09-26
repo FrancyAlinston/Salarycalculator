@@ -4,6 +4,24 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.0] - 2026-09-26 (VersionCode: 64)
+### Added / Changed
+- **Active Month Visual Badges on Calculator & Audit Suite (`FEAT-957`) (`web/index.html`, `web/js/app.js`)**:
+  - **Hero Take-Home Pay Month Pill Badge**:
+    - Added prominent, glassmorphic month badge (`#res-target-month-badge`) right next to "Estimated Take-Home Pay" displaying the exact month and year (e.g., `📅 August 2026`) currently calculated.
+    - Updated monthly rate subtext (`#res-net-pay-month-subtext`) to explicitly show the target month (e.g., `£2,287.11 / August`).
+  - **Synchronized Breakdown & Configurator Headings**:
+    - Payslip Audit breakdown card automatically displays the target month in its header (e.g., *"August 2026 Payslip Audit"*).
+    - Hours configurator card header dynamically reflects the active roster month badge (`#configurator-target-month-badge`).
+
+### Bugs Found & Fixed
+- Added clear visual indication of which roster month is actively evaluated on the web calculator suite.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.9] - 2026-09-26 (VersionCode: 63)
 ### Added / Changed
 - **Dynamic Month-Driven Roster & Payroll Recalculation Engine (`FEAT-956`) (`web/js/heatmap.js`, `web/js/app.js`)**:

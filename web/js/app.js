@@ -406,6 +406,19 @@ class App {
     // Format helpers
     const fmt = (n) => '£' + n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    // Active Month Label
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const hm = this.heatmap ? this.heatmap.getSelectedMonth() : { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+    const monthTitle = `${monthNames[hm.month - 1]} ${hm.year}`;
+
+    this.setText('res-target-month-text', monthTitle);
+    this.setText('res-net-pay-month-subtext', `/ ${monthNames[hm.month - 1]}`);
+    this.setText('breakdown-target-month-text', `${monthTitle} Payslip Audit`);
+    this.setText('configurator-target-month-badge', monthTitle);
+
     // Hero Card Values
     const netEl = document.getElementById('res-net-pay');
     if (netEl) netEl.textContent = fmt(res.netPay);

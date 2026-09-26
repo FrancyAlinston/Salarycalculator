@@ -4,6 +4,10 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Active Month Visual Badges on Calculator & Audit Suite (`FEAT-957`) (`web/index.html`, `web/js/app.js`):**
+  - **Hero Take-Home Pay Month Badge:** Displays prominent cyan glass badge (`#res-target-month-badge`, e.g., `📅 August 2026`) in the Hero Net Pay card and monthly frequency subtext (`/ August`) showing exactly which roster month is actively evaluated.
+  - **Dynamic Payslip & Configurator Month Headers:** Payslip Audit breakdown card and Hours Configurator headers reflect the active target month in real-time as users navigate the calendar.
+
 - **Dynamic Month-Driven Roster & Payroll Recalculation Engine (`FEAT-956`) (`web/js/heatmap.js`, `web/js/app.js`):**
   - **Dynamic Heatmap Month-Linked Estimation:** Navigating across months in the Shift Heatmap calendar (clicking ◀ Prev, Next ▶, Today, or month jumps) immediately recalculates the calculator's estimated net pay, gross monthly income, tax & NI deductions, and standard/overtime hours to match that selected month's shifts and duty hours.
   - **Context-Aware History Ledger Recording:** History ledgers saved from the calculator automatically record the month label and timestamp corresponding to the active heatmap month.
