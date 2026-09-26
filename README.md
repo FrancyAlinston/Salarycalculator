@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Dynamic Month-Driven Roster & Payroll Recalculation Engine (`FEAT-956`) (`web/js/heatmap.js`, `web/js/app.js`):**
+  - **Dynamic Heatmap Month-Linked Estimation:** Navigating across months in the Shift Heatmap calendar (clicking ◀ Prev, Next ▶, Today, or month jumps) immediately recalculates the calculator's estimated net pay, gross monthly income, tax & NI deductions, and standard/overtime hours to match that selected month's shifts and duty hours.
+  - **Context-Aware History Ledger Recording:** History ledgers saved from the calculator automatically record the month label and timestamp corresponding to the active heatmap month.
+  - **Live UI Input & Label Synchronization:** Updates the interactive hours inputs and readout badges in real-time as shift duty counts change.
+
 - **Zero-Latency Roster & Payroll Data Seeding (`FEAT-955`) (`web/js/store.js`, `web/js/heatmap.js`, `web/js/app.js`, `web/index.html`):**
   - **Embedded Baseline 2026 Shift Schedule & Payslip History:** Embedded the full 2026 duty roster (Feb–Sep) and August 2026 payslip directly in the client store, ensuring immediate, zero-latency visual rendering of all duty shifts, annual leave, and history ledgers.
   - **Dual-Container Heatmap Display:** Embedded the interactive Roster Heatmap directly inside the main Calculator screen below earnings configurators and in the dedicated Shift Heatmap tab.

@@ -31,8 +31,8 @@ class App {
     this.setupSettingsListeners();
     this.setupBackupRestore();
 
-    this.heatmap = new HeatmapManager('heatmap-container', () => {
-      this.syncRosterHoursToCalculator();
+    this.heatmap = new HeatmapManager('heatmap-container', (y, m) => {
+      this.syncRosterHoursToCalculator(y, m);
       this.recalculate();
     });
 
@@ -96,6 +96,7 @@ class App {
       this.heatmap?.render();
     } else if (tabId === 'calculator') {
       this.heatmap?.render();
+      this.syncRosterHoursToCalculator();
       this.recalculate();
     }
   }
@@ -187,8 +188,8 @@ class App {
     this.populateInitialValues();
 
     if (!this.heatmap) {
-      this.heatmap = new HeatmapManager('heatmap-container', () => {
-        this.syncRosterHoursToCalculator();
+      this.heatmap = new HeatmapManager('heatmap-container', (y, m) => {
+        this.syncRosterHoursToCalculator(y, m);
         this.recalculate();
       });
     }
@@ -264,8 +265,12 @@ class App {
   }
 
   populateInitialValues() {
-    this.setVal('input-hourly-rate', Store.getHourlyRate());
-    this.setVal('input-standard-hours', Store.getStandardHours());
+    const hourly = Store.getHourlyRate();
+    const stdHrs = Store.getStandardHours();
+    this.setVal('input-hourly-rate', hourly);
+    this.setText('label-hourly-rate', `£${parseFloat(hourly || 0).toFixed(2)}/hr`);
+    this.setVal('input-standard-hours', stdHrs);
+    this.setText('label-standard-hours', `${parseFloat(stdHrs || 0).toFixed(1)} hrs`);
     this.setVal('input-overtime-multiplier', Store.getOvertimeMultiplier());
     this.setVal('input-tax-code', Store.getTaxCode());
     this.setVal('select-tax-region', Store.getTaxRegion());
@@ -290,9 +295,14 @@ class App {
     switch (id) {
       case 'input-hourly-rate':
         Store.setHourlyRate(el.value);
+        this.setText('label-hourly-rate', `£${parseFloat(el.value || 0).toFixed(2)}/hr`);
         break;
       case 'input-standard-hours':
         Store.setStandardHours(el.value);
+        this.setText('label-standard-hours', `${parseFloat(el.value || 0).toFixed(1)} hrs`);
+        break;
+      case 'input-overtime-hours':
+        this.setText('label-overtime-hours', `${parseFloat(el.value || 0).toFixed(1)} hrs`);
         break;
       case 'input-overtime-multiplier':
         Store.setOvertimeMultiplier(el.value);
@@ -323,9 +333,22 @@ class App {
     Store.syncToNasServer();
   }
 
-  syncRosterHoursToCalculator() {
-    const now = new Date();
-    const monthShifts = Store.getMonthShifts(now.getFullYear(), now.getMonth() + 1);
+  syncRosterHoursToCalculator(targetYear, targetMonth) {
+    let year = targetYear;
+    let month = targetMonth;
+    if (year === undefined || month === undefined) {
+      if (this.heatmap) {
+        const hm = this.heatmap.getSelectedMonth();
+        year = hm.year;
+        month = hm.month;
+      } else {
+        const now = new Date();
+        year = now.getFullYear();
+        month = now.getMonth() + 1;
+      }
+    }
+
+    const monthShifts = Store.getMonthShifts(year, month);
     const stdRate = Store.getHoursPerDay() || 12.0;
 
     let totalStd = 0.0;
@@ -342,13 +365,11 @@ class App {
       }
     });
 
-    if (totalStd > 0.0) {
-      this.setVal('input-standard-hours', totalStd);
-      Store.setStandardHours(totalStd);
-    }
-    if (totalOt >= 0.0) {
-      this.setVal('input-overtime-hours', totalOt);
-    }
+    this.setVal('input-standard-hours', totalStd);
+    this.setText('label-standard-hours', `${totalStd.toFixed(1)} hrs`);
+    this.setVal('input-overtime-hours', totalOt);
+    this.setText('label-overtime-hours', `${totalOt.toFixed(1)} hrs`);
+    Store.setStandardHours(totalStd);
   }
 
   recalculate() {
@@ -443,12 +464,13 @@ class App {
   }
 
   saveCurrentToHistory() {
-    const now = new Date();
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
-    const monthLabel = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    const hm = this.heatmap ? this.heatmap.getSelectedMonth() : { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
+    const monthLabel = `${monthNames[hm.month - 1]} ${hm.year}`;
+    const recordDate = new Date(hm.year, hm.month - 1, 15);
 
     const gross = parseFloat(document.getElementById('res-gross-pay')?.textContent.replace(/[^0-9.]/g, '')) || 0.0;
     const net = parseFloat(document.getElementById('res-net-pay')?.textContent.replace(/[^0-9.]/g, '')) || 0.0;
@@ -465,7 +487,7 @@ class App {
       id: 'rec_' + Date.now(),
       monthYear: monthLabel,
       month: monthLabel,
-      timestamp: now.getTime(),
+      timestamp: recordDate.getTime(),
       daysWorked: daysWorked,
       hoursPerDay: hpd,
       overtimeHours: otHours,

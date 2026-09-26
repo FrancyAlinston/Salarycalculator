@@ -7,6 +7,7 @@ import { Store } from './store.js';
 
 export class HeatmapManager {
   constructor(containerId, onShiftChanged) {
+    this.containerId = containerId;
     this.container = document.getElementById(containerId);
     this.onShiftChanged = onShiftChanged;
     const now = new Date();
@@ -14,10 +15,15 @@ export class HeatmapManager {
     this.selectedMonth = now.getMonth() + 1;
   }
 
+  getSelectedMonth() {
+    return { year: this.selectedYear, month: this.selectedMonth };
+  }
+
   setMonth(year, month) {
     this.selectedYear = year;
     this.selectedMonth = month;
     this.render();
+    if (this.onShiftChanged) this.onShiftChanged(this.selectedYear, this.selectedMonth);
   }
 
   nextMonth() {
@@ -28,6 +34,7 @@ export class HeatmapManager {
       this.selectedMonth++;
     }
     this.render();
+    if (this.onShiftChanged) this.onShiftChanged(this.selectedYear, this.selectedMonth);
   }
 
   prevMonth() {
@@ -38,6 +45,7 @@ export class HeatmapManager {
       this.selectedMonth--;
     }
     this.render();
+    if (this.onShiftChanged) this.onShiftChanged(this.selectedYear, this.selectedMonth);
   }
 
   resetToToday() {
@@ -45,6 +53,7 @@ export class HeatmapManager {
     this.selectedYear = now.getFullYear();
     this.selectedMonth = now.getMonth() + 1;
     this.render();
+    if (this.onShiftChanged) this.onShiftChanged(this.selectedYear, this.selectedMonth);
   }
 
   cycleDayShift(day) {
@@ -68,7 +77,7 @@ export class HeatmapManager {
     Store.setDayShift(this.selectedYear, this.selectedMonth, day, nextHours);
     Store.syncToNasServer();
     this.render();
-    if (this.onShiftChanged) this.onShiftChanged();
+    if (this.onShiftChanged) this.onShiftChanged(this.selectedYear, this.selectedMonth);
   }
 
   // Calculate Pay Day (Last Friday of month) and Cutoff (Sunday prior)

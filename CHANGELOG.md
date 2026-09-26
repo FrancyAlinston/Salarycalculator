@@ -4,6 +4,25 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.9] - 2026-09-26 (VersionCode: 63)
+### Added / Changed
+- **Dynamic Month-Driven Roster & Payroll Recalculation Engine (`FEAT-956`) (`web/js/heatmap.js`, `web/js/app.js`)**:
+  - **Dynamic Heatmap Month-Linked Estimation**:
+    - When the user navigates between months in the Shift Heatmap calendar (clicking ◀ Prev, Next ▶, Today, or specific month jumps), the estimated take-home pay, gross monthly income, tax & NI deductions, and standard/overtime hours immediately recalculate to reflect that selected month's shifts and roster hours.
+    - Updated `HeatmapManager` (`prevMonth()`, `nextMonth()`, `resetToToday()`, `setMonth()`, `cycleDayShift()`) to invoke notification callbacks with the newly active `(selectedYear, selectedMonth)`.
+    - Enhanced `syncRosterHoursToCalculator(targetYear, targetMonth)` in `web/js/app.js` to compute standard basic hours and overtime hours for the exact month viewed in the heatmap, dynamically updating input fields, UI slider labels, and the monthly payslip audit breakdown.
+  - **Context-Aware History Ledger Recording**:
+    - `saveCurrentToHistory()` automatically resolves the month label (e.g., "August 2026", "September 2026") and timestamp from the currently active heatmap month when saving ledger records.
+
+### Bugs Found & Fixed
+- Fixed calculator standard and overtime hours being locked to the current system date month (`new Date()`) instead of reflecting the month actively selected in the shift calendar heatmap.
+- Fixed input slider labels (`label-standard-hours`, `label-overtime-hours`, `label-hourly-rate`) not updating dynamically when roster hours changed on month navigation.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.8] - 2026-09-26 (VersionCode: 62)
 ### Added / Changed
 - **Zero-Latency Roster & Payroll Data Seeding (`FEAT-955`) (`web/js/store.js`, `web/js/heatmap.js`, `web/js/app.js`, `web/index.html`)**:
