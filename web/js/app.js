@@ -30,6 +30,12 @@ class App {
     this.setupCalculatorListeners();
     this.setupSettingsListeners();
     this.setupBackupRestore();
+
+    this.heatmap = new HeatmapManager('heatmap-container', () => {
+      this.syncRosterHoursToCalculator();
+      this.recalculate();
+    });
+
     this.setupAuth();
   }
 
@@ -86,6 +92,11 @@ class App {
 
     if (tabId === 'history') {
       this.renderHistory();
+    } else if (tabId === 'heatmap') {
+      this.heatmap?.render();
+    } else if (tabId === 'calculator') {
+      this.heatmap?.render();
+      this.recalculate();
     }
   }
 

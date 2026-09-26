@@ -4,6 +4,28 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [26.8] - 2026-09-26 (VersionCode: 62)
+### Added / Changed
+- **Zero-Latency Roster & Payroll Data Seeding (`FEAT-955`) (`web/js/store.js`, `web/js/heatmap.js`, `web/js/app.js`, `web/index.html`)**:
+  - **Embedded Default 2026 Shift Roster & Payroll History**:
+    - Embedded baseline 2026 shift schedule (`DEFAULT_2026_SHIFTS` covering Feb–Sep 2026) and August 2026 payslip history record directly inside `web/js/store.js`.
+    - Guarantees immediate zero-latency rendering of all Emerald duty shifts, Blue A/L annual leave, Amber OT, and Purple SSP days even before network calls finish.
+  - **Dual-Container Shift Heatmap Rendering**:
+    - Embedded interactive Roster Heatmap directly inside the main Calculator view (`#calculator-heatmap-container`) below earnings configurators, in addition to the dedicated Shift Heatmap tab (`#heatmap-container`).
+    - `HeatmapManager` renders and synchronizes interactive shift cycling across all visible container panes simultaneously.
+  - **Silent Instant Auto-Sync & Tab Refresh**:
+    - Removed obstructive pop-up confirmation modals on login in `web/js/auth.js` in favor of seamless background auto-import from NAS `/api/backup`.
+    - Added automatic heatmap and history card re-rendering on all tab switch transitions.
+
+### Bugs Found & Fixed
+- Fixed shift heatmap markings and history records not displaying immediately on web load or after login.
+- Fixed heatmap not re-rendering when switching between Calculator and Shift Heatmap tabs.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [26.7] - 2026-09-26 (VersionCode: 61)
 ### Added / Changed
 - **Bidirectional Real-Time Auto-Sync Engine (`FEAT-952`) (`web/js/app.js`, `web/js/store.js`, `web/js/heatmap.js`, `app/src/main/java/com/example/salarycalculator/domain/AutoBackupObserver.kt`, `app/src/main/java/com/example/salarycalculator/domain/CustomCloudSyncManager.kt`, `MainActivity.kt`)**:

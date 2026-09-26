@@ -105,28 +105,13 @@ export class AuthManager {
   }
 
   static async checkCloudAndNasBackups(email) {
-    // 1. Check local cloud cache
-    const cloudBackupKey = `cloud_backup_${email}`;
-    const remoteBackupJson = localStorage.getItem(cloudBackupKey);
-    if (remoteBackupJson) {
-      try {
-        const bundle = JSON.parse(remoteBackupJson);
-        setTimeout(() => {
-          this.showInstantRestoreModal(bundle, 'Google Drive Cloud');
-        }, 400);
-        return;
-      } catch {}
-    }
-
-    // 2. Check NAS SQLite server backup endpoint
+    // Check NAS SQLite server backup endpoint and auto-import
     try {
       const res = await fetch('/api/backup');
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.backup) {
-          setTimeout(() => {
-            this.showInstantRestoreModal(data.backup, 'UGOS NAS Storage');
-          }, 400);
+          Store.importBackupBundle(data.backup);
         }
       }
     } catch {}

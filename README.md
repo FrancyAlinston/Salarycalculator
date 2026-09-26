@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Zero-Latency Roster & Payroll Data Seeding (`FEAT-955`) (`web/js/store.js`, `web/js/heatmap.js`, `web/js/app.js`, `web/index.html`):**
+  - **Embedded Baseline 2026 Shift Schedule & Payslip History:** Embedded the full 2026 duty roster (Feb–Sep) and August 2026 payslip directly in the client store, ensuring immediate, zero-latency visual rendering of all duty shifts, annual leave, and history ledgers.
+  - **Dual-Container Heatmap Display:** Embedded the interactive Roster Heatmap directly inside the main Calculator screen below earnings configurators and in the dedicated Shift Heatmap tab.
+  - **Silent Background Sync:** Removed obstructive pop-up confirmation modals in favor of seamless background auto-import from NAS `/api/backup`.
+
 - **Bidirectional Real-Time Auto-Sync Engine (`FEAT-952`) (`web/js/app.js`, `web/js/store.js`, `web/js/heatmap.js`, `AutoBackupObserver.kt`, `CustomCloudSyncManager.kt`):**
   - **100% Web & Mobile Feature Parity:** On login, the web suite automatically synchronizes and renders all data from the mobile APK backup: full 7-column shift heatmap calendar across all 2026 months (Feb through Sep with Emerald duty shifts, Blue A/L annual leave, Amber OT, Purple SSP), monthly payroll history records in "History & P60", custom employer profiles, and statutory rates (£12.82/hr).
   - **Instant Bidirectional Synchronization:** Any shift cycle, input modification, or record save on the web immediately syncs to `/api/backup` on the NAS SQLite server. Android APK's `AutoBackupObserver` automatically syncs local mutations back to NAS.

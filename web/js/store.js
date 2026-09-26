@@ -17,6 +17,58 @@ export const ThemePalette = {
   AMBER: 'AMBER'
 };
 
+export const DEFAULT_2026_SHIFTS = {
+  "2026-2": {"20": 12.0, "21": 12.0, "22": 12.0, "24": 12.0, "25": 12.0, "26": 12.0, "27": 12.0},
+  "2026-3": {"3": 12.0, "4": 12.0, "7": 12.0, "8": 12.0, "9": 12.0, "12": 12.0, "14": 12.0, "15": 12.0, "17": 12.0, "18": 12.0, "20": 12.0, "22": 12.0, "24": 12.0, "25": 12.0, "26": 12.0, "27": -12.0, "29": 12.0, "31": 12.0},
+  "2026-4": {"4": 12.0, "5": 12.0, "6": 12.0, "9": 12.0, "10": 12.0, "12": 12.0, "13": 12.0, "14": 12.0, "17": 12.0, "18": 12.0, "19": 12.0, "21": 12.0, "22": 12.0, "23": 12.0, "24": -12.0, "27": 12.0, "28": 12.0},
+  "2026-5": {"2": 12.0, "3": 12.0, "4": 12.0, "7": 12.0, "8": 12.0, "10": 12.0, "11": 12.0, "13": 12.0, "15": 12.0, "16": 12.0, "17": 12.0, "19": -12.0, "20": 12.0, "21": 12.0, "22": 12.0, "25": 12.0, "26": 12.0},
+  "2026-6": {"2": 12.0, "3": 12.0, "4": 12.0, "5": 12.0, "8": 12.0, "9": 12.0, "13": 12.0, "14": 12.0, "16": 12.0, "17": 12.0, "18": 12.0, "19": 12.0, "22": 12.0, "23": 12.0, "24": 12.0, "27": 12.0, "28": 12.0, "30": 12.0},
+  "2026-7": {"1": 12.0, "3": 12.0, "5": 12.0, "6": 12.0, "7": 12.0, "11": 12.0, "12": 12.0, "15": -12.0, "16": -12.0, "17": -12.0, "20": 12.0, "21": 12.0, "22": 12.0, "25": 12.0, "26": 12.0, "28": 12.0, "29": 12.0, "30": 12.0},
+  "2026-8": {"2": 12.0, "4": 12.0, "5": 12.0, "6": 12.0, "7": 12.0, "10": 12.0, "11": 12.0, "12": 12.0, "15": -12.0, "16": -12.0, "18": 12.0, "19": 12.0, "20": 12.0, "21": 12.0, "24": 12.0, "25": 12.0, "29": 12.0, "30": 12.0},
+  "2026-9": {"1": 12.0, "3": 12.0, "4": 12.0, "7": 12.0, "8": 12.0, "11": 12.0, "12": 12.0, "15": 12.0, "16": 12.0, "17": 12.0, "18": 12.0, "20": 12.0, "21": 12.0, "22": 12.0, "26": 12.0, "27": 12.0, "29": 12.0, "30": 12.0}
+};
+
+export const DEFAULT_2026_RECORDS = [
+  {
+    id: "rec_august_2026",
+    monthYear: "August 2026",
+    month: "August 2026",
+    timestamp: 1724580000000,
+    daysWorked: 16.0,
+    hoursPerDay: 12.0,
+    overtimeHours: 0.0,
+    overtimeMultiplier: 1.5,
+    hourlyRate: 12.82,
+    grossPay: 2461.44,
+    salarySacrifice: 0.0,
+    pensionRate: 0.0,
+    pensionContribution: 0.0,
+    employerPension: 0.0,
+    taxablePay: 1413.02,
+    incomeTax: 282.60,
+    nationalInsurance: 113.07,
+    studentLoanPlan: "NONE",
+    studentLoanDeduction: 0.0,
+    totalDeductions: 395.67,
+    netPay: 2065.77,
+    taxCode: "1257L",
+    taxRegion: "UK_STANDARD",
+    note: "2026 Rota Shift Calibration"
+  }
+];
+
+export const DEFAULT_2026_PROFILES = [
+  {
+    id: "profile_care_worker",
+    name: "Care Worker (Nights)",
+    hourlyRate: 12.82,
+    hoursPerDay: 12.0,
+    taxCode: "1257L",
+    pensionRate: 0.0,
+    isPrimary: true
+  }
+];
+
 export class Store {
   static PREFIX = 'salary_calc_';
 
@@ -39,8 +91,8 @@ export class Store {
   }
 
   // --- Core State Accessors ---
-  static getHourlyRate() { return this.get('default_hourly_rate', 12.71); }
-  static setHourlyRate(val) { this.set('default_hourly_rate', parseFloat(val) || 12.71); }
+  static getHourlyRate() { return this.get('default_hourly_rate', 12.82); }
+  static setHourlyRate(val) { this.set('default_hourly_rate', parseFloat(val) || 12.82); }
 
   static getStandardHours() { return this.get('standard_hours', 160.0); }
   static setStandardHours(val) { this.set('standard_hours', parseFloat(val) || 160.0); }
@@ -57,10 +109,10 @@ export class Store {
   static getTaxYear() { return this.get('tax_year', 'YEAR_2024_2025'); }
   static setTaxYear(val) { this.set('tax_year', val); }
 
-  static getPensionRate() { return this.get('pension_rate', 5.0); }
-  static setPensionRate(val) { this.set('pension_rate', parseFloat(val) || 5.0); }
+  static getPensionRate() { return this.get('pension_rate', 0.0); }
+  static setPensionRate(val) { this.set('pension_rate', parseFloat(val) || 0.0); }
 
-  static isSalarySacrifice() { return this.get('is_salary_sacrifice', true); }
+  static isSalarySacrifice() { return this.get('is_salary_sacrifice', false); }
   static setSalarySacrifice(val) { this.set('is_salary_sacrifice', Boolean(val)); }
 
   static getStudentLoanPlan() { return this.get('student_loan_plan', 'NONE'); }
@@ -69,11 +121,11 @@ export class Store {
   static getOvertimeMultiplier() { return this.get('overtime_multiplier', 1.5); }
   static setOvertimeMultiplier(val) { this.set('overtime_multiplier', parseFloat(val) || 1.5); }
 
-  static getWeekendOvertimeMultiplier() { return this.get('weekend_overtime_multiplier', 2.0); }
-  static setWeekendOvertimeMultiplier(val) { this.set('weekend_overtime_multiplier', parseFloat(val) || 2.0); }
+  static getWeekendOvertimeMultiplier() { return this.get('weekend_overtime_multiplier', 1.5); }
+  static setWeekendOvertimeMultiplier(val) { this.set('weekend_overtime_multiplier', parseFloat(val) || 1.5); }
 
-  static getBankHolidayOvertimeMultiplier() { return this.get('bank_holiday_overtime_multiplier', 2.5); }
-  static setBankHolidayOvertimeMultiplier(val) { this.set('bank_holiday_overtime_multiplier', parseFloat(val) || 2.5); }
+  static getBankHolidayOvertimeMultiplier() { return this.get('bank_holiday_overtime_multiplier', 2.0); }
+  static setBankHolidayOvertimeMultiplier(val) { this.set('bank_holiday_overtime_multiplier', parseFloat(val) || 2.0); }
 
   static getWeeklyOvertimeThreshold() { return this.get('weekly_overtime_threshold', 37.5); }
   static setWeeklyOvertimeThreshold(val) { this.set('weekly_overtime_threshold', parseFloat(val) || 37.5); }
@@ -109,27 +161,41 @@ export class Store {
   static setSecondaryCurrency(val) { this.set('secondary_currency', val); }
 
   static getGoogleAccount() {
-    return this.get('google_account', { email: '', name: '', picture: '', isAuthenticated: false });
+    return this.get('google_account', { email: 'francyalinston@gmail.com', name: 'Francy Alinston', picture: '', isAuthenticated: false });
   }
   static setGoogleAccount(acc) {
     this.set('google_account', acc);
   }
 
   // --- Shift Roster Schedule ---
-  // Format: { "2026-9": { 1: 12.0, 2: 14.0, 3: -999.0, 4: -888.0 } }
-  // -999.0 = Annual Leave (A/L)
-  // -888.0 = Statutory Sick Pay (SSP)
   static getShiftSchedule() {
-    return this.get('annual_shift_schedule', {});
+    const sched = this.get('annual_shift_schedule', null);
+    if (!sched || Object.keys(sched).length === 0) {
+      return DEFAULT_2026_SHIFTS;
+    }
+    return sched;
   }
   static setShiftSchedule(schedule) {
     this.set('annual_shift_schedule', schedule);
   }
 
   static getMonthShifts(year, month) {
-    const key = `${year}-${month}`;
     const schedule = this.getShiftSchedule();
-    return schedule[key] || {};
+    const key1 = `${year}-${month}`;
+    const key2 = `${year}-${String(month).padStart(2, '0')}`;
+    const key3 = `${month}`;
+    const monthData = schedule[key1] || schedule[key2] || schedule[key3] || {};
+    
+    const result = {};
+    if (monthData && typeof monthData === 'object') {
+      Object.entries(monthData).forEach(([d, hrs]) => {
+        const dayNum = parseInt(d);
+        if (!isNaN(dayNum)) {
+          result[dayNum] = parseFloat(hrs);
+        }
+      });
+    }
+    return result;
   }
 
   static setDayShift(year, month, day, hours) {
@@ -151,7 +217,11 @@ export class Store {
 
   // --- Salary History Records ---
   static getSalaryHistory() {
-    return this.get('salary_history', []);
+    const hist = this.get('salary_history', null);
+    if (!hist || !Array.isArray(hist) || hist.length === 0) {
+      return DEFAULT_2026_RECORDS;
+    }
+    return hist;
   }
   static setSalaryHistory(history) {
     this.set('salary_history', history);
@@ -164,9 +234,11 @@ export class Store {
 
   // --- Employer Profiles ---
   static getProfiles() {
-    return this.get('employer_profiles', [
-      { id: 'primary_default', companyName: 'Primary Healthcare NHS / Agency', hourlyRate: 12.71, standardHoursPerDay: 12.0, taxCode: '1257L' }
-    ]);
+    const profs = this.get('employer_profiles', null);
+    if (!profs || !Array.isArray(profs) || profs.length === 0) {
+      return DEFAULT_2026_PROFILES;
+    }
+    return profs;
   }
   static setProfiles(profiles) {
     this.set('employer_profiles', profiles);
@@ -257,22 +329,23 @@ export class Store {
       if (bundle.sspWaitingDays !== undefined) this.setSspWaitingDays(bundle.sspWaitingDays);
 
       // Annual Shift Schedule (JSON string or object)
-      if (bundle.annualShiftScheduleJson) {
+      const sched = bundle.annualShiftScheduleJson || bundle.annualShiftSchedule;
+      if (sched) {
         try {
-          const parsed = typeof bundle.annualShiftScheduleJson === 'string' 
-            ? JSON.parse(bundle.annualShiftScheduleJson) 
-            : bundle.annualShiftScheduleJson;
-          this.setShiftSchedule(parsed);
+          const parsed = typeof sched === 'string' ? JSON.parse(sched) : sched;
+          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+            this.setShiftSchedule(parsed);
+          }
         } catch {}
       }
 
       // Profiles (Array or JSON string)
-      if (Array.isArray(bundle.profiles)) {
+      if (Array.isArray(bundle.profiles) && bundle.profiles.length > 0) {
         this.setProfiles(bundle.profiles);
       } else if (bundle.employerProfilesJson) {
         try {
           const parsed = JSON.parse(bundle.employerProfilesJson);
-          this.setProfiles(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) this.setProfiles(parsed);
         } catch {}
       }
 
@@ -287,12 +360,14 @@ export class Store {
       }
 
       // Salary History Records (Array from APK `records` or JSON string from Web `salaryHistoryJson`)
-      if (Array.isArray(bundle.records)) {
+      if (Array.isArray(bundle.records) && bundle.records.length > 0) {
         this.setSalaryHistory(bundle.records);
+      } else if (Array.isArray(bundle.salary_history) && bundle.salary_history.length > 0) {
+        this.setSalaryHistory(bundle.salary_history);
       } else if (bundle.salaryHistoryJson) {
         try {
           const parsed = JSON.parse(bundle.salaryHistoryJson);
-          this.setSalaryHistory(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) this.setSalaryHistory(parsed);
         } catch {}
       }
 

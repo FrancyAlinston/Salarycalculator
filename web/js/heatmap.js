@@ -256,17 +256,22 @@ export class HeatmapManager {
       </div>
     `;
 
-    this.container.innerHTML = html;
+    // Render into all active containers (both full tab and calculator embed)
+    const targetContainers = document.querySelectorAll(`#${this.containerId}, #heatmap-container, #calculator-heatmap-container`);
+    if (targetContainers.length === 0) return;
 
-    // Attach Event Listeners
-    document.getElementById('btn-prev-month')?.addEventListener('click', () => this.prevMonth());
-    document.getElementById('btn-next-month')?.addEventListener('click', () => this.nextMonth());
-    document.getElementById('btn-reset-month')?.addEventListener('click', () => this.resetToToday());
+    targetContainers.forEach(container => {
+      container.innerHTML = html;
 
-    this.container.querySelectorAll('.heatmap-cell').forEach(cell => {
-      cell.addEventListener('click', (e) => {
-        const day = parseInt(cell.getAttribute('data-day'));
-        if (day) this.cycleDayShift(day);
+      container.querySelector('#btn-prev-month')?.addEventListener('click', () => this.prevMonth());
+      container.querySelector('#btn-next-month')?.addEventListener('click', () => this.nextMonth());
+      container.querySelector('#btn-reset-month')?.addEventListener('click', () => this.resetToToday());
+
+      container.querySelectorAll('.heatmap-cell').forEach(cell => {
+        cell.addEventListener('click', () => {
+          const day = parseInt(cell.getAttribute('data-day'));
+          if (day) this.cycleDayShift(day);
+        });
       });
     });
   }
