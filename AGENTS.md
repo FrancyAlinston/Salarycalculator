@@ -87,6 +87,10 @@ These rules define the mandatory behavioral constraints, development workflows, 
   - On every build or version release, automatically copy newly generated binaries to `APKs/` named with their semantic version:
     - Production / Release APK: `APKs/Salarycalculator-v<versionName>.apk`
     - Development / Debug APK: `APKs/Salarycalculator-v<versionName>-debug.apk`
+- **NAS & Edge Web Hosting Architecture (`@rules:nas_and_cloudflare_hosting_target`)**:
+  - The local execution environment is the user's **NAS** (Network Attached Storage) where the application workspace and local server reside.
+  - The web application ([`web/`](web/)) is hosted and served directly from this NAS system and distributed globally via **Cloudflare Pages / Cloudflare CDN**.
+  - All web assets, routing rules ([`web/_headers`](web/_headers), [`web/_redirects`](web/_redirects), [`web/_routes.json`](web/_routes.json)), and server utilities ([`scripts/serve_web.py`](scripts/serve_web.py), [`scripts/deploy_cloudflare.sh`](scripts/deploy_cloudflare.sh)) must maintain lightweight NAS execution efficiency, Docker compatibility, and zero-latency Cloudflare edge caching.
 - **Mandatory Dual-Platform Release on GitHub & Forgejo (`@rules:dual_platform_release`)**:
   - On **EVERY** version release, publish, tag, and synchronize the release to **BOTH** GitHub and Forgejo:
     - **Git Synchronization**: `git push origin alpha Beta stable --tags && git push github alpha Beta stable --tags`
