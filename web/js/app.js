@@ -27,14 +27,19 @@ class App {
     SecurityGuard.init();
     this.applyThemeAndPalette();
     this.setupNavigation();
-    this.setupCalculatorListeners();
-    this.setupSettingsListeners();
-    this.setupBackupRestore();
 
     this.heatmap = new HeatmapManager('heatmap-container', (y, m) => {
       this.syncRosterHoursToCalculator(y, m);
       this.recalculate();
     });
+
+    this.setupCalculatorListeners();
+    this.setupSettingsListeners();
+    this.setupBackupRestore();
+
+    this.heatmap.render();
+    this.syncRosterHoursToCalculator();
+    this.recalculate();
 
     this.setupAuth();
   }
@@ -259,6 +264,11 @@ class App {
     document.getElementById('btn-save-record')?.addEventListener('click', () => {
       this.saveCurrentToHistory();
     });
+
+    // Hero Month Navigation Controls
+    document.getElementById('hero-btn-prev-month')?.addEventListener('click', () => this.heatmap?.prevMonth());
+    document.getElementById('hero-btn-next-month')?.addEventListener('click', () => this.heatmap?.nextMonth());
+    document.getElementById('hero-btn-reset-month')?.addEventListener('click', () => this.heatmap?.resetToToday());
 
     // Populate Initial UI Values from Store
     this.populateInitialValues();

@@ -4,6 +4,26 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.2] - 2026-09-27 (VersionCode: 66)
+### Added / Changed
+- **Bidirectional Dynamic Month Synchronization & Hero Month Switcher (`FEAT-959`) (`web/index.html`, `web/js/app.js`, `web/js/heatmap.js`)**:
+  - **100% Guaranteed Month Synchronization**:
+    - Embedded interactive month navigation controls directly within the Hero Net Pay card (`hero-btn-prev-month`, `hero-btn-next-month`, `hero-btn-reset-month`) next to the month badge.
+    - Changing the month from the Hero Card immediately navigates the Shift Heatmap calendar, and changing the month from the Shift Heatmap immediately updates the Hero Card, payslip audit, configurator, and net pay calculations.
+    - Application strictly defaults to the **current calendar month** (e.g. September 2026) upon startup and when clicking "Today".
+  - **Multi-Container Selector & Initialization Fixes**:
+    - Converted duplicate ID navigation selectors in `HeatmapManager` into class-based scoped selectors (`.btn-prev-month`, `.btn-next-month`, `.btn-reset-month`) to ensure robust event listener handling across both the main calculator companion heatmap and the standalone heatmap tab.
+    - Initialized `HeatmapManager` prior to calculator listeners in `app.js` and immediately executed initial month sync on application launch.
+
+### Bugs Found & Fixed
+- Fixed month desynchronization where Hero Take-Home Pay badge showed "August 2026" while the active heatmap was displaying "September 2026".
+- Fixed initial page load state not calculating current calendar month roster shifts immediately upon startup.
+
+### What Needs to Be Fixed / Pending
+- None.
+
+---
+
 ## [27.1] - 2026-09-26 (VersionCode: 65)
 ### Added / Changed
 - **Comprehensive Shift, Overtime, Annual Leave & Sick Pay Settings Suite (`FEAT-958`) (`web/index.html`, `web/js/app.js`, `web/js/store.js`)**:

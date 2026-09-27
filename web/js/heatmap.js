@@ -147,13 +147,13 @@ export class HeatmapManager {
             ${isCurrentCalendarMonth ? `<span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Current Month</span>` : ''}
           </div>
           <div class="flex items-center gap-2">
-            <button id="btn-prev-month" class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700/60 active:scale-95">
+            <button class="btn-prev-month p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700/60 active:scale-95">
               ◀ Prev
             </button>
-            <button id="btn-reset-month" class="px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs font-semibold border border-slate-700/60 active:scale-95">
+            <button class="btn-reset-month px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs font-semibold border border-slate-700/60 active:scale-95">
               Today
             </button>
-            <button id="btn-next-month" class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700/60 active:scale-95">
+            <button class="btn-next-month p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all border border-slate-700/60 active:scale-95">
               Next ▶
             </button>
           </div>
@@ -272,9 +272,9 @@ export class HeatmapManager {
     targetContainers.forEach(container => {
       container.innerHTML = html;
 
-      container.querySelector('#btn-prev-month')?.addEventListener('click', () => this.prevMonth());
-      container.querySelector('#btn-next-month')?.addEventListener('click', () => this.nextMonth());
-      container.querySelector('#btn-reset-month')?.addEventListener('click', () => this.resetToToday());
+      container.querySelector('.btn-prev-month')?.addEventListener('click', () => this.prevMonth());
+      container.querySelector('.btn-next-month')?.addEventListener('click', () => this.nextMonth());
+      container.querySelector('.btn-reset-month')?.addEventListener('click', () => this.resetToToday());
 
       container.querySelectorAll('.heatmap-cell').forEach(cell => {
         cell.addEventListener('click', () => {

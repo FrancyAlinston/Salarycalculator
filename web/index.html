@@ -247,9 +247,15 @@
                   <span class="text-xs sm:text-sm font-bold tracking-wider text-emerald-400 uppercase bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-500/30">
                     Estimated Take-Home Pay
                   </span>
-                  <span id="res-target-month-badge" class="text-xs font-bold text-cyan-300 bg-cyan-950/70 px-3 py-1 rounded-full border border-cyan-500/40 flex items-center gap-1.5 shadow-sm">
-                    <span>📅</span> <span id="res-target-month-text">August 2026</span>
-                  </span>
+                  <!-- Interactive Hero Month Switcher -->
+                  <div class="inline-flex items-center gap-1 bg-cyan-950/70 p-0.5 rounded-full border border-cyan-500/40 shadow-sm">
+                    <button id="hero-btn-prev-month" title="Previous Month" class="px-2 py-0.5 rounded-full text-cyan-300 hover:text-white hover:bg-cyan-800/60 transition-all text-xs font-bold active:scale-95">◀</button>
+                    <span id="res-target-month-badge" class="text-xs font-bold text-cyan-200 px-1.5 py-0.5 flex items-center gap-1 select-none">
+                      <span>📅</span> <span id="res-target-month-text">Current Month</span>
+                    </span>
+                    <button id="hero-btn-next-month" title="Next Month" class="px-2 py-0.5 rounded-full text-cyan-300 hover:text-white hover:bg-cyan-800/60 transition-all text-xs font-bold active:scale-95">▶</button>
+                    <button id="hero-btn-reset-month" title="Reset to Current Month" class="px-2 py-0.5 rounded-full text-[10px] font-semibold text-cyan-400 hover:text-white bg-cyan-900/60 hover:bg-cyan-800 border border-cyan-500/30 transition-all active:scale-95">Today</button>
+                  </div>
                 </div>
                 <span id="res-takehome-pct" class="text-xs font-semibold text-slate-300 bg-slate-800/80 px-2.5 py-1 rounded-full border border-slate-700/50">
                   75.4% Take-Home
@@ -341,7 +347,7 @@
                 <span>⚡</span> Live Hours Configurator
               </h2>
               <span id="configurator-target-month-badge" class="text-xs font-bold text-cyan-300 bg-cyan-950/60 px-2.5 py-1 rounded-xl border border-cyan-500/30">
-                August 2026
+                Current Month
               </span>
             </div>
 

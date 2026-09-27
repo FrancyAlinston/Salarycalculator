@@ -4,6 +4,9 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Bidirectional Dynamic Month Synchronization & Hero Month Switcher (`FEAT-959`) (`web/index.html`, `web/js/app.js`, `web/js/heatmap.js`):**
+  - **100% Guaranteed Month Synchronization:** Interactive month switcher in the Hero Net Pay card (`◀ [📅 Month Year] ▶ [Today]`) and the Shift Heatmap calendar are bidirectionally locked. Changing months anywhere immediately updates the entire suite. Defaults strictly to current calendar month on launch.
+
 - **Full Shift, Overtime, Annual Leave & Sick Pay Settings Suite (`FEAT-958`) (`web/index.html`, `web/js/app.js`, `web/js/store.js`):**
   - **100% Android APK Settings Parity:** Configurable standard shift duration (12.0h, 7.5h, 8.0h, 10.0h), weekday/weekend/bank-holiday overtime multipliers (1.0x–3.0x), weekly overtime thresholds (37.5h, 40.0h, 48.0h), Annual Leave (A/L) daily hours & custom rates, and Statutory Sick Pay (SSP) daily rates & waiting days.
   - **Instant Bidirectional Cloud Persistence:** Real-time synchronization to local storage and NAS SQLite `/api/backup`.
