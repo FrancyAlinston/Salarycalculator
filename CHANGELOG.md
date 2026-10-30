@@ -4,6 +4,26 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.5] - 2026-10-30 (VersionCode: 69)
+### Added / Changed
+- **Samsung Galaxy Watch 8 Classic Edition Optimizations (FEAT-925) (WearHeatmapScreen.kt, WearSalaryDetailScreen.kt, WearSalaryRepository.kt)**:
+  - **Physical Rotating Bezel Support (onRotaryScrollEvent)**: Engineered native rotary bezel handling with tactile HapticFeedbackType detents for the Samsung Galaxy Watch 8 Classic physical rotating bezel, supporting both Smooth Screen Scroll mode and Bezel Month Dial mode (rotating the bezel cycles through months live).
+  - **Circular Super AMOLED (480x480) Bezel-Safe Geometry**: Unified the 7-column Shift Heatmap grid inside a single circular-safe container (172dp width) with Vignette and TimeText curvature so Monday (M) and Sunday (S) columns are never clipped by the raised physical bezel or scaled unevenly by ScalingLazyColumn.
+  - **1-Tap 12-Month Quick Grid Picker (WearMonthPickerDialog)**: Tapping the month/year header on either screen opens a 3x4 circular-safe month selector (JAN-DEC) to jump directly to any month's heatmap or salary breakdown in 1 tap.
+  - **Exact Payroll Cutoff & Rollover Engine on Watch**: Ported the full Last Friday Pay Day and Preceding Sunday Cutoff rollover calculation (previous month post-cutoff rollover + current month in-cycle shifts) plus a 1-tap toggle between Payslip Cutoff Mode and Full Calendar Month Mode.
+  - **Pre-Seeded 2026 Rota & Direct UGOS NAS Wi-Fi Sync**: Pre-seeded the user's 2026 shift schedule (Jan-Oct 2026), £12.82/hr default rate, Annual Leave (A/L), and Sick Leave (SSP) states, and added direct Wi-Fi synchronization with the UGREEN NAS (http://192.168.8.100:8085/api/backup).
+  - **Hardware Back Button & Swipe-to-Dismiss Handling**: Added BackHandler in Wear MainActivity so pressing the Watch 8 Classic physical Back button on the Salary Breakdown view returns to the Heatmap view.
+
+### Bugs Found & Fixed
+- **Wearable Data Layer Package ID Alignment (FIX-925)**: Unified applicationId to com.example.salarycalculator across :app and :wear so Google Play Services Wearable DataClient delivers shift updates between phone and watch.
+- **Circular Edge Clipping on Multi-Row Heatmap**: Fixed week-by-week ScalingLazyColumn distortion by encapsulating the 7-column calendar inside a single cohesive card.
+- **Windows ADB Port Scanner Fallback**: Added Python socket scanner fallback to scripts/install_to_devices.sh when nmap is unavailable.
+
+### What Needs to Be Fixed / Pending
+- Wear OS Glance Tile and Watch Face Complications for next shift countdown.
+
+---
+
 ## [27.4] - 2026-10-30 (VersionCode: 68)
 ### Added / Changed
 - **Wear OS Standalone & Companion Module (:wear) (FEAT-920)**:

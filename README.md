@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Samsung Galaxy Watch 8 Classic Edition (:wear) (FEAT-925) (WearHeatmapScreen.kt, WearSalaryDetailScreen.kt, WearSalaryRepository.kt):**
+  - **Physical Rotating Bezel & Circular 480x480 Super AMOLED Optimization:** Native onRotaryScrollEvent handling for the Samsung Galaxy Watch 8 Classic physical rotating bezel (supporting both Smooth Scroll and Bezel Month Dial modes with haptic feedback) and a circular-safe 172dp 7-column Heatmap card that prevents outer-edge bezel clipping.
+  - **12-Month Quick Grid Selector & Payroll Cutoff Rollover Engine:** Tap the month header on either screen to open a 3x4 JAN–DEC picker; calculates exact UK Care Worker payslips using the Last Friday Pay Day & Preceding Sunday Cutoff rollover engine (plus 1-tap toggle between Payslip Cutoff and Full Calendar Month modes).
+  - **Pre-Seeded 2026 Rota + Direct UGOS NAS Wi-Fi & Wearable Bluetooth Sync:** Pre-seeded with the 2026 shift schedule, £12.82/hr rate, Annual Leave (A/L), and Sick Leave (SSP), with direct Wi-Fi sync to http://192.168.8.100:8085/api/backup and unified pplicationId Bluetooth Wearable Data Layer sync.
+
 - **Wear OS Smartwatch Companion App (:wear) (FEAT-920) (WearHeatmapScreen.kt, WearSalaryDetailScreen.kt, WearDataSyncService.kt):**
   - **Standalone & Companion Wear OS Experience:** Native Compose for Wear OS application optimized for Samsung Galaxy Watch and Google Pixel Watch round/square displays with pure black AMOLED battery savings.
   - **Heatmap as Main First View:** Opens directly into the shift heatmap with month switcher (< / >), monthly shift count and total hours summary, high-contrast touch day tiles (Night Duty 12h, Overtime, Off, Today ring), and 1-tap shift logging.

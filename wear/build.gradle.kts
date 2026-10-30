@@ -10,11 +10,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.salarycalculator.wear"
+        applicationId = "com.example.salarycalculator"
         minSdk = 28
         targetSdk = 36
-        versionCode = 68
-        versionName = "27.4"
+        versionCode = 69
+        versionName = "27.5"
     }
 
     signingConfigs {

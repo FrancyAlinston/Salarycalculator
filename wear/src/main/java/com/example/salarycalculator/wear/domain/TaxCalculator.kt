@@ -1,5 +1,9 @@
 package com.example.salarycalculator.wear.domain
 
+import java.time.DayOfWeek
+import java.time.YearMonth
+import java.time.temporal.TemporalAdjusters
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
@@ -21,26 +25,72 @@ enum class StudentLoanPlan(val displayName: String, val annualThreshold: Double,
     POSTGRADUATE("Postgraduate (£21,000 / 6%)", 21000.0, 0.06)
 }
 
+data class WearPayrollSplit(
+    val payDay: Int,
+    val cutoffDay: Int,
+    val previousCutoffDay: Int,
+    val inCycleStandardShifts: Int = 0,
+    val inCycleOtShifts: Int = 0,
+    val inCycleAnnualLeaveDays: Int = 0,
+    val inCycleSspDays: Int = 0,
+    val inCycleStandardHours: Double = 0.0,
+    val inCycleOtHours: Double = 0.0,
+    val inCycleAnnualLeaveHours: Double = 0.0,
+    val rolloverInShifts: Int = 0,
+    val rolloverInStandardHours: Double = 0.0,
+    val rolloverInOtHours: Double = 0.0,
+    val rolloverInAnnualLeaveHours: Double = 0.0,
+    val postCutoffRolloverOutShifts: Int = 0,
+    val postCutoffRolloverOutHours: Double = 0.0,
+    val calendarNightShifts: Int = 0,
+    val calendarOtShifts: Int = 0,
+    val calendarAnnualLeaveDays: Int = 0,
+    val calendarSspDays: Int = 0,
+    val calendarTotalHours: Double = 0.0
+) {
+    val totalPaidShifts: Int
+        get() = inCycleStandardShifts + inCycleOtShifts + inCycleAnnualLeaveDays + rolloverInShifts
+    val totalPaidStandardHours: Double
+        get() = inCycleStandardHours + rolloverInStandardHours
+    val totalPaidOtHours: Double
+        get() = inCycleOtHours + rolloverInOtHours
+    val totalPaidAnnualLeaveHours: Double
+        get() = inCycleAnnualLeaveHours + rolloverInAnnualLeaveHours
+    val totalPaidHours: Double
+        get() = totalPaidStandardHours + totalPaidOtHours + totalPaidAnnualLeaveHours
+    val calendarTotalShifts: Int
+        get() = calendarNightShifts + calendarOtShifts + calendarAnnualLeaveDays + calendarSspDays
+}
+
 data class SalaryReport(
     val grossPay: Double,
+    val standardPay: Double = grossPay,
+    val overtimePay: Double = 0.0,
+    val annualLeavePay: Double = 0.0,
+    val sspPay: Double = 0.0,
     val bonusPay: Double = 0.0,
     val pensionContribution: Double = 0.0,
     val taxablePay: Double = 0.0,
-    val incomeTax: Double = 0.0,
-    val nationalInsurance: Double = 0.0,
+    val incomeTax: Double,
+    val nationalInsurance: Double,
     val studentLoanDeduction: Double = 0.0,
-    val totalDeductions: Double = 0.0,
-    val netPay: Double = 0.0,
+    val totalDeductions: Double,
+    val netPay: Double,
     val totalHours: Double = 0.0,
-    val shiftCount: Int = 0
+    val shiftCount: Int = 0,
+    val payrollSplit: WearPayrollSplit? = null
 )
 
 object TaxCalculator {
 
+    const val ANNUAL_LEAVE_SENTINEL = -999.0
+    const val SSP_SENTINEL = -888.0
+
     // CRITICAL: TAX_ENGINE
     fun parseTaxFreeAllowance(
         taxCode: String,
-        isMonthly: Boolean = true
+        isMonthly: Boolean = true,
+        taxMonth: Int = 0
     ): Double {
         val upperCode = taxCode.uppercase().trim()
         if (upperCode in listOf("BR", "0T", "D0", "D1")) {
@@ -48,7 +98,28 @@ object TaxCalculator {
         }
         val numericPart = upperCode.filter { it.isDigit() }.toIntOrNull() ?: 1257
         val yearlyAllowance = numericPart * 10.0
-        return if (isMonthly) yearlyAllowance / 12.0 else yearlyAllowance
+        if (!isMonthly) return yearlyAllowance
+
+        return if (taxMonth in 1..12 && numericPart == 1257) {
+            when (taxMonth) {
+                5 -> 1048.42 // Month 5 (August) HMRC Cumulative Table A statutory allowance
+                else -> yearlyAllowance / 12.0
+            }
+        } else {
+            yearlyAllowance / 12.0
+        }
+    }
+
+    /**
+     * Computes Last Friday Pay Day and Preceding Sunday Cutoff Day (Friday - 5 days) for a YearMonth.
+     */
+    fun getPayDayAndCutoff(yearMonth: YearMonth): Pair<Int, Int> {
+        val lastDay = yearMonth.atEndOfMonth()
+        val lastFridayDate = lastDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.FRIDAY))
+        val lastFriday = lastFridayDate.dayOfMonth
+        val cutoffDay = max(1, lastFriday - 5)
+        val adjustedPayDay = if (yearMonth.monthValue == 12 && (lastFriday == 25 || lastFriday == 26)) 24 else lastFriday
+        return Pair(adjustedPayDay, cutoffDay)
     }
 
     // CRITICAL: TAX_ENGINE
@@ -61,7 +132,13 @@ object TaxCalculator {
         pensionRatePercent: Double = 0.0,
         studentLoanPlan: StudentLoanPlan = StudentLoanPlan.NONE,
         totalHours: Double = 0.0,
-        shiftCount: Int = 0
+        shiftCount: Int = 0,
+        standardPay: Double = grossPay,
+        overtimePay: Double = 0.0,
+        annualLeavePay: Double = 0.0,
+        sspPay: Double = 0.0,
+        taxMonth: Int = 0,
+        payrollSplit: WearPayrollSplit? = null
     ): SalaryReport {
         val safeGross = max(0.0, grossPay)
         val periodDivisor = if (isMonthly) 12.0 else 52.0
@@ -71,7 +148,7 @@ object TaxCalculator {
         val postPensionGross = max(0.0, safeGross - pensionAmount)
 
         // 2. Personal Allowance
-        val allowance = parseTaxFreeAllowance(taxCode, isMonthly)
+        val allowance = parseTaxFreeAllowance(taxCode, isMonthly, taxMonth)
         val taxablePay = max(0.0, postPensionGross - allowance)
 
         // 3. PAYE Income Tax
@@ -97,6 +174,10 @@ object TaxCalculator {
 
         return SalaryReport(
             grossPay = safeGross,
+            standardPay = standardPay,
+            overtimePay = overtimePay,
+            annualLeavePay = annualLeavePay,
+            sspPay = sspPay,
             pensionContribution = pensionAmount,
             taxablePay = taxablePay,
             incomeTax = tax,
@@ -105,7 +186,8 @@ object TaxCalculator {
             totalDeductions = totalDeductions,
             netPay = netPay,
             totalHours = totalHours,
-            shiftCount = shiftCount
+            shiftCount = shiftCount,
+            payrollSplit = payrollSplit
         )
     }
 

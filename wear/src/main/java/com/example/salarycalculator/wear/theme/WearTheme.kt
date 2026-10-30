@@ -9,6 +9,10 @@ val WearTeal = Color(0xFF14B8A6)
 val WearTealDark = Color(0xFF0F766E)
 val WearAmber = Color(0xFFF59E0B)
 val WearEmerald = Color(0xFF10B981)
+val WearBlue = Color(0xFF3B82F6)
+val WearPurple = Color(0xFFA855F7)
+val WearRose = Color(0xFFF43F5E)
+val WearCyan = Color(0xFF22D3EE)
 val WearSurface = Color(0xFF1E1E24)
 val WearSurfaceDark = Color(0xFF121216)
 val WearTextPrimary = Color(0xFFFFFFFF)
@@ -26,7 +30,7 @@ private val wearColorPalette = Colors(
     onBackground = WearTextPrimary,
     onSurface = WearTextPrimary,
     onSurfaceVariant = WearTextSecondary,
-    error = Color(0xFFEF4444)
+    error = WearRose
 )
 
 @Composable

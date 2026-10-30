@@ -2,6 +2,7 @@ package com.example.salarycalculator.wear
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.example.salarycalculator.wear.domain.WearSalaryRepository
@@ -27,6 +28,10 @@ class MainActivity : ComponentActivity() {
             WearSalaryTheme {
                 var currentScreen by remember { mutableStateOf(WearScreen.HEATMAP) }
                 var selectedYearMonth by remember { mutableStateOf(YearMonth.now()) }
+
+                BackHandler(enabled = currentScreen == WearScreen.SALARY_DETAIL) {
+                    currentScreen = WearScreen.HEATMAP
+                }
 
                 when (currentScreen) {
                     WearScreen.HEATMAP -> {
