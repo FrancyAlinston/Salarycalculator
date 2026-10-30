@@ -93,7 +93,8 @@ def upload_asset(token, release_id, file_path, file_name):
         with urllib.request.urlopen(req) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
-        print(f"HTTP Error uploading asset {file_name}: {e.code}")
+        err_msg = e.read().decode("utf-8", errors="ignore")
+        print(f"HTTP Error uploading asset {file_name}: {e.code} - {err_msg}")
         return None
     except Exception as e:
         print(f"Error uploading asset {file_name}: {e}")
@@ -181,6 +182,8 @@ def sync_releases():
     for v in versions:
         release_apk = os.path.join(apk_dir, f"Salarycalculator-{v}.apk")
         debug_apk = os.path.join(apk_dir, f"Salarycalculator-{v}-debug.apk")
+        wear_release_apk = os.path.join(apk_dir, f"Salarycalculator-wear-{v}.apk")
+        wear_debug_apk = os.path.join(apk_dir, f"Salarycalculator-wear-{v}-debug.apk")
         
         if not os.path.exists(release_apk):
             continue
@@ -189,7 +192,10 @@ def sync_releases():
         body_text = f"## Salary Calculator {v}\n\n"
         if changelog_body:
             body_text += f"### Release Notes & Changes from Previous Version\n{changelog_body}\n\n---\n"
-        body_text += f"### Downloads & Binaries 📦\n- **Production APK (Signed)**: `Salarycalculator-{v}.apk`\n- **Debug APK (Development)**: `Salarycalculator-{v}-debug.apk`\n\n---\n*Signed and optimized for standalone installation.*"
+        body_text += f"### Downloads & Binaries 📦\n- **Production APK (Phone)**: `Salarycalculator-{v}.apk`\n- **Debug APK (Phone)**: `Salarycalculator-{v}-debug.apk`\n"
+        if os.path.exists(wear_release_apk):
+            body_text += f"- **Wear OS APK (Smartwatch)**: `Salarycalculator-wear-{v}.apk`\n- **Wear OS Debug APK**: `Salarycalculator-wear-{v}-debug.apk`\n"
+        body_text += f"\n---\n*Signed and optimized for standalone installation.*"
 
         rel = existing_tags.get(v)
         if not rel:
@@ -205,6 +211,8 @@ def sync_releases():
             
             prod_name = f"Salarycalculator-{v}.apk"
             debug_name = f"Salarycalculator-{v}-debug.apk"
+            wear_prod_name = f"Salarycalculator-wear-{v}.apk"
+            wear_debug_name = f"Salarycalculator-wear-{v}-debug.apk"
             
             if prod_name not in existing_assets and os.path.exists(release_apk):
                 print(f"Uploading {prod_name} for {v}...")
@@ -213,6 +221,14 @@ def sync_releases():
             if debug_name not in existing_assets and os.path.exists(debug_apk):
                 print(f"Uploading {debug_name} for {v}...")
                 upload_asset(token, rel_id, debug_apk, debug_name)
+
+            if wear_prod_name not in existing_assets and os.path.exists(wear_release_apk):
+                print(f"Uploading {wear_prod_name} for {v}...")
+                upload_asset(token, rel_id, wear_release_apk, wear_prod_name)
+
+            if wear_debug_name not in existing_assets and os.path.exists(wear_debug_apk):
+                print(f"Uploading {wear_debug_name} for {v}...")
+                upload_asset(token, rel_id, wear_debug_apk, wear_debug_name)
                 
             print(f"✓ {v} release and versioned assets synchronized.")
             

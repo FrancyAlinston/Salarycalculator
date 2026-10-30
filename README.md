@@ -4,6 +4,12 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Wear OS Smartwatch Companion App (:wear) (FEAT-920) (WearHeatmapScreen.kt, WearSalaryDetailScreen.kt, WearDataSyncService.kt):**
+  - **Standalone & Companion Wear OS Experience:** Native Compose for Wear OS application optimized for Samsung Galaxy Watch and Google Pixel Watch round/square displays with pure black AMOLED battery savings.
+  - **Heatmap as Main First View:** Opens directly into the shift heatmap with month switcher (< / >), monthly shift count and total hours summary, high-contrast touch day tiles (Night Duty 12h, Overtime, Off, Today ring), and 1-tap shift logging.
+  - **Select Month Salary Breakdown:** Dedicated wearable salary screen allowing users to select any month (Jan - Dec) and view Take-Home Net Pay, Gross Earnings, Total Hours Worked, Shift Count, Deductions (PAYE Tax, Class 1 NI, Pension), and Pay Day/Cutoff dates.
+  - **On-Wrist Hourly Rate Steppers & Google Play Services Sync:** Adjust hourly rate directly on the watch, with automatic background synchronization via Google Play Services Wearable Data Layer (/salary_sync/shifts).
+
 - **Bidirectional Dynamic Month Synchronization & Hero Month Switcher (`FEAT-959`) (`web/index.html`, `web/js/app.js`, `web/js/heatmap.js`):**
   - **100% Guaranteed Month Synchronization:** Interactive month switcher in the Hero Net Pay card (`◀ [📅 Month Year] ▶ [Today]`) and the Shift Heatmap calendar are bidirectionally locked. Changing months anywhere immediately updates the entire suite. Defaults strictly to current calendar month on launch.
 

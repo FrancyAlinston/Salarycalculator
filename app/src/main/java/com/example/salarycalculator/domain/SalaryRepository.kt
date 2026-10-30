@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.doubleOrNull
@@ -709,6 +710,7 @@ class SalaryRepository(private val context: Context) {
             preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = cleanToSave
         }
         com.example.salarycalculator.widget.ShiftHeatmapWidgetManager.updateAllWidgets(context)
+        syncShiftsToWearOs()
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
@@ -805,6 +807,7 @@ class SalaryRepository(private val context: Context) {
             }
             preferences[ANNUAL_SHIFT_SCHEDULE_KEY] = encodeShiftSchedule(currentMap)
         }
+        syncShiftsToWearOs()
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
@@ -1382,6 +1385,35 @@ class SalaryRepository(private val context: Context) {
                 dayMap.filterValues { it != 0.0 }.mapKeys { it.key.toString() }
             }.filterValues { it.isNotEmpty() }
             return Json.encodeToString(exportMap)
+        }
+    }
+
+    // CRITICAL: WEAR_OS_SYNC
+    suspend fun syncShiftsToWearOs() {
+        try {
+            val annualJson = getAnnualShiftSchedule().first()
+            val parsed = parseShiftScheduleJson(annualJson)
+            val flatMap = mutableMapOf<String, Double>()
+            parsed.forEach { (yearMonth, days) ->
+                val parts = yearMonth.split("-")
+                val y = parts.getOrNull(0)?.toIntOrNull() ?: return@forEach
+                val m = parts.getOrNull(1)?.toIntOrNull() ?: return@forEach
+                days.forEach { (day, hours) ->
+                    val dateKey = String.format(java.util.Locale.ROOT, "%04d-%02d-%02d", y, m, day)
+                    flatMap[dateKey] = hours
+                }
+            }
+            val rate = getDefaultHourlyRate().first()
+            val taxCode = getTaxCode().first()
+            val standardShift = getDefaultHoursPerDay().first()
+            WearDataSyncManager.syncShiftsToWearable(
+                context = context,
+                shifts = flatMap,
+                hourlyRate = rate,
+                taxCode = taxCode,
+                standardHours = standardShift
+            )
+        } catch (_: Exception) {
         }
     }
 }

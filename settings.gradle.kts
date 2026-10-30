@@ -31,3 +31,4 @@ plugins {
 
 rootProject.name = "Salary Calculator"
 include(":app")
+include(":wear")

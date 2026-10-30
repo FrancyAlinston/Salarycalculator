@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Monochrome silhouette centered in safe zone (72dp) -->
+    <!-- Calculator Body Squircle -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M34,22 h40 c5.5,0 10,4.5 10,10 v44 c0,5.5 -4.5,10 -10,10 h-40 c-5.5,0 -10,-4.5 -10,-10 v-44 c0,-5.5 4.5,-10 10,-10 z" />
+    <!-- LCD Screen cutout -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M30,28 h48 v10 h-48 z" />
+    <!-- Keypad Keys -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M30,42 h10 v8 h-10 z M49,42 h10 v8 h-10 z M68,42 h10 v8 h-10 z M30,53 h10 v8 h-10 z M68,53 h10 v8 h-10 z M30,64 h10 v8 h-10 z M68,64 h10 v8 h-10 z M30,75 h10 v6 h-10 z M49,75 h10 v6 h-10 z M68,75 h10 v6 h-10 z" />
+    <!-- Central Money Bag Silhouette -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M54,44 c-2,-2 -4,-4 -7,-4 h14 c-3,0 -5,2 -7,4 z M43,50 c-5,5 -6,16 0,22 c5,5 17,5 22,0 c6,-6 5,-17 0,-22 c-3,-2 -8,-4 -11,-4 c-3,0 -8,2 -11,4 z" />
+    <!-- Pound Sign on Money Bag -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M52,56 c1,-1 3,-1 4,-1 c2,0 3,1 3,2 c0,2 -2,3 -4,4 h5 v2 h-6 v1 h7 v2 h-9 c-1,0 -2,-1 -2,-2 c0,-2 2,-3 4,-5 c-1,0 -2,-1 -2,-2 c0,-1 1,-1 1,-1 z" />
+</vector>

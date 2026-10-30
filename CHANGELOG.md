@@ -4,6 +4,26 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.4] - 2026-10-30 (VersionCode: 68)
+### Added / Changed
+- **Wear OS Standalone & Companion Module (:wear) (FEAT-920)**:
+  - Created standalone Wear OS module (:wear) with Compose for Wear OS, fully compatible with round and square smartwatch displays (Samsung Galaxy Watch, Google Pixel Watch).
+  - **Heatmap as Main First View (WearHeatmapScreen.kt)**: Launches straight into the shift heatmap with monthly navigation (< / >), quick summary chip (Nights, Overtime, Total Hours), interactive circular touch grid, today indicator, and 1-tap shift toggle (Off -> Night Duty 12h -> Overtime 12h -> Off).
+  - **Select Month Salary Breakdown (WearSalaryDetailScreen.kt)**: Dedicated wearable salary inspection screen allowing users to select any month and view estimated Net Take-Home Pay, Gross Earnings, Shift Counts, Total Hours, Deductions (PAYE Tax, Class 1 NI, Pension), and Last Friday Pay Day & Timesheet Cutoff Date.
+  - **On-Wrist Hourly Rate Steppers**: Quick +£0.50 / -£0.50 steppers right on the watch for instant recalculations.
+  - **Wearable Data Layer Synchronization (WearDataSyncService.kt & WearDataSyncManager.kt)**: Background synchronization between phone app and watch via Google Play Services Wearable Data Layer (/salary_sync/shifts).
+  - Generated and archived binaries: APKs/Salarycalculator-wear-v27.4.apk and APKs/Salarycalculator-wear-v27.4-debug.apk alongside phone releases.
+
+### Bugs Found & Fixed
+- Added watch device detection to scripts/install_to_devices.sh to deploy wear builds to watches and standard builds to phones.
+- Resolved Google Play Services Task await in WearDataSyncManager.kt.
+
+### What Needs to Be Fixed / Pending
+- Wear OS watch face complications for current shift status.
+- Biometric authentication auto-lock grace period customization.
+
+---
+
 ## [27.3] - 2026-10-30 (VersionCode: 67)
 ### Added / Changed
 - **Google Calendar Export Customization & Night Duty Support (FEAT-910) (IcsCalendarExporter.kt & ShiftCalendarExportDialog.kt)**:
