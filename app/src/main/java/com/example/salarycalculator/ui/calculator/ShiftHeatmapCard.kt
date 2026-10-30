@@ -1003,6 +1003,4 @@ fun ShiftHeatmapCard(
             onDismiss = { showCalendarExportDialog = false }
         )
     }
-        )
-    }
 }
