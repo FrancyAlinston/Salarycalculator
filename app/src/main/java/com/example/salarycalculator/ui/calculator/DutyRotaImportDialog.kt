@@ -863,10 +863,12 @@ private fun Step3HeatmapPreview(
                     val fullYearMap = (1..12).associateWith { m ->
                         if (m == month) shiftMap else emptyMap()
                     }
+                    val title = if (staff?.role?.contains("Night", ignoreCase = true) == true) "Night Duty" else "${staff?.name ?: "Care"} Shift"
                     val ics = IcsCalendarExporter.generateAnnualIcsContent(
                         year = year,
                         monthlyShifts = fullYearMap,
-                        jobTitle = "${staff?.name ?: "Care"} Shift"
+                        jobTitle = title,
+                        standardShiftHours = standardShiftHours
                     )
                     IcsCalendarExporter.shareIcsFile(ctx, ics, "Duty_Rota_${monthTitle.replace(" ", "_")}.ics")
                 },

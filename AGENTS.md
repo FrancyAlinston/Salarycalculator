@@ -152,3 +152,15 @@ To enable seamless user triggering and 1-message delegation:
 - **Master Execution ID**: Every report MUST define a top-level **Action ID / Execution ID** (e.g., `EOT-EXEC-V24.9`, `EOT-EXEC-V25.0`) at the beginning and in the Roadmap section.
 - **Feature Action IDs**: Every recommended feature, unworked area, and improvement item in the report MUST be assigned a unique sub-ID (e.g., `[ACTION: FEAT-901]`, `[ACTION: FIX-901]`, `[ACTION: PEND-901]`).
 - **1-Message Trigger Support**: When the user references any Execution ID or Feature Action ID (e.g., *"implement EOT-EXEC-V25.0"* or *"work on FEAT-901"*), parse the corresponding scope, construct the implementation plan, and execute all listed items without requiring manual re-prompting.
+
+---
+
+## 8. Nextcloud & Calendar Ecosystem Integration (`@rules:nextcloud_calendar_integration`)
+
+- **Default User Identity**: Default account is tied to `francyalinston@gmail.com` for instant, non-blocking synchronization, while preserving interactive Google Sign-In and custom account login/switch options.
+- **Live RFC 5545 iCalendar Synchronization**:
+  - The web application and server must continuously maintain a real-time RFC 5545 iCalendar feed at `/api/calendar.ics` (`http://192.168.8.100:8085/api/calendar.ics`).
+  - Whenever the user modifies any shift on the Heatmap (adding, editing, cycling shift types, overtime hours, annual leave, or importing rotas), changes MUST immediately persist to SQLite and regenerate the live `.ics` feed.
+- **Nextcloud CalDAV & Webcal Sync**:
+  - Nextcloud maintains a dedicated CalDAV calendar `Shift Heatmap` (`#0D9488` Teal) and an auto-updating live subscription `Salary Calculator (Live Sync)` (`refreshrate = PT15M`).
+  - Automated background sync is orchestrated via `/volume2/docker/scripts/sync_salary_calendar.sh` (`/etc/cron.d/nas-salary-calendar-sync`).

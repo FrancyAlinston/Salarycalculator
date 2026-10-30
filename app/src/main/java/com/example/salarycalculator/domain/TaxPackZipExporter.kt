@@ -54,7 +54,12 @@ object TaxPackZipExporter {
         // 3. Shift Calendar ICS
         try {
             if (annualShifts.isNotEmpty()) {
-                val icsContent = IcsCalendarExporter.generateAnnualIcsContent(year, annualShifts)
+                val icsContent = IcsCalendarExporter.generateAnnualIcsContent(
+                    year = year,
+                    monthlyShifts = annualShifts,
+                    jobTitle = "Night Duty",
+                    standardShiftHours = 12.0
+                )
                 addStringToZip(zos, icsContent, "3_Full_Year_Shift_Calendar.ics")
             }
         } catch (_: Exception) {}

@@ -4,6 +4,25 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.3] - 2026-10-30 (VersionCode: 67)
+### Added / Changed
+- **Google Calendar Export Customization & Night Duty Support (FEAT-910) (IcsCalendarExporter.kt & ShiftCalendarExportDialog.kt)**:
+  - Resolved false overtime tagging on standard 12-hour shifts exported to Google Calendar, Apple Calendar, and Outlook (.ics).
+  - Implemented clean Night Duty event summaries for standard scheduled shifts without unwanted overtime markers or redundant shift length suffixes.
+  - Built ShiftCalendarExportDialog modal offering 1-tap title presets (Night Duty, Day Shift, Care Shift, Work Shift), configurable shift timing (Night Shift 20:00-08:00, Day Shift 08:00-20:00, Standard 09:00-21:00), export scope toggle (Active Month vs Full Year), and live Google Calendar event card preview.
+  - Added DataStore persistent preferences (shift_calendar_title and shift_calendar_start_hour) in SalaryRepository.kt to preserve user preferences across sessions.
+  - Integrated ShiftCalendarExportDialog across ShiftHeatmapCard.kt, ShiftCalendarDialog.kt, and DutyRotaImportDialog.kt.
+
+### Bugs Found & Fixed
+- **False Overtime Bug in .ICS Calendar Export (FIX-910)**: Fixed hardcoded hours greater than 8.0 condition in IcsCalendarExporter.kt that caused all standard 12-hour shifts to be exported to Google Calendar as Work Shift (Overtime: 12h). Shifts now adhere to user's configured standard shift duration.
+- **Heatmap Overtime Shifts Omission (FIX-911)**: Fixed positive hours filter that dropped negative overtime shift hours from calendar export; now ingests absolute hours and formats genuine overtime shifts as Night Duty (Overtime).
+
+### What Needs to Be Fixed / Pending
+- Biometric authentication auto-lock grace period customization.
+- Multi-employer audit profiles with distinct payroll contact emails and cutoff rules.
+
+---
+
 ## [27.2] - 2026-09-27 (VersionCode: 66)
 ### Added / Changed
 - **Bidirectional Dynamic Month Synchronization & Hero Month Switcher (`FEAT-959`) (`web/index.html`, `web/js/app.js`, `web/js/heatmap.js`)**:

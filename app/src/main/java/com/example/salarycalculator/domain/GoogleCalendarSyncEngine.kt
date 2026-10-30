@@ -156,7 +156,7 @@ object GoogleCalendarSyncEngine {
         month: Int,
         shifts: Map<Int, Double>,
         config: CalendarSyncConfig,
-        jobTitle: String = "Duty Shift"
+        jobTitle: String = "Night Duty"
     ): CalendarSyncResult {
         var clearedCount = 0
         if (config.clearExistingSalaryCalcEvents) {
@@ -178,8 +178,9 @@ object GoogleCalendarSyncEngine {
 
             val isAnnualLeave = (hours == SalaryRepository.ANNUAL_LEAVE_HOURS)
             val isStatutorySickLeave = (hours == SalaryRepository.STATUTORY_SICK_LEAVE_HOURS)
-            val isOvertime = (!isAnnualLeave && !isStatutorySickLeave && (hours < 0.0 || hours > 8.0))
-            val isStandardDuty = (!isAnnualLeave && !isStatutorySickLeave && !isOvertime && hours > 0.0)
+            val stdHours = if (config.standardShiftHours > 0.0) config.standardShiftHours else 12.0
+            val isOvertime = (!isAnnualLeave && !isStatutorySickLeave && (hours < 0.0 || kotlin.math.abs(hours) > stdHours))
+            val isStandardDuty = (!isAnnualLeave && !isStatutorySickLeave && !isOvertime && hours != 0.0)
 
             if (isAnnualLeave && !config.syncAnnualLeave) continue
             if (isStatutorySickLeave && !config.syncSickLeave) continue
@@ -198,10 +199,19 @@ object GoogleCalendarSyncEngine {
             val durationMs = (effectiveHours * 3600 * 1000).toLong()
             val endMillis = startMillis + durationMs
 
+            val isNightOrDuty = jobTitle.equals("Night Duty", ignoreCase = true) ||
+                                jobTitle.equals("Day Duty", ignoreCase = true) ||
+                                jobTitle.equals("Night Shift", ignoreCase = true) ||
+                                jobTitle.equals("Day Shift", ignoreCase = true) ||
+                                jobTitle.endsWith("Duty", ignoreCase = true)
+
             val title = when {
-                isAnnualLeave -> "Annual Leave (A/L)"
-                isStatutorySickLeave -> "Statutory Sick Pay (SSP)"
-                isOvertime -> "$jobTitle (Overtime: ${"%.1f".format(effectiveHours)}h)"
+                isAnnualLeave -> "🌴 Annual Leave (A/L)"
+                isStatutorySickLeave -> "🟣 Statutory Sick Pay (SSP)"
+                isOvertime -> {
+                    if (isNightOrDuty) "$jobTitle (Overtime)" else "$jobTitle (Overtime: ${"%.1f".format(effectiveHours)}h)"
+                }
+                isNightOrDuty -> jobTitle
                 else -> "$jobTitle (${"%.1f".format(effectiveHours)}h Shift)"
             }
 

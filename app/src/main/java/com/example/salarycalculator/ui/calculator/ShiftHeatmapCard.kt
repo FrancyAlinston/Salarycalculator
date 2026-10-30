@@ -67,6 +67,7 @@ fun ShiftHeatmapCard(
     var showShiftSwapDialog by remember { mutableStateOf(false) }
     var showPayslipAuditDialog by remember { mutableStateOf(false) }
     var showMonthCalendarSyncDialog by remember { mutableStateOf(false) }
+    var showCalendarExportDialog by remember { mutableStateOf(false) }
 
     val monthNames = remember { DateFormatSymbols().shortMonths.filter { it.isNotBlank() } }
     val fullMonthNames = remember { DateFormatSymbols().months.filter { it.isNotBlank() } }
@@ -310,20 +311,10 @@ fun ShiftHeatmapCard(
                     }
 
                     IconButton(
-                        onClick = {
-                            val fullSchedule = (1..12).associateWith { m ->
-                                (multiYearShifts["$selectedYear-$m"] ?: emptyMap()).toMap()
-                            }
-                            val ics = IcsCalendarExporter.generateAnnualIcsContent(
-                                year = selectedYear,
-                                monthlyShifts = fullSchedule,
-                                jobTitle = "Work Shift"
-                            )
-                            IcsCalendarExporter.shareIcsFile(context, ics, "Annual_Shift_Schedule_${selectedYear}.ics")
-                        },
+                        onClick = { showCalendarExportDialog = true },
                         modifier = Modifier.size(36.dp)
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Export 12-Month .ICS Calendar", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Share, contentDescription = "Export to Google Calendar (.ICS)", tint = MaterialTheme.colorScheme.primary)
                     }
 
                     IconButton(
@@ -998,6 +989,20 @@ fun ShiftHeatmapCard(
             standardShiftHours = effectiveStandardHours,
             salaryRepository = salaryRepository,
             onDismiss = { showMonthCalendarSyncDialog = false }
+        )
+    }
+
+    // Interactive Shift Calendar Exporter Dialog (Google Calendar / .ics)
+    if (showCalendarExportDialog) {
+        ShiftCalendarExportDialog(
+            selectedYear = selectedYear,
+            selectedMonth = selectedMonth,
+            multiYearShifts = multiYearShifts.mapValues { it.value.toMap() },
+            effectiveStandardHours = effectiveStandardHours,
+            salaryRepository = salaryRepository,
+            onDismiss = { showCalendarExportDialog = false }
+        )
+    }
         )
     }
 }

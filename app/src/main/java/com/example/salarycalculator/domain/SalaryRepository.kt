@@ -66,6 +66,8 @@ class SalaryRepository(private val context: Context) {
     private val PAYROLL_CONTACT_EMAIL_KEY = stringPreferencesKey("payroll_contact_email")
     private val CACHED_CURRENCY_RATES_KEY = stringPreferencesKey("cached_currency_rates_json")
     private val CURRENCY_RATES_LAST_FETCH_KEY = stringPreferencesKey("currency_rates_last_fetch")
+    private val SHIFT_CALENDAR_TITLE_KEY = stringPreferencesKey("shift_calendar_title")
+    private val SHIFT_CALENDAR_START_HOUR_KEY = intPreferencesKey("shift_calendar_start_hour")
     private val SYNCTHING_SERVER_URL_KEY = stringPreferencesKey("syncthing_server_url")
     private val SYNCTHING_API_KEY_KEY = stringPreferencesKey("syncthing_api_key")
     private val SYNCTHING_FOLDER_ID_KEY = stringPreferencesKey("syncthing_folder_id")
@@ -892,6 +894,34 @@ class SalaryRepository(private val context: Context) {
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
+    fun getShiftCalendarTitle(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SHIFT_CALENDAR_TITLE_KEY] ?: "Night Duty"
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setShiftCalendarTitle(title: String) {
+        context.dataStore.edit { preferences ->
+            preferences[SHIFT_CALENDAR_TITLE_KEY] = title.trim()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getShiftCalendarStartHour(): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SHIFT_CALENDAR_START_HOUR_KEY] ?: 20
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setShiftCalendarStartHour(hour: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[SHIFT_CALENDAR_START_HOUR_KEY] = hour
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
     fun getSyncthingServerUrl(): Flow<String> {
         return context.dataStore.data.map { preferences ->
             preferences[SYNCTHING_SERVER_URL_KEY] ?: "https://syncthing.449100.xyz"
@@ -1123,7 +1153,7 @@ class SalaryRepository(private val context: Context) {
     // CRITICAL: DATASTORE_PERSISTENCE
     fun getSspDailyRate(): Flow<Double> {
         return context.dataStore.data.map { preferences ->
-            preferences[SSP_DAILY_RATE_KEY] ?: 23.35 // UK Statutory SSP: £116.75 / 5 days = £23.35/day
+            preferences[SSP_DAILY_RATE_KEY] ?: 23.35 // UK Statutory SSP: ┬ú116.75 / 5 days = ┬ú23.35/day
         }
     }
 

@@ -33,6 +33,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import com.example.salarycalculator.domain.*
 import com.example.salarycalculator.theme.*
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -322,6 +323,7 @@ fun MonthCalendarSyncDialog(
                                     isSyncingCalendar = true
                                     calendarSyncStatusMessage = null
                                     scope.launch {
+                                        val targetTitle = salaryRepository.getShiftCalendarTitle().firstOrNull() ?: "Night Duty"
                                         val result = GoogleCalendarSyncEngine.syncMonthToCalendar(
                                             context = context,
                                             calendarId = selectedCalendarId,
@@ -338,7 +340,8 @@ fun MonthCalendarSyncDialog(
                                                 syncSickLeave = syncSickLeave,
                                                 reminderMinutes = reminderMinutes,
                                                 clearExistingSalaryCalcEvents = clearPreviousSalaryCalcEvents
-                                            )
+                                            ),
+                                            jobTitle = targetTitle
                                         )
                                         isSyncingCalendar = false
                                         calendarSyncStatusMessage = result.message
