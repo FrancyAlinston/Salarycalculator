@@ -4,6 +4,43 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [25.0-alpha] - 2026-10-30 (VersionCode: 44)
+### Added / Changed
+- **Google Calendar Export Customization & "Night Duty" Support (`FEAT-910`) (`IcsCalendarExporter.kt` & `ShiftCalendarExportDialog.kt`)**:
+  - Resolved false overtime tagging on standard 12-hour shifts exported to Google Calendar, Apple Calendar, and Outlook (.ics).
+  - Implemented clean "Night Duty" event summaries for standard scheduled shifts without unwanted overtime markers or redundant "(12h Shift)" suffixes.
+  - Built `ShiftCalendarExportDialog` modal offering 1-tap title presets (⭐ Night Duty, ☀️ Day Shift, 🏥 Care Shift, 💼 Work Shift), configurable shift timing (🌙 Night Shift 20:00–08:00, ☀️ Day Shift 08:00–20:00, 🏢 Standard 09:00–21:00), export scope toggle (Active Month vs Full Year), and live Google Calendar event card preview.
+  - Added DataStore persistent preferences (`shift_calendar_title` and `shift_calendar_start_hour`) in `SalaryRepository.kt` to preserve user preferences across sessions.
+  - Integrated `ShiftCalendarExportDialog` across `ShiftHeatmapCard.kt`, `ShiftCalendarDialog.kt`, and `DutyRotaImportDialog.kt`.
+
+### Bugs Found & Fixed
+- **False Overtime Bug in .ICS Calendar Export (`FIX-910`)**: Fixed hardcoded `hours > 8.0` condition in `IcsCalendarExporter.kt` that caused all standard 12-hour shifts to be exported to Google Calendar as "Work Shift (Overtime: 12h)". Shifts now adhere to user's configured standard shift duration (`standardShiftHours` / `effectiveStandardHours`).
+- **Heatmap Overtime Shifts Omission (`FIX-911`)**: Fixed `if (hours > 0)` filter that dropped negative overtime shift hours (`hours < 0.0`) from calendar export; now ingests absolute hours and formats genuine overtime shifts as "Night Duty (Overtime)".
+
+### What Needs to Be Fixed / Pending
+- Biometric authentication auto-lock grace period customization.
+- Multi-employer audit profiles with distinct payroll contact emails and cutoff rules.
+
+---
+
+## [24.10-alpha] - 2026-10-03 (VersionCode: 43)
+### Added / Changed
+- **Nextcloud & CalDAV Live Calendar Integration (`FEAT-901`) (`IcsCalendarExporter.kt` & `server.py`)**:
+  - Implemented live RFC 5545 iCalendar stream endpoint at `/api/calendar.ics` and `/api/shifts.ics` on the NAS server (`http://192.168.8.100:8085/api/calendar.ics`).
+  - Added full calendar event mapping for all shift types (Standard shifts 🟢, Overtime shifts 🟠, Annual Leave 🌴, Statutory Sick Pay 🟣), timesheet cutoffs ⏰, and paydays 💰.
+  - Linked active subscription `Salary Calculator (Live Sync)` with automated 15-minute background refresh in Nextcloud.
+  - **RFC 5545 & SabreDAV Parser Compliance (`FIX-901`)**: Escaped description newlines to standard `\n`, added `do_HEAD` HTTP method handler returning HTTP 200 OK with `text/calendar` headers, and converted shift event UIDs to deterministic RFC 5545 identifiers (`shift-YYYYMMDD@salarycalculator.app`) for clean overwrites without duplicate events.
+  - **Annual Leave & Shift Categorization (`FIX-902`)**: Corrected shift hours mapping so negative hours (`-12.0`, `-999.0`) properly map to `🌴 Annual Leave (A/L)` across both server and CalDAV calendar feeds.
+  - **Dual Heatmap View & Schedule Completeness (`FIX-903`)**: Extended `DEFAULT_2026_SHIFTS` with the complete 10-month schedule (including October 2026 shifts) and synchronized rendering to both `#calculator-heatmap-container` on the home Calculator screen and `#heatmap-container` on the dedicated Heatmap tab.
+- **Default User Identity & Account Flexibility (`FEAT-902`) (`auth.js` & `store.js`)**:
+  - Tied `francyalinston@gmail.com` as the default user identity for seamless, zero-gatekeeper startup and automatic cloud/NAS backup synchronization.
+  - Preserved the interactive login/switch account modal via Google Sign-In and custom email/name inputs.
+- **Automated Nextcloud Rota Synchronization (`FEAT-903`) (`heatmap.js` & `sync_salary_calendar.sh`)**:
+  - Configured real-time persistence so that whenever any shift is clicked, toggled, or edited in the Heatmap, changes immediately sync to the NAS backend and update the live calendar feed without manual intervention.
+  - Deployed `/volume2/docker/scripts/sync_salary_calendar.sh` with cron orchestration in `/etc/cron.d/nas-salary-calendar-sync` to keep the native Nextcloud `Shift Heatmap` calendar in continuous synchronization.
+
+---
+
 ## [24.9-alpha] - 2026-09-21 (VersionCode: 42)
 ### Added / Changed
 - **Dispute Recipient Memory (`FIX-801`) (`SalaryRepository.kt` & `PayslipAuditDialog.kt`)**:

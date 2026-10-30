@@ -12,13 +12,76 @@ import java.util.*
 object IcsCalendarExporter {
 
     /**
+     * Formats the event summary line.
+     * When jobTitle is "Night Duty" (or ends with "Duty" or "Shift"),
+     * standard scheduled shifts are cleanly labeled (e.g. "Night Duty") without unwanted
+     * false overtime markers or "(12h Shift)" suffixes.
+     * Actual overtime shifts (negative hours or hours > standardShiftHours) are marked with "(Overtime)".
+     */
+    fun formatShiftSummary(
+        jobTitle: String,
+        hours: Double,
+        standardShiftHours: Double = 12.0
+    ): String {
+        val absHours = kotlin.math.abs(hours)
+        val isOvertime = hours < 0.0 || (standardShiftHours > 0.0 && absHours > standardShiftHours)
+        val cleanTitle = jobTitle.trim().ifBlank { "Night Duty" }
+
+        return when {
+            isOvertime -> {
+                if (cleanTitle.equals("Night Duty", ignoreCase = true) ||
+                    cleanTitle.equals("Night Shift", ignoreCase = true) ||
+                    cleanTitle.equals("Day Shift", ignoreCase = true) ||
+                    cleanTitle.equals("Day Duty", ignoreCase = true) ||
+                    cleanTitle.endsWith("Duty", ignoreCase = true)
+                ) {
+                    "$cleanTitle (Overtime)"
+                } else {
+                    "$cleanTitle (Overtime: ${absHours.toInt()}h)"
+                }
+            }
+            cleanTitle.equals("Night Duty", ignoreCase = true) ||
+            cleanTitle.equals("Night Shift", ignoreCase = true) ||
+            cleanTitle.equals("Day Shift", ignoreCase = true) ||
+            cleanTitle.equals("Day Duty", ignoreCase = true) ||
+            cleanTitle.endsWith("Duty", ignoreCase = true) ||
+            (!cleanTitle.contains("shift", ignoreCase = true) && !cleanTitle.contains("employment", ignoreCase = true)) -> {
+                // Just say the duty name, e.g. "Night Duty"
+                cleanTitle
+            }
+            else -> {
+                "$cleanTitle (${absHours.toInt()}h Shift)"
+            }
+        }
+    }
+
+    /**
+     * Resolves the starting hour (0..23) for a shift.
+     * Night duties default to 20:00 (8:00 PM), while day duties default to 08:00.
+     */
+    fun getShiftStartHour(jobTitle: String, customStartHour: Int? = null): Int {
+        if (customStartHour != null && customStartHour in 0..23) {
+            return customStartHour
+        }
+        val lower = jobTitle.lowercase(Locale.ENGLISH)
+        return when {
+            lower.contains("night") -> 20 // 8:00 PM
+            lower.contains("day") -> 8    // 8:00 AM
+            else -> 8
+        }
+    }
+
+    /**
      * Converts a map of day -> hours worked for a given month/year into standard RFC 5545 iCalendar (.ics) format.
      */
     fun generateIcsContent(
         year: Int,
         month: Int, // 1-12
         dayShifts: Map<Int, Double>,
-        jobTitle: String = "Work Shift"
+        jobTitle: String = "Night Duty",
+        standardShiftHours: Double = if (jobTitle.contains("Night", ignoreCase = true) || jobTitle.contains("Care", ignoreCase = true)) 12.0 else 8.0,
+        startHour: Int? = null,
+        startMinute: Int = 0
     ): String {
         val sb = StringBuilder()
         sb.appendLine("BEGIN:VCALENDAR")
@@ -30,21 +93,22 @@ object IcsCalendarExporter {
         val utcFormat = SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'", Locale.US).apply {
             timeZone = TimeZone.getTimeZone("UTC")
         }
-        val localDateOnly = SimpleDateFormat("yyyyMMdd", Locale.US)
 
+        val resolvedStartHour = getShiftStartHour(jobTitle, startHour)
         val calendar = Calendar.getInstance()
 
         dayShifts.forEach { (day, hours) ->
-            if (hours > 0) {
-                calendar.set(year, month - 1, day, 9, 0, 0)
+            val absHours = kotlin.math.abs(hours)
+            if (absHours > 0.0) {
+                calendar.set(year, month - 1, day, resolvedStartHour, startMinute, 0)
                 val startTime = calendar.time
-                val durationMs = (hours * 3600 * 1000).toLong()
+                val durationMs = (absHours * 3600 * 1000).toLong()
                 val endTime = Date(startTime.time + durationMs)
 
                 val uid = "shift-${year}${month}${day}-${UUID.randomUUID()}@salarycalculator.app"
-                val isOvertime = hours > 8.0
-                val summary = if (isOvertime) "$jobTitle (Overtime: ${hours.toInt()}h)" else "$jobTitle (${hours.toInt()}h Shift)"
-                val description = "Logged working shift in Salary Calculator. Total hours: ${"%.1f".format(hours)}h"
+                val summary = formatShiftSummary(jobTitle, hours, standardShiftHours)
+                val isOt = hours < 0.0 || (standardShiftHours > 0.0 && absHours > standardShiftHours)
+                val description = "Logged working shift in Salary Calculator. Total hours: ${"%.1f".format(absHours)}h${if (isOt) " (Overtime Shift)" else ""}"
 
                 sb.appendLine("BEGIN:VEVENT")
                 sb.appendLine("UID:$uid")
@@ -68,7 +132,10 @@ object IcsCalendarExporter {
     fun generateAnnualIcsContent(
         year: Int,
         monthlyShifts: Map<Int, Map<Int, Double>>,
-        jobTitle: String = "Work Shift"
+        jobTitle: String = "Night Duty",
+        standardShiftHours: Double = if (jobTitle.contains("Night", ignoreCase = true) || jobTitle.contains("Care", ignoreCase = true)) 12.0 else 8.0,
+        startHour: Int? = null,
+        startMinute: Int = 0
     ): String {
         val sb = StringBuilder()
         sb.appendLine("BEGIN:VCALENDAR")
@@ -81,20 +148,22 @@ object IcsCalendarExporter {
             timeZone = TimeZone.getTimeZone("UTC")
         }
 
+        val resolvedStartHour = getShiftStartHour(jobTitle, startHour)
         val calendar = Calendar.getInstance()
 
         monthlyShifts.forEach { (month, dayMap) ->
             dayMap.forEach { (day, hours) ->
-                if (hours > 0) {
-                    calendar.set(year, month - 1, day, 9, 0, 0)
+                val absHours = kotlin.math.abs(hours)
+                if (absHours > 0.0) {
+                    calendar.set(year, month - 1, day, resolvedStartHour, startMinute, 0)
                     val startTime = calendar.time
-                    val durationMs = (hours * 3600 * 1000).toLong()
+                    val durationMs = (absHours * 3600 * 1000).toLong()
                     val endTime = Date(startTime.time + durationMs)
 
                     val uid = "annual-shift-${year}-${month}-${day}-${UUID.randomUUID()}@salarycalculator.app"
-                    val isOvertime = hours > 8.0
-                    val summary = if (isOvertime) "$jobTitle (Overtime: ${hours.toInt()}h)" else "$jobTitle (${hours.toInt()}h Shift)"
-                    val description = "Logged working shift in Salary Calculator. Month: $month, Day: $day. Total: ${"%.1f".format(hours)}h"
+                    val summary = formatShiftSummary(jobTitle, hours, standardShiftHours)
+                    val isOt = hours < 0.0 || (standardShiftHours > 0.0 && absHours > standardShiftHours)
+                    val description = "Logged working shift in Salary Calculator. Month: $month, Day: $day. Total: ${"%.1f".format(absHours)}h${if (isOt) " (Overtime Shift)" else ""}"
 
                     sb.appendLine("BEGIN:VEVENT")
                     sb.appendLine("UID:$uid")

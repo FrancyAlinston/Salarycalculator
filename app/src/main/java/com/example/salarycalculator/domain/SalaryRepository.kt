@@ -64,6 +64,8 @@ class SalaryRepository(private val context: Context) {
     private val PAYROLL_CONTACT_EMAIL_KEY = stringPreferencesKey("payroll_contact_email")
     private val CACHED_CURRENCY_RATES_KEY = stringPreferencesKey("cached_currency_rates_json")
     private val CURRENCY_RATES_LAST_FETCH_KEY = stringPreferencesKey("currency_rates_last_fetch")
+    private val SHIFT_CALENDAR_TITLE_KEY = stringPreferencesKey("shift_calendar_title")
+    private val SHIFT_CALENDAR_START_HOUR_KEY = intPreferencesKey("shift_calendar_start_hour")
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -861,6 +863,34 @@ class SalaryRepository(private val context: Context) {
     fun getCurrencyRatesLastFetch(): Flow<String> {
         return context.dataStore.data.map { preferences ->
             preferences[CURRENCY_RATES_LAST_FETCH_KEY] ?: ""
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getShiftCalendarTitle(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SHIFT_CALENDAR_TITLE_KEY] ?: "Night Duty"
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setShiftCalendarTitle(title: String) {
+        context.dataStore.edit { preferences ->
+            preferences[SHIFT_CALENDAR_TITLE_KEY] = title.trim()
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getShiftCalendarStartHour(): Flow<Int> {
+        return context.dataStore.data.map { preferences ->
+            preferences[SHIFT_CALENDAR_START_HOUR_KEY] ?: 20
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setShiftCalendarStartHour(hour: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[SHIFT_CALENDAR_START_HOUR_KEY] = hour
         }
     }
 }
