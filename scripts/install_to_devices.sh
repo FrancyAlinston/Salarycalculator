@@ -11,11 +11,11 @@ else
 fi
 
 DEVICE_IPS=(
+    "192.168.8.232" # Samsung Galaxy S25 Ultra (SM-S938B)
     "192.168.8.162" # Samsung Galaxy Watch 8 Classic (SM-L505F)
     "192.168.8.246" # Pixel 8 Pro (Current DHCP)
     "192.168.8.178" # Pixel 8 Pro (Alternate)
     "192.168.8.168" # Redmi Note 10 Pro
-    "192.168.8.232" # Alternate Watch IP
 )
 
 PHONE_APK="${1:-$(ls -t APKs/Salarycalculator-v[0-9]*.apk 2>/dev/null | grep -v 'wear' | head -n 1)}"
