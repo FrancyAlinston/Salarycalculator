@@ -11,10 +11,11 @@ else
 fi
 
 DEVICE_IPS=(
+    "192.168.8.162" # Samsung Galaxy Watch 8 Classic (SM-L505F)
     "192.168.8.246" # Pixel 8 Pro (Current DHCP)
     "192.168.8.178" # Pixel 8 Pro (Alternate)
     "192.168.8.168" # Redmi Note 10 Pro
-    "192.168.8.232" # Samsung Galaxy Watch 8 Classic / LAN Target
+    "192.168.8.232" # Alternate Watch IP
 )
 
 PHONE_APK="${1:-$(ls -t APKs/Salarycalculator-v[0-9]*.apk 2>/dev/null | grep -v 'wear' | head -n 1)}"
@@ -26,16 +27,23 @@ echo "Wear APK:  $WEAR_APK"
 scan_open_ports() {
     local target_ip="$1"
     if command -v nmap >/dev/null 2>&1; then
-        nmap -T4 -p 5555,35000-48000 "$target_ip" --open 2>/dev/null | awk -F'/' '/open/ {print $1}' || true
+        nmap -T4 -p 5555,30000-49999 "$target_ip" --open 2>/dev/null | awk -F'/' '/open/ {print $1}' || true
     elif command -v python >/dev/null 2>&1; then
         python -c "
-import socket
+import socket, concurrent.futures
 ip = '$target_ip'
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.settimeout(0.35)
-if s.connect_ex((ip, 5555)) == 0:
-    print(5555)
-s.close()
+def check(p):
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(0.12)
+    try:
+        if s.connect_ex((ip, p)) == 0: return p
+    except Exception: pass
+    finally: s.close()
+    return None
+ports = [5555] + list(range(30000, 50000))
+with concurrent.futures.ThreadPoolExecutor(max_workers=256) as ex:
+    for r in ex.map(check, ports):
+        if r: print(r)
 " 2>/dev/null || true
     fi
 }
