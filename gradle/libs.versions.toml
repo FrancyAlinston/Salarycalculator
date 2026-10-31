@@ -39,6 +39,9 @@ androidx-wear-tiles = { module = "androidx.wear.tiles:tiles", version.ref = "wea
 androidx-wear-protolayout = { module = "androidx.wear.protolayout:protolayout", version.ref = "wearProtolayout" }
 androidx-wear-protolayout-material = { module = "androidx.wear.protolayout:protolayout-material", version.ref = "wearProtolayout" }
 androidx-wear-protolayout-expression = { module = "androidx.wear.protolayout:protolayout-expression", version.ref = "wearProtolayout" }
+androidx-wear-watchface = { module = "androidx.wear.watchface:watchface", version.ref = "wearWatchfaceComplications" }
+androidx-wear-watchface-style = { module = "androidx.wear.watchface:watchface-style", version.ref = "wearWatchfaceComplications" }
+androidx-wear-watchface-complications-rendering = { module = "androidx.wear.watchface:watchface-complications-rendering", version.ref = "wearWatchfaceComplications" }
 androidx-wear-watchface-complications-data-source-ktx = { module = "androidx.wear.watchface:watchface-complications-data-source-ktx", version.ref = "wearWatchfaceComplications" }
 androidx-concurrent-futures-ktx = { module = "androidx.concurrent:concurrent-futures-ktx", version.ref = "concurrentFutures" }
 guava-android = { module = "com.google.guava:guava", version.ref = "guavaAndroid" }

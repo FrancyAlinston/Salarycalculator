@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">Salary Calculator</string>
-    <string name="tile_shift_label">Duty Status &amp; Shift Heatmap</string>
-    <string name="tile_shift_description">Shows whether today has Night Duty or Off Duty with a 7-day weekly rota bar</string>
+    <string name="tile_shift_label">Casio Night Duty &amp; Shift Rota</string>
+    <string name="tile_shift_description">Casio Classic Black Digital Tile showing Night Duty, Steps, Weather, and 7-day weekly rota</string>
     <string name="complication_shift_label">Today Duty Status</string>
     <string name="complication_shift_description">Displays Night Duty, Overtime, Annual Leave, or Off Duty for the current day</string>
+    <string name="watchface_casio_label">Casio Night Duty Digital</string>
 </resources>

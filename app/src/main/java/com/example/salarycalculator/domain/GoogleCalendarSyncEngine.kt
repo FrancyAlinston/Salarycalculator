@@ -166,8 +166,7 @@ object GoogleCalendarSyncEngine {
         var insertedCount = 0
         val cal = Calendar.getInstance()
         val daysInMonth = cal.apply {
-            set(Calendar.YEAR, year)
-            set(Calendar.MONTH, month - 1)
+            set(year, month - 1, 1)
         }.getActualMaximum(Calendar.DAY_OF_MONTH)
 
         val timeZone = TimeZone.getDefault().id

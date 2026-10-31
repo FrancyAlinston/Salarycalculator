@@ -5,6 +5,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.YearMonth
+import java.util.Calendar
 
 class WearTaxCalculatorTest {
 
@@ -60,5 +63,23 @@ class WearTaxCalculatorTest {
         assertEquals("Annual Leave", summary.title)
         assertFalse(summary.hasDuty)
         assertEquals(WearDutyState.ANNUAL_LEAVE, summary.dutyState)
+    }
+
+    @Test
+    fun `November 2026 always has 30 days even when initialized on October 31st`() {
+        val ym = YearMonth.of(2026, 11)
+        assertEquals(30, ym.lengthOfMonth())
+
+        val cal = Calendar.getInstance()
+        cal.set(2026, Calendar.OCTOBER, 31) // Simulate running on Oct 31
+        cal.set(2026, 11 - 1, 1) // Safe 3-arg setter for November
+        assertEquals(30, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+    }
+
+    @Test
+    fun `computeShiftProgressFraction calculates elapsed progress during 20_00 to 08_00 night duty`() {
+        assertEquals(0f, WearTelemetryManager.computeShiftProgressFraction(false, LocalTime.of(22, 0)), 0.001f)
+        // At 02:00 AM (halfway through 20:00 -> 08:00 shift), progress is 0.5
+        assertEquals(0.5f, WearTelemetryManager.computeShiftProgressFraction(true, LocalTime.of(2, 0)), 0.001f)
     }
 }

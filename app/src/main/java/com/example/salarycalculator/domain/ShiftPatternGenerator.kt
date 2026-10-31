@@ -66,8 +66,7 @@ object ShiftPatternGenerator {
             val monthMap = mutableMapOf<Int, Double>()
 
             val cal = Calendar.getInstance().apply {
-                set(Calendar.YEAR, year)
-                set(Calendar.MONTH, m - 1)
+                set(year, m - 1, 1)
             }
             val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
 

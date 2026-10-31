@@ -4,6 +4,25 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.7] - 2026-10-31 (VersionCode: 71)
+### Added / Changed
+- **Casio Classic Black Digital Watch Face & Quick Tile (`WearCasioWatchFaceService.kt`, `CasioDigitalCanvasRenderer.kt`, `WearCasioWatchScreen.kt`, `WearShiftTileService.kt`)**:
+  - **Authentic Casio F-91W / G-Shock Black Digital Watch Face**: Engineered a pure black (`#000000`) Super AMOLED digital watch face (available both as a system Wear OS Watch Face `Casio Night Duty Digital`, on the Quick Tile, and as an interactive in-app screen `WearCasioWatchScreen.kt`) with custom beveled 7-segment LCD numerals (`HH:MM` + `:SS` seconds + subtle ghost segments), Cobalt Blue & Gold Casio bezel framing (`WR 50M ? SHIFT ROTA`), Day/Date box (`SAT 31 OCT`), and a bottom 7-day (`M T W T F S S`) weekly shift matrix.
+  - **Live Step Counter & Weather Telemetry (`WearTelemetryManager.kt`)**: Integrated real-time hardware step counter (`Sensor.TYPE_STEP_COUNTER`) with daily midnight baseline tracking and an 8-segment LCD progress bar (`STEPS /8K`), plus automatic local weather updates (`?C`, condition label, and `H:/L:` range) via Open-Meteo with offline caching.
+  - **Duty-Focused Casio Status Box (`NIGHT DUTY` vs `OFF DUTY`)**: Displays `NIGHT DUTY` (`? 20:00-08:00 (12H)`) on night shift days and `OFF DUTY` on rest days without exposing net pay on the watch face or tile.
+- **Watch UI Optimization & `EOT-EXEC-V27.6-PHONE` Roadmap Execution (`FEAT-931`, `FEAT-932`, `PEND-926`) (`WearHeatmapScreen.kt`)**:
+  - **438x438 Circular Viewport Optimization**: Compacted the Watch Heatmap layout (`initialCenterItemIndex = 2`, `18.5dp` day cells, `0.8dp` row spacing, combined Duty + Steps/Weather top bar) so all 5 weeks of the month, the month switcher, and today's `Night Duty` status fit on the Samsung Galaxy Watch 8 Classic screen simultaneously without edge clipping.
+  - **Live Shift Elapsed-Progress Arc (`FEAT-932`)**: Added real-time `20:00 ? 08:00` shift progress arc along the top chronograph bezel ring.
+  - **Ambient Always-On Display (AOD) Low-Bit Mode (`PEND-926`)**: Added lifecycle-aware low-bit outline rendering when the watch enters ambient mode.
+
+### Bugs Found & Fixed
+- **November 30-Day Calendar Day-31 Rollover Bug (`FIX-930`) (`ShiftHeatmapCard.kt`, `ShiftCalendarDialog.kt`, `PayslipAuditDialog.kt`, `DutyRotaImportDialog.kt`, `PayScheduleEngine.kt`, `DutyAlarmManager.kt`, `DutyRotaOcrEngine.kt`, `GoogleCalendarSyncEngine.kt`, `ShiftPatternGenerator.kt`)**: Fixed a `java.util.Calendar` rollover bug where calling `c.set(Calendar.MONTH, selectedMonth - 1)` on the 31st of a month (e.g., October 31st) without resetting `DAY_OF_MONTH` to `1` caused 30-day months like November to overflow into December 1st and report `31` days instead of `30`. All calendar initializations now use atomic `c.set(year, month - 1, 1)`.
+
+### What Needs to Be Fixed / Pending
+- Custom user-selectable Casio LCD accent color themes (Classic Green, Amber Gold, Electro-Luminescent Cyan).
+
+---
+
 ## [27.6] - 2026-10-31 (VersionCode: 70)
 ### Added / Changed
 - **Samsung Galaxy Watch 8 Classic Super AMOLED Quick Tile (`FEAT-927`) (`WearShiftTileService.kt`, `TaxCalculator.kt`, `WearSalaryRepository.kt`)**:

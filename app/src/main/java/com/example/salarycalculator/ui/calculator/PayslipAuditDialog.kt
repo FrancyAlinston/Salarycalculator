@@ -174,8 +174,7 @@ fun PayslipAuditDialog(
     // Days in current selected month/year
     val daysInMonth = remember(selectedYear, selectedMonth) {
         val c = Calendar.getInstance()
-        c.set(Calendar.YEAR, selectedYear)
-        c.set(Calendar.MONTH, selectedMonth - 1)
+        c.set(selectedYear, selectedMonth - 1, 1)
         c.getActualMaximum(Calendar.DAY_OF_MONTH)
     }
 

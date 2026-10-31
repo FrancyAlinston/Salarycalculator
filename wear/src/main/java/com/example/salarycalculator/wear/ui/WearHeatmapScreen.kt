@@ -18,11 +18,16 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListAnchorType
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
@@ -30,6 +35,7 @@ import androidx.wear.compose.material.*
 import com.example.salarycalculator.wear.domain.TaxCalculator
 import com.example.salarycalculator.wear.domain.WearDutyState
 import com.example.salarycalculator.wear.domain.WearSalaryRepository
+import com.example.salarycalculator.wear.domain.WearTelemetryManager
 import com.example.salarycalculator.wear.theme.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -45,11 +51,15 @@ fun WearHeatmapScreen(
     currentYearMonth: YearMonth,
     onMonthChange: (YearMonth) -> Unit,
     onNavigateToSalary: (YearMonth) -> Unit,
+    onNavigateToCasioWatch: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-    val listState = rememberScalingLazyListState(initialCenterItemIndex = 1)
+    // Center on Item 2 (the 7-column Heatmap card) so the entire month grid + top duty bar fit on 438x438 screen
+    val listState = rememberScalingLazyListState(initialCenterItemIndex = 2)
     val focusRequester = remember { FocusRequester() }
 
     val shifts by repository.shiftsFlow.collectAsState(initial = WearSalaryRepository.DEFAULT_2026_FLAT_SHIFTS)
@@ -59,9 +69,22 @@ fun WearHeatmapScreen(
     var showMonthPicker by remember { mutableStateOf(false) }
     var bezelMonthDialMode by remember { mutableStateOf(false) }
     var rotaryAccumulator by remember { mutableFloatStateOf(0f) }
+    var telemetry by remember { mutableStateOf(WearTelemetryManager.getSnapshot(context)) }
+    // [ACTION: PEND-926] Ambient Always-On Display (AOD) low-bit outline mode
+    var isAmbientMode by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            isAmbientMode = (event == Lifecycle.Event.ON_PAUSE)
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+        WearTelemetryManager.ensureStepSensorListening(context)
+        telemetry = WearTelemetryManager.refreshWeatherIfNeeded(context)
         // Background sync with UGOS NAS on launch & refresh Tile + Complication
         repository.syncFromNasServer()
         repository.requestTileAndComplicationRefresh()
@@ -155,20 +178,20 @@ fun WearHeatmapScreen(
             state = listState,
             anchorType = ScalingLazyListAnchorType.ItemCenter,
             horizontalAlignment = Alignment.CenterHorizontally,
-            contentPadding = PaddingValues(top = 26.dp, bottom = 36.dp, start = 10.dp, end = 10.dp)
+            contentPadding = PaddingValues(top = 18.dp, bottom = 28.dp, start = 8.dp, end = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            // 1. Samsung Watch 8 Classic Circular-Safe Month Header & Picker Trigger
+            // 0. Compact Circular-Safe Month Header & Picker Trigger
             item {
                 Row(
                     modifier = Modifier
-                        .widthIn(max = 166.dp)
-                        .fillMaxWidth(),
+                        .width(154.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
+                            .size(22.dp)
                             .clip(CircleShape)
                             .background(WearSurface)
                             .clickable {
@@ -177,35 +200,26 @@ fun WearHeatmapScreen(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("◀", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("◀", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
 
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Text(
+                        text = "$shortMonthName $yearStr ▾",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = WearTeal,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 showMonthPicker = true
                             }
                             .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "$shortMonthName $yearStr ▾",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = WearTeal
-                        )
-                        Text(
-                            text = "Tap for Month List",
-                            fontSize = 8.sp,
-                            color = WearTextSecondary
-                        )
-                    }
+                    )
 
                     Box(
                         modifier = Modifier
-                            .size(26.dp)
+                            .size(22.dp)
                             .clip(CircleShape)
                             .background(WearSurface)
                             .clickable {
@@ -214,22 +228,20 @@ fun WearHeatmapScreen(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("▶", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("▶", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
 
-            // 2. Visually Beautiful Today Duty Status Hero Banner (FEAT-927 / FEAT-928 — No Net Pay)
+            // 1. Compact Today Duty Status + Casio Step & Weather Strip (No Net Pay)
             item {
-                val isInspectingToday = (activeInspectDate == today)
-                val dayContextPrefix = if (isInspectingToday) "TODAY" else dutySummary.formattedDate
-
-                val gradientColors = when (dutySummary.dutyState) {
-                    WearDutyState.NIGHT_DUTY -> listOf(Color(0xFF042F2E), Color(0xFF065F46), Color(0xFF042F2E))
-                    WearDutyState.OVERTIME -> listOf(Color(0xFF451A03), Color(0xFF78350F), Color(0xFF451A03))
-                    WearDutyState.ANNUAL_LEAVE -> listOf(Color(0xFF172554), Color(0xFF1E3A8A), Color(0xFF172554))
-                    WearDutyState.SICK_LEAVE -> listOf(Color(0xFF3B0764), Color(0xFF581C87), Color(0xFF3B0764))
-                    WearDutyState.OFF_DUTY -> listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A))
+                val gradientColors = when {
+                    isAmbientMode -> listOf(Color.Black, Color.Black)
+                    dutySummary.dutyState == WearDutyState.NIGHT_DUTY -> listOf(Color(0xFF042F2E), Color(0xFF065F46), Color(0xFF042F2E))
+                    dutySummary.dutyState == WearDutyState.OVERTIME -> listOf(Color(0xFF451A03), Color(0xFF78350F), Color(0xFF451A03))
+                    dutySummary.dutyState == WearDutyState.ANNUAL_LEAVE -> listOf(Color(0xFF172554), Color(0xFF1E3A8A), Color(0xFF172554))
+                    dutySummary.dutyState == WearDutyState.SICK_LEAVE -> listOf(Color(0xFF3B0764), Color(0xFF581C87), Color(0xFF3B0764))
+                    else -> listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A))
                 }
                 val accentColor = when (dutySummary.dutyState) {
                     WearDutyState.NIGHT_DUTY -> WearEmerald
@@ -249,47 +261,49 @@ fun WearHeatmapScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .padding(top = 3.dp)
-                        .width(172.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .width(168.dp)
+                        .clip(RoundedCornerShape(12.dp))
                         .background(Brush.horizontalGradient(gradientColors))
-                        .border(1.2.dp, accentColor.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+                        .border(1.dp, accentColor.copy(alpha = 0.7f), RoundedCornerShape(12.dp))
                         .clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             coroutineScope.launch {
                                 repository.toggleShift(dutySummary.dateKey, standardHours)
                             }
                         }
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = statusIcon, fontSize = 10.sp)
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = dutySummary.title, // "Night Duty" or "Off Duty"
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White
+                            )
+                        }
                         Text(
-                            text = statusIcon,
-                            fontSize = 12.sp
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = dutySummary.title, // "Night Duty" on night shift days, "Off Duty" on rest days
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White
+                            text = "👟${telemetry.stepsToday} • ${telemetry.weather.formattedTemp}",
+                            fontSize = 8.5.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            color = accentColor,
+                            modifier = Modifier.clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onNavigateToCasioWatch()
+                            }
                         )
                     }
-                    Text(
-                        text = "$dayContextPrefix • ${dutySummary.subtitle}",
-                        fontSize = 8.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = accentColor,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1
-                    )
                 }
             }
 
-            // 3. Cohesive Circular-Safe 7-Column Heatmap Grid Card (Zero Bezel Clipping)
+            // 2. Optimized 438x438 Circular-Safe 7-Column Heatmap Grid Card (All 5 Weeks Fit On-Screen!)
             item {
                 val totalCells = startDayOfWeek + daysInMonth
                 val totalWeeks = (totalCells + 6) / 7
@@ -297,12 +311,11 @@ fun WearHeatmapScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .padding(top = 4.dp)
-                        .width(172.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF121217))
-                        .border(1.dp, Color(0xFF27272A), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 6.dp, vertical = 6.dp)
+                        .width(168.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (isAmbientMode) Color.Black else Color(0xFF0E0E14))
+                        .border(1.dp, Color(0xFF27272A), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 5.dp, vertical = 4.dp)
                 ) {
                     // Day-of-week header (Mon - Sun)
                     Row(
@@ -312,22 +325,22 @@ fun WearHeatmapScreen(
                         listOf("M", "T", "W", "T", "F", "S", "S").forEachIndexed { idx, day ->
                             Text(
                                 text = day,
-                                fontSize = 9.sp,
+                                fontSize = 8.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (idx >= 5) WearAmber.copy(alpha = 0.85f) else WearTextSecondary,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.width(21.dp)
+                                modifier = Modifier.width(19.dp)
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(3.dp))
+                    Spacer(modifier = Modifier.height(1.5.dp))
 
                     for (week in 0 until totalWeeks) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 1.5.dp),
+                                .padding(vertical = 0.8.dp),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
                             for (dayOfWeek in 0..6) {
@@ -348,6 +361,7 @@ fun WearHeatmapScreen(
                                     val isNightDuty = (shiftHours > 0.0 && shiftHours <= standardHours)
 
                                     val bgColor = when {
+                                        isAmbientMode -> Color.Black
                                         isNightDuty -> WearTeal
                                         isOvertime -> WearAmber
                                         isAnnualLeave -> WearBlue
@@ -355,6 +369,7 @@ fun WearHeatmapScreen(
                                         else -> Color(0xFF232329)
                                     }
                                     val textColor = when {
+                                        isAmbientMode -> if (shiftHours != 0.0) WearTeal else Color.Gray
                                         isNightDuty || isOvertime -> Color.Black
                                         isAnnualLeave || isSsp -> Color.White
                                         isToday -> WearCyan
@@ -363,7 +378,7 @@ fun WearHeatmapScreen(
 
                                     Box(
                                         modifier = Modifier
-                                            .size(21.dp)
+                                            .size(18.5.dp)
                                             .clip(CircleShape)
                                             .background(bgColor)
                                             .then(
@@ -372,6 +387,7 @@ fun WearHeatmapScreen(
                                                     isToday -> Modifier.border(1.5.dp, WearCyan, CircleShape)
                                                     isCutoff -> Modifier.border(1.dp, WearRose, CircleShape)
                                                     isPayDay -> Modifier.border(1.dp, WearEmerald, CircleShape)
+                                                    isAmbientMode && shiftHours != 0.0 -> Modifier.border(1.dp, WearTeal, CircleShape)
                                                     else -> Modifier
                                                 }
                                             )
@@ -386,21 +402,21 @@ fun WearHeatmapScreen(
                                     ) {
                                         Text(
                                             text = dayNumber.toString(),
-                                            fontSize = 9.sp,
+                                            fontSize = 8.2.sp,
                                             fontWeight = if (shiftHours != 0.0 || isToday) FontWeight.ExtraBold else FontWeight.Normal,
                                             color = textColor,
                                             textAlign = TextAlign.Center
                                         )
                                     }
                                 } else {
-                                    Spacer(modifier = Modifier.size(21.dp))
+                                    Spacer(modifier = Modifier.size(18.5.dp))
                                 }
                             }
                         }
                     }
 
                     // Mini Legend Row inside Heatmap Card
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -414,13 +430,42 @@ fun WearHeatmapScreen(
                 }
             }
 
-            // 4. Primary CTA: Select Month's Salary Breakdown (Net pay kept inside Salary screen)
+            // 3. Casio Classic Digital Watch Face Launcher + Select Month's Salary Breakdown
             item {
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Chip(
                     modifier = Modifier
-                        .widthIn(max = 172.dp)
-                        .fillMaxWidth(),
+                        .width(168.dp),
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onNavigateToCasioWatch()
+                    },
+                    colors = ChipDefaults.primaryChipColors(
+                        backgroundColor = Color(0xFF0F172A),
+                        contentColor = Color.White
+                    ),
+                    label = {
+                        Text(
+                            text = "⌚ Casio Digital Watch",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    },
+                    secondaryLabel = {
+                        Text(
+                            text = "Steps (${telemetry.stepsToday}) • ${telemetry.weather.formattedTemp} ${telemetry.weather.conditionShort}",
+                            fontSize = 8.5.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = WearCyan
+                        )
+                    }
+                )
+            }
+
+            item {
+                Chip(
+                    modifier = Modifier
+                        .width(168.dp),
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onNavigateToSalary(currentYearMonth)
@@ -432,14 +477,14 @@ fun WearHeatmapScreen(
                     label = {
                         Text(
                             text = "Select Month's Salary",
-                            fontSize = 11.sp,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     secondaryLabel = {
                         Text(
                             text = "$shortMonthName $yearStr Payslip & Tax ▸",
-                            fontSize = 9.5.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = WearEmerald
                         )
@@ -447,11 +492,10 @@ fun WearHeatmapScreen(
                 )
             }
 
-            // 5. Select Any Month + Watch 8 Classic Physical Bezel Mode Toggle
+            // 4. Select Any Month + Watch 8 Classic Physical Bezel Mode Toggle
             item {
-                Spacer(modifier = Modifier.height(4.dp))
                 Row(
-                    modifier = Modifier.widthIn(max = 168.dp).fillMaxWidth(),
+                    modifier = Modifier.width(166.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     CompactChip(
@@ -501,12 +545,12 @@ private fun LegendDot(color: Color, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .size(6.dp)
+                .size(5.dp)
                 .clip(CircleShape)
                 .background(color)
         )
         Spacer(modifier = Modifier.width(2.dp))
-        Text(text = label, fontSize = 8.sp, color = WearTextSecondary)
+        Text(text = label, fontSize = 7.5.sp, color = WearTextSecondary)
     }
 }
 

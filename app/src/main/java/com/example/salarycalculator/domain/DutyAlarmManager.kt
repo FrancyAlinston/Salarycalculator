@@ -156,8 +156,7 @@ object DutyAlarmManager {
      */
     fun getDutyDaysForMonth(year: Int, month: Int, shifts: Map<Int, Double>): List<Int> {
         val cal = Calendar.getInstance()
-        cal.set(Calendar.YEAR, year)
-        cal.set(Calendar.MONTH, month - 1)
+        cal.set(year, month - 1, 1)
         val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
 
         val dutyDays = mutableListOf<Int>()
@@ -179,8 +178,7 @@ object DutyAlarmManager {
      */
     fun getAnnualLeaveDaysForMonth(year: Int, month: Int, shifts: Map<Int, Double>): List<Int> {
         val cal = Calendar.getInstance()
-        cal.set(Calendar.YEAR, year)
-        cal.set(Calendar.MONTH, month - 1)
+        cal.set(year, month - 1, 1)
         val daysInMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
 
         val alDays = mutableListOf<Int>()

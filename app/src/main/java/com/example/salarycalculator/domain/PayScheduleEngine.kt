@@ -130,8 +130,7 @@ object PayScheduleEngine {
      */
     fun calculatePayPeriod(year: Int, month: Int, config: PayScheduleConfig = PayScheduleConfig()): PayPeriodInfo {
         val cal = Calendar.getInstance()
-        cal.set(Calendar.YEAR, year)
-        cal.set(Calendar.MONTH, month - 1)
+        cal.set(year, month - 1, 1)
         val maxDays = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
 
         when (config.type) {
@@ -168,8 +167,7 @@ object PayScheduleEngine {
                 val prevMonth = if (month == 1) 12 else month - 1
                 val prevYear = if (month == 1) year - 1 else year
                 val prevCutoffCal = Calendar.getInstance().apply {
-                    set(Calendar.YEAR, prevYear)
-                    set(Calendar.MONTH, prevMonth - 1)
+                    set(prevYear, prevMonth - 1, 1)
                     val prevMax = getActualMaximum(Calendar.DAY_OF_MONTH)
                     var prevFri = prevMax
                     for (d in prevMax downTo 1) {

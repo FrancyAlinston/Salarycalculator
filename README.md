@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Casio Classic Black Digital Watch Face, Step Counter, Weather & November Calendar Fix (`v27.7`) (`WearCasioWatchFaceService.kt`, `CasioDigitalCanvasRenderer.kt`, `WearTelemetryManager.kt`, `ShiftHeatmapCard.kt`):**
+  - **Casio Classic F-91W / G-Shock Black Digital Watch Face & Tile:** Pure black (`#000000`) Super AMOLED digital watch face with beveled 7-segment LCD numerals (`HH:MM:SS`), Cobalt Blue & Gold Casio bezel framing, live **Step Counter** (`Sensor.TYPE_STEP_COUNTER` + 8-segment LCD progress bar), live **Weather** (`?C` + condition + High/Low), **`NIGHT DUTY` / `OFF DUTY`** readout, and a 7-day (`M T W T F S S`) weekly shift matrix.
+  - **438x438 Circular Watch UI Optimization (`FEAT-931`, `FEAT-932`, `PEND-926`):** Optimized `WearHeatmapScreen.kt` so all 5 weeks of the month, the month header, and the Today Duty + Steps/Weather pill fit on the Samsung Galaxy Watch 8 Classic screen at once, with live shift progress arc and Ambient AOD support.
+  - **November 30-Day Calendar Rollover Fix (`FIX-930`):** Fixed `java.util.Calendar` initialization on the 31st of a month so 30-day months (November, April, June, September) and February always render their exact day count (`30` days for November).
+
 - **Samsung Galaxy Watch 8 Classic Quick Tile & Watch Face Complication (`FEAT-927`, `FEAT-928`) (`WearShiftTileService.kt`, `WearShiftComplicationService.kt`, `WearHeatmapScreen.kt`):**
   - **480x480 Super AMOLED Circular Duty Tile (`FEAT-927`):** Luxury circular chronograph tile with radial Emerald/Teal aura, 60-tick bezel ring, Crescent Moon & Stars emblem, bold **`Night Duty`** / **`Off Duty`** status readout (with no net pay exposed), shift timing subtitle (`20:00 ? 08:00 ? 12h Shift`), and a 7-day `M T W T F S S` mini weekly rota bar.
   - **Multi-Slot Watch Face Complication (`FEAT-928`):** Supports `SHORT_TEXT`, `LONG_TEXT`, `RANGED_VALUE`, and `MONOCHROMATIC_IMAGE` slots showing **`Night Duty`** on shift days and **`Off Duty`** on rest days with 1-tap launch into the Watch Heatmap.

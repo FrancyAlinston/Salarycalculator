@@ -640,8 +640,7 @@ private fun Step3HeatmapPreview(
 ) {
     val daysInMonth = remember(year, month) {
         val c = Calendar.getInstance()
-        c.set(Calendar.YEAR, year)
-        c.set(Calendar.MONTH, month - 1)
+        c.set(year, month - 1, 1)
         c.getActualMaximum(Calendar.DAY_OF_MONTH)
     }
 
