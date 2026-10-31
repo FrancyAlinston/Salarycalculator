@@ -1,0 +1,10 @@
+<resources>
+    <string name="watch_face_name">Casio Night Duty Digital</string>
+    <string name="colors_label">Casio LCD Color Theme</string>
+    <string name="theme_stealth_label">Stealth White on Black</string>
+    <string name="theme_green_label">Casio EL Green</string>
+    <string name="theme_amber_label">Vintage Amber Gold</string>
+    <string name="theme_cyan_label">Cyber Ice Cyan</string>
+    <string name="duty_slot_label">Today Duty Status</string>
+    <string name="weather_slot_label">Weather Complication</string>
+</resources>

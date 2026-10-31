@@ -453,13 +453,60 @@ fun WearHeatmapScreen(
                     },
                     secondaryLabel = {
                         Text(
-                            text = "Steps (${telemetry.stepsToday}) • ${telemetry.weather.formattedTemp} ${telemetry.weather.conditionShort}",
+                            text = "👟${telemetry.stepsToday} • ${telemetry.weather.formattedTemp} • 🔋${telemetry.batteryPercent}%",
                             fontSize = 8.5.sp,
                             fontFamily = FontFamily.Monospace,
                             color = WearCyan
                         )
                     }
                 )
+            }
+
+            // [ACTION: FEAT-938 / FEAT-939] 1-Tap Watch Face Activator & Casio Color Theme Switcher
+            item {
+                Row(
+                    modifier = Modifier.width(166.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    CompactChip(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            WearTelemetryManager.promptSetSystemWatchFace(context)
+                        },
+                        label = {
+                            Text(
+                                text = "⌚ Set Face",
+                                fontSize = 8.8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = WearEmerald,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
+                        colors = ChipDefaults.secondaryChipColors()
+                    )
+
+                    CompactChip(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            telemetry = WearTelemetryManager.cycleColorTheme(context)
+                            repository.requestTileAndComplicationRefresh()
+                        },
+                        label = {
+                            Text(
+                                text = "🎨 ${telemetry.colorTheme.label}",
+                                fontSize = 8.8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = WearCyan,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
+                        colors = ChipDefaults.secondaryChipColors()
+                    )
+                }
             }
 
             item {

@@ -34,6 +34,9 @@ import java.time.ZonedDateTime
  * Renders a Casio Classic F-91W / G-Shock Black Digital Watch Face with:
  * - Pure Black (#000000) Super AMOLED background
  * - 7-Segment Digital Clock (HH:MM:SS)
+ * - Selectable Casio Retro Color Themes (`[ACTION: FEAT-938]`)
+ * - Casio Hourly Chime (`SIG`) & Shift Start Alert (`ALM`) (`[ACTION: FEAT-939]`)
+ * - Live Watch Battery Percentage (`BATT %`) (`[ACTION: PEND-930]`)
  * - Live Step Count (Hardware Step Counter Sensor)
  * - Live Weather (°C + Condition + High/Low)
  * - Today's Duty Status ("NIGHT DUTY" vs "OFF DUTY") & 7-Day Weekly Rota Matrix
@@ -77,19 +80,42 @@ class WearCasioWatchFaceService : WatchFaceService() {
         )
 
         watchFace.setTapListener(object : WatchFace.TapListener {
-            override fun onTapEvent(tapType: Int, tapEvent: TapEvent, complicationSlot: androidx.wear.watchface.ComplicationSlot?) {
+            override fun onTapEvent(
+                tapType: Int,
+                tapEvent: TapEvent,
+                complicationSlot: androidx.wear.watchface.ComplicationSlot?
+            ) {
                 if (tapType == TapType.UP) {
-                    renderer.refreshStateAsync()
-                    // Tapping the bottom weekly bar or top duty box opens the Watch Heatmap App
-                    if (tapEvent.yPos > (surfaceHolder.surfaceFrame.height() * 0.65) ||
-                        tapEvent.yPos < (surfaceHolder.surfaceFrame.height() * 0.28)
-                    ) {
-                        try {
-                            val launchIntent = Intent(applicationContext, MainActivity::class.java).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    val w = surfaceHolder.surfaceFrame.width().coerceAtLeast(1)
+                    val h = surfaceHolder.surfaceFrame.height().coerceAtLeast(1)
+                    val normX = tapEvent.xPos.toFloat() / w.toFloat()
+                    val normY = tapEvent.yPos.toFloat() / h.toFloat()
+
+                    when {
+                        // [ACTION: FEAT-938] Tap Top-Left "◀ LIGHT" header to cycle Casio Color Theme
+                        normY < 0.16f && normX < 0.55f -> {
+                            WearTelemetryManager.cycleColorTheme(applicationContext)
+                            WearTelemetryManager.vibrateCasioDoubleBeep(applicationContext)
+                            renderer.invalidate()
+                        }
+                        // [ACTION: FEAT-939] Tap SIG/ALM zone inside clock panel to toggle Hourly Chime & Shift Alert
+                        normY in 0.29f..0.44f && normX >= 0.62f -> {
+                            WearTelemetryManager.toggleSigAlm(applicationContext)
+                            renderer.invalidate()
+                        }
+                        // Tap Bottom Weekly Matrix or Top Duty Box to open Watch Heatmap App
+                        normY > 0.65f || normY in 0.16f..0.28f -> {
+                            renderer.refreshStateAsync()
+                            try {
+                                val launchIntent = Intent(applicationContext, MainActivity::class.java).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                                }
+                                applicationContext.startActivity(launchIntent)
+                            } catch (_: Exception) {
                             }
-                            applicationContext.startActivity(launchIntent)
-                        } catch (_: Exception) {
+                        }
+                        else -> {
+                            renderer.refreshStateAsync()
                         }
                     }
                 }
@@ -150,10 +176,13 @@ class WearCasioWatchFaceService : WatchFaceService() {
             zonedDateTime: ZonedDateTime,
             sharedAssets: CasioSharedAssets
         ) {
-            // Live step reading from shared prefs on every second tick
             cachedTelemetry = WearTelemetryManager.getSnapshot(applicationContext)
+            WearTelemetryManager.checkAndTriggerCasioSignals(
+                applicationContext,
+                zonedDateTime,
+                cachedDuty.hasDuty
+            )
 
-            // Refresh duty & weather once per minute
             if (zonedDateTime.minute != lastRefreshMinute) {
                 lastRefreshMinute = zonedDateTime.minute
                 refreshStateAsync()

@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Samsung Galaxy Watch 8 Classic Watch Face Format (`:watchface`) & `EOT-EXEC-V27.7` Casio Suite (`v27.8`) (`watchface/src/main/res/raw/watchface.xml`, `CasioDigitalCanvasRenderer.kt`, `WearTelemetryManager.kt`):**
+  - **Native Watch Face Format v2 Package (`:watchface`):** Dedicated `hasCode="false"` WFF v2 watch face (`Casio Night Duty Digital`) engineered for Wear OS 5+ / One UI Watch on the Samsung Galaxy Watch 8 Classic (`SM-L505F`), appearing directly in the system Watch Face Selector with pure black (`#000000`) background, digital clock (`HH:MM:SS`), live `[STEP_COUNT]`, live `[WEATHER.TEMPERATURE]`, `[BATTERY_PERCENT]`, and auto-linked **`Night Duty` / `Off Duty`** complication.
+  - **Selectable Casio Retro Color Themes (`FEAT-938`):** 1-tap switching between **Stealth White**, **Casio EL Green**, **Vintage Amber Gold**, and **Cyber Ice Cyan** across the Watch Face, Quick Tile, and Watch App.
+  - **Casio Hourly Chime (`SIG`), Shift Alert (`ALM`) & Battery Meter (`FEAT-939`, `PEND-930`):** Live 4-bar Casio battery indicator (`BATT %`) and toggleable `SIG•ALM` hourly double-tick & `20:00` Night Duty start haptic alerts.
+
 - **Casio Classic Black Digital Watch Face, Step Counter, Weather & November Calendar Fix (`v27.7`) (`WearCasioWatchFaceService.kt`, `CasioDigitalCanvasRenderer.kt`, `WearTelemetryManager.kt`, `ShiftHeatmapCard.kt`):**
   - **Casio Classic F-91W / G-Shock Black Digital Watch Face & Tile:** Pure black (`#000000`) Super AMOLED digital watch face with beveled 7-segment LCD numerals (`HH:MM:SS`), Cobalt Blue & Gold Casio bezel framing, live **Step Counter** (`Sensor.TYPE_STEP_COUNTER` + 8-segment LCD progress bar), live **Weather** (`?C` + condition + High/Low), **`NIGHT DUTY` / `OFF DUTY`** readout, and a 7-day (`M T W T F S S`) weekly shift matrix.
   - **438x438 Circular Watch UI Optimization (`FEAT-931`, `FEAT-932`, `PEND-926`):** Optimized `WearHeatmapScreen.kt` so all 5 weeks of the month, the month header, and the Today Duty + Steps/Weather pill fit on the Samsung Galaxy Watch 8 Classic screen at once, with live shift progress arc and Ambient AOD support.

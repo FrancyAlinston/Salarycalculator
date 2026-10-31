@@ -4,6 +4,27 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.8] - 2026-10-31 (VersionCode: 72)
+### Added / Changed
+- **Samsung Galaxy Watch 8 Classic Watch Face Format (`:watchface`) & Picker Registration (`FIX-935`, `watchface/src/main/res/raw/watchface.xml`, `watchface/src/main/AndroidManifest.xml`, `wear/src/main/res/xml/watch_face.xml`)**:
+  - **Dedicated Wear OS 5+ Watch Face Format Module (`:watchface` -> `Salarycalculator-watchface-v27.8.apk`)**: Engineered a standalone, resource-only Watch Face Format v2 package (`android:hasCode="false"`, `<property android:name="com.google.wear.watchface.format.version" android:value="2" />`, `res/raw/watchface.xml`, `res/xml/watch_face_info.xml`) required by Samsung Galaxy Watch 8 Classic (`SM-L505F`, Wear OS 5 / One UI Watch) so **Casio Night Duty Digital** appears directly in the native Watch Face Selector on both the watch and the Galaxy Wearable phone app.
+  - **Auto-Linked Duty Status Complication (`DefaultProviderPolicy`)**: Pre-bound the top-right Casio Duty Box in `watchface.xml` to `WearShiftComplicationService` (`SHORT_TEXT`, `LONG_TEXT`, `RANGED_VALUE`) so the watch face displays **`Night Duty`** on shift days and **`Off Duty`** on rest days out-of-the-box without exposing net pay.
+  - **1-Tap Watch Face Selector Launcher (`WearHeatmapScreen.kt`, `WearTelemetryManager.kt`)**: Added a **`⌚ Set Face`** quick action chip in the Watch Heatmap screen (`WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER` / `SET_WATCH_FACE`) and a `480x480` Casio Digital preview bitmap (`@drawable/preview_casio_watchface`).
+- **`EOT-EXEC-V27.7` Roadmap Execution (`FEAT-938`, `FEAT-939`, `PEND-930`) (`CasioDigitalCanvasRenderer.kt`, `WearTelemetryManager.kt`, `WearCasioWatchScreen.kt`, `WearCasioWatchFaceService.kt`)**:
+  - **Selectable Casio Retro Color Themes (`FEAT-938`)**: Added 4 authentic Casio LCD color themes (**Stealth White-on-Black** `#ECFEFF`, **Casio EL Green** `#4ADE80`, **Vintage Amber Gold** `#FBBF24`, and **Cyber Ice Cyan** `#38BDF8`) selectable via 1-tap on the top-left `◀ LIGHT` zone of the Casio Watch Screen/Service, the `🎨 Theme` chip on the Watch Heatmap, or the WFF `UserConfigurations` editor.
+  - **Casio Hourly Chime (`SIG`) & Shift Start Alert (`ALM`) (`FEAT-939`)**: Added toggleable `SIG•ALM` indicators inside the centerpiece 7-segment clock box with double-pulse quartz haptic vibration on the hour (`:00`) and a Night Duty start alert at `20:00`.
+  - **Watch Battery Percentage Indicator (`PEND-930`)**: Integrated real-time `BatteryManager` capacity reading (`BATT %` + 4-bar digital Casio battery icon) in the top header of the Casio watch face, tile, and in-app watch screen.
+
+### Bugs Found & Fixed
+- **Watch Face Missing from Samsung Galaxy Watch 8 Classic Picker (`FIX-935`)**:
+  - Fixed `wear/src/main/AndroidManifest.xml` where `android.service.wallpaper` pointed to `<WatchFaceInfo>` instead of a `<wallpaper xmlns:android="http://schemas.android.com/apk/res/android" />` resource (`res/xml/watch_face.xml`), which caused `WallpaperManagerService` to drop the service.
+  - Added the dedicated `hasCode="false"` Watch Face Format (WFF) module (`:watchface`) to satisfy Wear OS 5+ restrictions on devices shipping with Wear OS 5/6 out-of-the-box (`SM-L505F`).
+
+### What Needs to Be Fixed / Pending
+- Optional Casio stopwatch (`ST`) and countdown timer (`TR`) sub-modes on the in-app Casio watch screen.
+
+---
+
 ## [27.7] - 2026-10-31 (VersionCode: 71)
 ### Added / Changed
 - **Casio Classic Black Digital Watch Face & Quick Tile (`WearCasioWatchFaceService.kt`, `CasioDigitalCanvasRenderer.kt`, `WearCasioWatchScreen.kt`, `WearShiftTileService.kt`)**:

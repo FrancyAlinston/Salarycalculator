@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <WatchFaceInfo>
-    <Preview value="@drawable/ic_wear_night_duty" />
+    <Preview value="@drawable/preview_casio_watchface" />
     <Category value="CATEGORY_EMPTY" />
     <AvailableInRetail value="true" />
     <MultipleInstancesAllowed value="false" />

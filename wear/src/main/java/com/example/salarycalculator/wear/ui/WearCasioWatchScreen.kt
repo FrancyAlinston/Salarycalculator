@@ -31,11 +31,11 @@ import java.time.ZonedDateTime
  * Features:
  * - Pure Black (#000000) Super AMOLED background
  * - Live 1-second ticking 7-segment digital clock (HH:MM:SS)
+ * - Selectable Casio Retro Color Themes (`[ACTION: FEAT-938]`) via Top-Left `◀ LIGHT` tap
+ * - Casio Hourly Chime (`SIG`) & Shift Alert (`ALM`) (`[ACTION: FEAT-939]`) via Clock `SIG•ALM` tap
+ * - Live Watch Battery Percentage (`BATT %`) (`[ACTION: PEND-930]`)
  * - Live Step Count (Hardware Step Counter) & Weather (°C + Condition + High/Low)
  * - Today's Duty Status ("NIGHT DUTY" vs "OFF DUTY") & 7-Day Weekly Rota Matrix
- * - Interactive Tap Zones:
- *   - Tap Top-Right Duty Box -> Toggle Today's Shift (Night Duty / Overtime / Leave / Off)
- *   - Tap Bottom 7-Day Matrix or Rotate Bezel -> Open Monthly Shift Heatmap
  */
 @Composable
 fun WearCasioWatchScreen(
@@ -56,22 +56,24 @@ fun WearCasioWatchScreen(
     var telemetry by remember { mutableStateOf(WearTelemetryManager.getSnapshot(context)) }
     var rotaryAccum by remember { mutableFloatStateOf(0f) }
 
-    // 1-second digital quartz tick + live step sensor read
-    LaunchedEffect(Unit) {
+    val todaySummary = remember(nowZoned.toLocalDate(), shifts, standardHours) {
+        TaxCalculator.resolveTodayDutySummary(nowZoned.toLocalDate(), shifts, standardHours)
+    }
+
+    // 1-second digital quartz tick + live step sensor read + hourly chime check
+    LaunchedEffect(todaySummary.hasDuty) {
         focusRequester.requestFocus()
         WearTelemetryManager.ensureStepSensorListening(context)
         coroutineScope.launch {
             telemetry = WearTelemetryManager.refreshWeatherIfNeeded(context)
         }
         while (true) {
-            nowZoned = ZonedDateTime.now()
+            val zdt = ZonedDateTime.now()
+            nowZoned = zdt
             telemetry = WearTelemetryManager.getSnapshot(context)
+            WearTelemetryManager.checkAndTriggerCasioSignals(context, zdt, todaySummary.hasDuty)
             delay(1000L)
         }
-    }
-
-    val todaySummary = remember(nowZoned.toLocalDate(), shifts, standardHours) {
-        TaxCalculator.resolveTodayDutySummary(nowZoned.toLocalDate(), shifts, standardHours)
     }
 
     Box(
@@ -96,12 +98,24 @@ fun WearCasioWatchScreen(
                         val normY = offset.y / size.height.toFloat()
 
                         when {
+                            // [ACTION: FEAT-938] Top-Left "◀ LIGHT" Zone: Cycle Casio Retro Color Theme
+                            normY < 0.16f && normX < 0.55f -> {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                telemetry = WearTelemetryManager.cycleColorTheme(context)
+                                repository.requestTileAndComplicationRefresh()
+                            }
                             // Top-Right Duty Box: 1-tap toggle today's shift status
-                            normY in 0.14f..0.30f && normX >= 0.44f -> {
+                            normY in 0.16f..0.30f && normX >= 0.44f -> {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 coroutineScope.launch {
                                     repository.toggleShift(LocalDate.now().toString(), standardHours)
                                 }
+                            }
+                            // [ACTION: FEAT-939] Clock Right Zone ("SIG•ALM"): Toggle Hourly Chime & Shift Alert
+                            normY in 0.30f..0.46f && normX >= 0.62f -> {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                telemetry = WearTelemetryManager.toggleSigAlm(context)
+                                repository.requestTileAndComplicationRefresh()
                             }
                             // Middle Telemetry Row: force weather & NAS refresh
                             normY in 0.52f..0.68f -> {
@@ -111,7 +125,7 @@ fun WearCasioWatchScreen(
                                     repository.syncFromNasServer()
                                 }
                             }
-                            // Bottom 7-Day Weekly Bar or Top Header: switch to Monthly Heatmap
+                            // Bottom 7-Day Weekly Bar or Top-Right Mode: switch to Monthly Heatmap
                             else -> {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 onNavigateToHeatmap()

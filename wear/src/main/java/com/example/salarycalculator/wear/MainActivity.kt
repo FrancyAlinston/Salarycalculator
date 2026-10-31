@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -32,7 +33,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         repository = WearSalaryRepository(applicationContext)
 
-        // Request ACTIVITY_RECOGNITION if needed for hardware step counter on Wear OS
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION)
                 != PackageManager.PERMISSION_GRANTED
@@ -48,8 +48,25 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             WearSalaryTheme {
-                var currentScreen by remember { mutableStateOf(WearScreen.HEATMAP) }
+                val startOnCasio = remember {
+                    WearTelemetryManager.isCasioDefaultHomeScreen(applicationContext)
+                }
+                var currentScreen by remember {
+                    mutableStateOf(if (startOnCasio) WearScreen.CASIO_WATCH else WearScreen.HEATMAP)
+                }
                 var selectedYearMonth by remember { mutableStateOf(YearMonth.now()) }
+
+                // Keep screen awake when viewing the live ticking Casio Digital Watch screen
+                DisposableEffect(currentScreen) {
+                    if (currentScreen == WearScreen.CASIO_WATCH) {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    } else {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
+                    onDispose {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    }
+                }
 
                 BackHandler(enabled = currentScreen != WearScreen.HEATMAP) {
                     currentScreen = WearScreen.HEATMAP

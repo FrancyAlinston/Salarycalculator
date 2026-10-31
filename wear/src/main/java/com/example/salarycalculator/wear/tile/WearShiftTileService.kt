@@ -64,7 +64,7 @@ class WearShiftTileService : TileService() {
                     val summary = repo.getTodayDutySummary(LocalDate.now())
                     val telemetry = WearTelemetryManager.refreshWeatherIfNeeded(applicationContext)
                     val nowMin = ZonedDateTime.now().let { "${it.hour}_${it.minute}" }
-                    val versionKey = "${summary.dateKey}_${summary.dutyState.name}_${telemetry.stepsToday}_${telemetry.weather.tempCelsius}_$nowMin"
+                    val versionKey = "${summary.dateKey}_${summary.dutyState.name}_${telemetry.stepsToday}_${telemetry.weather.tempCelsius}_${telemetry.colorTheme.id}_${telemetry.batteryPercent}_$nowMin"
 
                     val launchAction = ActionBuilders.LaunchAction.Builder()
                         .setAndroidActivity(

@@ -171,7 +171,6 @@ def sync_releases():
 
     def parse_ver(x):
         import re
-        # split on non-digit runs, convert numeric parts to int for proper numeric sort
         parts = re.split(r'[^0-9]+', x.lstrip("v"))
         return [int(p) if p.isdigit() else p for p in parts if p]
 
@@ -184,6 +183,8 @@ def sync_releases():
         debug_apk = os.path.join(apk_dir, f"Salarycalculator-{v}-debug.apk")
         wear_release_apk = os.path.join(apk_dir, f"Salarycalculator-wear-{v}.apk")
         wear_debug_apk = os.path.join(apk_dir, f"Salarycalculator-wear-{v}-debug.apk")
+        wf_release_apk = os.path.join(apk_dir, f"Salarycalculator-watchface-{v}.apk")
+        wf_debug_apk = os.path.join(apk_dir, f"Salarycalculator-watchface-{v}-debug.apk")
         
         if not os.path.exists(release_apk):
             continue
@@ -195,7 +196,9 @@ def sync_releases():
         body_text += f"### Downloads & Binaries 📦\n- **Production APK (Phone)**: `Salarycalculator-{v}.apk`\n- **Debug APK (Phone)**: `Salarycalculator-{v}-debug.apk`\n"
         if os.path.exists(wear_release_apk):
             body_text += f"- **Wear OS APK (Smartwatch)**: `Salarycalculator-wear-{v}.apk`\n- **Wear OS Debug APK**: `Salarycalculator-wear-{v}-debug.apk`\n"
-        body_text += f"\n---\n*Signed and optimized for standalone installation.*"
+        if os.path.exists(wf_release_apk):
+            body_text += f"- **Wear OS 5+ Watch Face Format (WFF v2) APK**: `Salarycalculator-watchface-{v}.apk`\n- **Wear OS 5+ Watch Face Format Debug APK**: `Salarycalculator-watchface-{v}-debug.apk`\n"
+        body_text += "\n---\n*Signed and optimized for standalone installation.*"
 
         rel = existing_tags.get(v)
         if not rel:
@@ -213,6 +216,8 @@ def sync_releases():
             debug_name = f"Salarycalculator-{v}-debug.apk"
             wear_prod_name = f"Salarycalculator-wear-{v}.apk"
             wear_debug_name = f"Salarycalculator-wear-{v}-debug.apk"
+            wf_prod_name = f"Salarycalculator-watchface-{v}.apk"
+            wf_debug_name = f"Salarycalculator-watchface-{v}-debug.apk"
             
             if prod_name not in existing_assets and os.path.exists(release_apk):
                 print(f"Uploading {prod_name} for {v}...")
@@ -229,6 +234,14 @@ def sync_releases():
             if wear_debug_name not in existing_assets and os.path.exists(wear_debug_apk):
                 print(f"Uploading {wear_debug_name} for {v}...")
                 upload_asset(token, rel_id, wear_debug_apk, wear_debug_name)
+
+            if wf_prod_name not in existing_assets and os.path.exists(wf_release_apk):
+                print(f"Uploading {wf_prod_name} for {v}...")
+                upload_asset(token, rel_id, wf_release_apk, wf_prod_name)
+
+            if wf_debug_name not in existing_assets and os.path.exists(wf_debug_apk):
+                print(f"Uploading {wf_debug_name} for {v}...")
+                upload_asset(token, rel_id, wf_debug_apk, wf_debug_name)
                 
             print(f"✓ {v} release and versioned assets synchronized.")
             

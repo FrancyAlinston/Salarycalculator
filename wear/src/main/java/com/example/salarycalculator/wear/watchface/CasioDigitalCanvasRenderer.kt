@@ -23,6 +23,9 @@ import kotlin.math.sin
  * Features:
  * - Pure Black (#000000) Super AMOLED background
  * - Authentic 7-segment digital LCD clock (HH:MM + :SS + ghost segments)
+ * - Selectable Casio Retro LCD Color Themes (`[ACTION: FEAT-938]`)
+ * - Casio Hourly Chime (`SIG`) & Night Shift Alert (`ALM`) indicators (`[ACTION: FEAT-939]`)
+ * - Live Watch Battery Percentage (`BATT %` + 4-bar meter) (`[ACTION: PEND-930]`)
  * - Live Step Count box with segmented LCD progress bar
  * - Live Weather box (°C + condition + High/Low)
  * - Today's Duty Status ("NIGHT DUTY" vs "OFF DUTY") — no net pay exposed
@@ -68,21 +71,22 @@ object CasioDigitalCanvasRenderer {
         // 1. PURE BLACK (#000000) SUPER AMOLED BACKGROUND
         canvas.drawColor(Color.BLACK)
 
-        // Colors based on duty state and ambient mode
-        val casioBlue = if (isAmbient) Color.parseColor("#334155") else Color.parseColor("#2563EB")
-        val casioGold = if (isAmbient) Color.parseColor("#64748B") else Color.parseColor("#F59E0B")
+        // [ACTION: FEAT-938] Colors based on selected Casio Color Theme, duty state, and ambient mode
+        val theme = telemetry.colorTheme
+        val casioFrameColor = if (isAmbient) Color.parseColor("#334155") else Color.parseColor(theme.frameHex)
+        val casioGold = if (isAmbient) Color.parseColor("#64748B") else Color.parseColor(theme.subHeaderHex)
         val casioRed = if (isAmbient) Color.parseColor("#475569") else Color.parseColor("#EF4444")
-        val lcdLitColor = if (isAmbient) Color.parseColor("#CBD5E1") else Color.parseColor("#ECFEFF")
+        val lcdLitColor = if (isAmbient) Color.parseColor("#CBD5E1") else Color.parseColor(theme.lcdLitHex)
         val lcdGhostColor = if (isAmbient) Color.TRANSPARENT else Color.parseColor("#111C24")
         val boxBorderColor = if (isAmbient) Color.parseColor("#1E293B") else Color.parseColor("#1E3A5F")
 
         val dutyAccent = when {
             isAmbient -> Color.parseColor("#94A3B8")
-            dutySummary.dutyState == WearDutyState.NIGHT_DUTY -> Color.parseColor("#10B981") // Emerald
-            dutySummary.dutyState == WearDutyState.OVERTIME -> Color.parseColor("#F59E0B")   // Amber
-            dutySummary.dutyState == WearDutyState.ANNUAL_LEAVE -> Color.parseColor("#3B82F6") // Blue
-            dutySummary.dutyState == WearDutyState.SICK_LEAVE -> Color.parseColor("#A855F7") // Purple
-            else -> Color.parseColor("#38BDF8") // Cyan for Off Duty
+            dutySummary.dutyState == WearDutyState.NIGHT_DUTY -> Color.parseColor(theme.accentHex)
+            dutySummary.dutyState == WearDutyState.OVERTIME -> Color.parseColor("#F59E0B")
+            dutySummary.dutyState == WearDutyState.ANNUAL_LEAVE -> Color.parseColor("#3B82F6")
+            dutySummary.dutyState == WearDutyState.SICK_LEAVE -> Color.parseColor("#A855F7")
+            else -> Color.parseColor("#38BDF8")
         }
 
         // 2. Outer 60-Tick Chronograph Bezel Ring + [ACTION: FEAT-932] Shift Progress Arc
@@ -107,7 +111,7 @@ object CasioDigitalCanvasRenderer {
                 )
             }
 
-            // Live Shift Progress Arc (215° .. 325°)
+            // Live Shift Progress Arc (220° .. 320°)
             val progressFraction = WearTelemetryManager.computeShiftProgressFraction(
                 dutySummary.hasDuty,
                 zonedDateTime.toLocalTime()
@@ -132,32 +136,44 @@ object CasioDigitalCanvasRenderer {
             }
         }
 
-        // 3. Classic Casio Double-Line Inner Ring & Header Branding
+        // 3. Classic Casio Double-Line Inner Ring & Header Branding + [ACTION: PEND-930] Battery Meter
         val outerRingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = 2.2f
-            color = casioBlue
+            color = casioFrameColor
         }
         canvas.drawCircle(cx, cy, 216f, outerRingPaint)
 
-        // Top Casio Header Text: "CASIO" + "NIGHT DUTY"
+        // Top Casio Header Text: "CASIO"
         val brandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
-            textSize = 20f
+            textSize = 19f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
             letterSpacing = 0.16f
         }
-        canvas.drawText("CASIO", cx, 54f, brandPaint)
+        canvas.drawText("CASIO", cx, 50f, brandPaint)
 
+        // [ACTION: PEND-930] 4-Bar Digital Casio Battery Indicator + Theme Switcher Header
         val subBrandPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = casioGold
-            textSize = 11f
-            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            textSize = 10.5f
+            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
-            letterSpacing = 0.14f
+            letterSpacing = 0.06f
         }
-        canvas.drawText("◀ LIGHT   SHIFT ROTA   MODE ▶", cx, 71f, subBrandPaint)
+        val chargeGlyph = if (telemetry.isCharging) "⚡" else ""
+        canvas.drawText(
+            "◀ ${theme.label} • BATT ${telemetry.batteryPercent}%$chargeGlyph • MODE ▶",
+            cx,
+            68f,
+            subBrandPaint
+        )
+
+        // Draw mini 4-bar Casio battery icon next to CASIO logo
+        if (!isAmbient) {
+            drawCasioBatteryIcon(canvas, cx + 52f, 36f, telemetry.batteryPercent)
+        }
 
         // 4. TOP DIGITAL ROW: [ DAY & DATE ]  +  [ TODAY DUTY STATUS ]
         val topRowTop = 80f
@@ -173,7 +189,7 @@ object CasioDigitalCanvasRenderer {
 
         val microLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.parseColor("#64748B")
-            textSize = 11f
+            textSize = 10.5f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             textAlign = Paint.Align.LEFT
         }
@@ -181,7 +197,7 @@ object CasioDigitalCanvasRenderer {
 
         val dateValuePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = lcdLitColor
-            textSize = 19f
+            textSize = 18.5f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             textAlign = Paint.Align.LEFT
         }
@@ -214,18 +230,18 @@ object CasioDigitalCanvasRenderer {
             textAlign = Paint.Align.LEFT
             letterSpacing = 0.04f
         }
-        // Explicitly displays "Night Duty" on night shift days and "Off Duty" on rest days
         canvas.drawText(dutySummary.title.uppercase(), dutyBoxRect.left + 10f, dutyBoxRect.top + 42f, dutyMainPaint)
 
-        // 5. CENTERPIECE 7-SEGMENT DIGITAL LCD CLOCK PANEL (HH:MM + :SS)
+        // 5. CENTERPIECE 7-SEGMENT DIGITAL LCD CLOCK PANEL (HH:MM + :SS + SIG/ALM)
         val clockBoxRect = RectF(42f, 140f, 438f, 254f)
-        drawCasioFramedBox(canvas, clockBoxRect, Color.BLACK, casioBlue, strokeWidth = 2f)
+        drawCasioFramedBox(canvas, clockBoxRect, Color.BLACK, casioFrameColor, strokeWidth = 2.2f)
 
-        // Inner thin red/gold Casio trim line inside clock box
+        // Inner thin Casio trim line inside clock box
         val trimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = 1f
-            color = if (isAmbient) Color.parseColor("#1E293B") else Color.parseColor("#332563EB")
+            color = if (isAmbient) Color.parseColor("#1E293B") else casioFrameColor
+            alpha = if (isAmbient) 255 else 90
         }
         canvas.drawRoundRect(
             RectF(clockBoxRect.left + 4f, clockBoxRect.top + 4f, clockBoxRect.right - 4f, clockBoxRect.bottom - 4f),
@@ -254,7 +270,7 @@ object CasioDigitalCanvasRenderer {
         val colonPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
             color = if (!isAmbient && (zonedDateTime.second % 2 == 1) && showSeconds) {
-                Color.parseColor("#38BDF8")
+                dutyAccent
             } else {
                 lcdLitColor
             }
@@ -265,15 +281,14 @@ object CasioDigitalCanvasRenderer {
         drawSevenSegmentChar(canvas, minStr[0], m1X, clockTop, digitW, digitH, digitThick, lcdLitColor, lcdGhostColor)
         drawSevenSegmentChar(canvas, minStr[1], m2X, clockTop, digitW, digitH, digitThick, lcdLitColor, lcdGhostColor)
 
-        // Seconds (:SS) in classic Casio lower-right raised 7-segment digits + "SHIFT" indicator above
+        // [ACTION: FEAT-939] Casio SIG (Hourly Chime) & ALM (Shift Start Alert) Status Header above Seconds
         val secStatusPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = dutyAccent
-            textSize = 11.5f
+            color = if (telemetry.sigEnabled || telemetry.almEnabled) dutyAccent else Color.parseColor("#64748B")
+            textSize = 11f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             textAlign = Paint.Align.LEFT
         }
-        val almTag = if (dutySummary.hasDuty) "ALM ● ON" else "ALM ○ OFF"
-        canvas.drawText(almTag, 320f, clockTop + 16f, secStatusPaint)
+        canvas.drawText(telemetry.sigAlmLabel, 318f, clockTop + 16f, secStatusPaint)
 
         val secW = 31f
         val secH = 52f
@@ -311,7 +326,7 @@ object CasioDigitalCanvasRenderer {
         val segPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
         for (s in 0 until barSegments) {
             val sx = stepsBoxRect.left + 80f + s * 11.5f
-            segPaint.color = if (s < activeSegments) Color.parseColor("#10B981") else Color.parseColor("#1E293B")
+            segPaint.color = if (s < activeSegments) dutyAccent else Color.parseColor("#1E293B")
             canvas.drawRect(sx, stepsBoxRect.top + 8f, sx + 8.5f, stepsBoxRect.top + 17f, segPaint)
         }
 
@@ -432,6 +447,36 @@ object CasioDigitalCanvasRenderer {
         canvas.restore()
     }
 
+    /**
+     * [ACTION: PEND-930] Draws a 4-bar digital Casio battery icon.
+     */
+    private fun drawCasioBatteryIcon(canvas: Canvas, x: Float, y: Float, batteryPct: Int) {
+        val bodyRect = RectF(x, y, x + 24f, y + 11f)
+        val capRect = RectF(x + 24f, y + 3f, x + 26.5f, y + 8f)
+        val borderColor = when {
+            batteryPct <= 20 -> Color.parseColor("#EF4444")
+            batteryPct <= 45 -> Color.parseColor("#F59E0B")
+            else -> Color.parseColor("#10B981")
+        }
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 1.4f
+            color = borderColor
+        }
+        val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            color = borderColor
+        }
+        canvas.drawRoundRect(bodyRect, 2f, 2f, strokePaint)
+        canvas.drawRect(capRect, fillPaint)
+
+        val bars = ((batteryPct + 12) / 25).coerceIn(1, 4)
+        for (b in 0 until bars) {
+            val bx = x + 2.5f + b * 5f
+            canvas.drawRect(bx, y + 2.5f, bx + 3.6f, y + 8.5f, fillPaint)
+        }
+    }
+
     private fun drawCasioFramedBox(
         canvas: Canvas,
         rect: RectF,
@@ -474,19 +519,12 @@ object CasioDigitalCanvasRenderer {
             style = Paint.Style.FILL
         }
 
-        // Segment 0: Top horizontal
         drawHorizSeg(canvas, x + gap, y, w - 2 * gap, t, if (mask[0] == 1) litColor else ghostColor, paint)
-        // Segment 1: Top-Right vertical
         drawVertSeg(canvas, x + w - t, y + gap, t, halfH - 2 * gap, if (mask[1] == 1) litColor else ghostColor, paint)
-        // Segment 2: Bottom-Right vertical
         drawVertSeg(canvas, x + w - t, y + halfH + gap, t, halfH - 2 * gap, if (mask[2] == 1) litColor else ghostColor, paint)
-        // Segment 3: Bottom horizontal
         drawHorizSeg(canvas, x + gap, y + h - t, w - 2 * gap, t, if (mask[3] == 1) litColor else ghostColor, paint)
-        // Segment 4: Bottom-Left vertical
         drawVertSeg(canvas, x, y + halfH + gap, t, halfH - 2 * gap, if (mask[4] == 1) litColor else ghostColor, paint)
-        // Segment 5: Top-Left vertical
         drawVertSeg(canvas, x, y + gap, t, halfH - 2 * gap, if (mask[5] == 1) litColor else ghostColor, paint)
-        // Segment 6: Middle horizontal
         drawHorizSeg(canvas, x + gap, y + halfH - t / 2f, w - 2 * gap, t, if (mask[6] == 1) litColor else ghostColor, paint)
     }
 
