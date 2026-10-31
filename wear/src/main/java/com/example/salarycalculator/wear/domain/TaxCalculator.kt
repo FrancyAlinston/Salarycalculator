@@ -1,8 +1,12 @@
 package com.example.salarycalculator.wear.domain
 
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -24,6 +28,38 @@ enum class StudentLoanPlan(val displayName: String, val annualThreshold: Double,
     PLAN_4("Plan 4 Scottish (£31,395 / 9%)", 31395.0, 0.09),
     POSTGRADUATE("Postgraduate (£21,000 / 6%)", 21000.0, 0.06)
 }
+
+enum class WearDutyState {
+    NIGHT_DUTY,
+    OVERTIME,
+    ANNUAL_LEAVE,
+    SICK_LEAVE,
+    OFF_DUTY
+}
+
+data class WearWeekDayNode(
+    val dateKey: String,
+    val dayLetter: String,
+    val dayOfMonth: Int,
+    val isToday: Boolean,
+    val dutyState: WearDutyState,
+    val hours: Double
+)
+
+data class WearTodayDutySummary(
+    val dateKey: String,
+    val formattedDate: String,
+    val dutyState: WearDutyState,
+    val hasDuty: Boolean,
+    val title: String,
+    val shortStatus: String,
+    val badgeLabel: String,
+    val subtitle: String,
+    val shiftHours: Double,
+    val nextDutyFormatted: String,
+    val weekDays: List<WearWeekDayNode>,
+    val shiftsThisWeek: Int
+)
 
 data class WearPayrollSplit(
     val payDay: Int,
@@ -85,6 +121,152 @@ object TaxCalculator {
 
     const val ANNUAL_LEAVE_SENTINEL = -999.0
     const val SSP_SENTINEL = -888.0
+
+    fun classifyShiftState(hours: Double, standardShiftHours: Double = 12.0): WearDutyState {
+        return when {
+            hours == ANNUAL_LEAVE_SENTINEL -> WearDutyState.ANNUAL_LEAVE
+            hours == SSP_SENTINEL -> WearDutyState.SICK_LEAVE
+            hours < 0.0 || hours > standardShiftHours -> WearDutyState.OVERTIME
+            hours > 0.0 -> WearDutyState.NIGHT_DUTY
+            else -> WearDutyState.OFF_DUTY
+        }
+    }
+
+    /**
+     * Evaluates whether a given day has duty or not (showing "Night Duty" on night shift days)
+     * along with the 7-day Mon-Sun weekly rota strip and next scheduled shift.
+     */
+    fun resolveTodayDutySummary(
+        date: LocalDate,
+        shifts: Map<String, Double>,
+        standardShiftHours: Double = 12.0
+    ): WearTodayDutySummary {
+        val isoFormatter = DateTimeFormatter.ISO_LOCAL_DATE
+        val dateKey = date.format(isoFormatter)
+        val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
+        val monthName = date.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
+        val formattedDate = String.format(Locale.ENGLISH, "%s, %02d %s", dayName, date.dayOfMonth, monthName)
+
+        val rawHours = shifts[dateKey] ?: 0.0
+        val dutyState = classifyShiftState(rawHours, standardShiftHours)
+
+        // Find next scheduled duty day within the next 45 days
+        var nextDutyText = "No upcoming shift logged"
+        for (offset in 1..45) {
+            val candidate = date.plusDays(offset.toLong())
+            val candidateKey = candidate.format(isoFormatter)
+            val candidateHours = shifts[candidateKey] ?: 0.0
+            val candidateState = classifyShiftState(candidateHours, standardShiftHours)
+            if (candidateState == WearDutyState.NIGHT_DUTY || candidateState == WearDutyState.OVERTIME) {
+                val cDay = candidate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+                val cMonth = candidate.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+                nextDutyText = if (offset == 1) {
+                    "Tomorrow • 20:00"
+                } else {
+                    String.format(Locale.ENGLISH, "%s, %02d %s", cDay, candidate.dayOfMonth, cMonth)
+                }
+                break
+            }
+        }
+
+        // Build Mon..Sun week strip for the week containing `date`
+        val monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val dayLetters = listOf("M", "T", "W", "T", "F", "S", "S")
+        var shiftsThisWeek = 0
+        val weekDays = (0..6).map { idx ->
+            val d = monday.plusDays(idx.toLong())
+            val k = d.format(isoFormatter)
+            val h = shifts[k] ?: 0.0
+            val st = classifyShiftState(h, standardShiftHours)
+            if (st == WearDutyState.NIGHT_DUTY || st == WearDutyState.OVERTIME) {
+                shiftsThisWeek++
+            }
+            WearWeekDayNode(
+                dateKey = k,
+                dayLetter = dayLetters[idx],
+                dayOfMonth = d.dayOfMonth,
+                isToday = (d == date),
+                dutyState = st,
+                hours = h
+            )
+        }
+
+        return when (dutyState) {
+            WearDutyState.NIGHT_DUTY -> WearTodayDutySummary(
+                dateKey = dateKey,
+                formattedDate = formattedDate,
+                dutyState = dutyState,
+                hasDuty = true,
+                title = "Night Duty",
+                shortStatus = "Night Duty",
+                badgeLabel = "ON DUTY TONIGHT",
+                subtitle = "20:00 – 08:00 • ${rawHours.toInt()}h Shift",
+                shiftHours = rawHours,
+                nextDutyFormatted = nextDutyText,
+                weekDays = weekDays,
+                shiftsThisWeek = shiftsThisWeek
+            )
+            WearDutyState.OVERTIME -> {
+                val absH = abs(rawHours).toInt()
+                WearTodayDutySummary(
+                    dateKey = dateKey,
+                    formattedDate = formattedDate,
+                    dutyState = dutyState,
+                    hasDuty = true,
+                    title = "Night Duty",
+                    shortStatus = "Night Duty",
+                    badgeLabel = "OVERTIME SHIFT • ${absH}H",
+                    subtitle = "20:00 – 08:00 • Overtime",
+                    shiftHours = abs(rawHours),
+                    nextDutyFormatted = nextDutyText,
+                    weekDays = weekDays,
+                    shiftsThisWeek = shiftsThisWeek
+                )
+            }
+            WearDutyState.ANNUAL_LEAVE -> WearTodayDutySummary(
+                dateKey = dateKey,
+                formattedDate = formattedDate,
+                dutyState = dutyState,
+                hasDuty = false,
+                title = "Annual Leave",
+                shortStatus = "Annual Leave",
+                badgeLabel = "PAID LEAVE DAY",
+                subtitle = "Next Duty: $nextDutyText",
+                shiftHours = standardShiftHours,
+                nextDutyFormatted = nextDutyText,
+                weekDays = weekDays,
+                shiftsThisWeek = shiftsThisWeek
+            )
+            WearDutyState.SICK_LEAVE -> WearTodayDutySummary(
+                dateKey = dateKey,
+                formattedDate = formattedDate,
+                dutyState = dutyState,
+                hasDuty = false,
+                title = "Sick Leave",
+                shortStatus = "Sick Leave",
+                badgeLabel = "STATUTORY SICK LEAVE",
+                subtitle = "Next Duty: $nextDutyText",
+                shiftHours = 0.0,
+                nextDutyFormatted = nextDutyText,
+                weekDays = weekDays,
+                shiftsThisWeek = shiftsThisWeek
+            )
+            WearDutyState.OFF_DUTY -> WearTodayDutySummary(
+                dateKey = dateKey,
+                formattedDate = formattedDate,
+                dutyState = dutyState,
+                hasDuty = false,
+                title = "Off Duty",
+                shortStatus = "Off Duty",
+                badgeLabel = "REST DAY TODAY",
+                subtitle = "Next: $nextDutyText",
+                shiftHours = 0.0,
+                nextDutyFormatted = nextDutyText,
+                weekDays = weekDays,
+                shiftsThisWeek = shiftsThisWeek
+            )
+        }
+    }
 
     // CRITICAL: TAX_ENGINE
     fun parseTaxFreeAllowance(

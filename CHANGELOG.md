@@ -4,6 +4,27 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.6] - 2026-10-31 (VersionCode: 70)
+### Added / Changed
+- **Samsung Galaxy Watch 8 Classic Super AMOLED Quick Tile (`FEAT-927`) (`WearShiftTileService.kt`, `TaxCalculator.kt`, `WearSalaryRepository.kt`)**:
+  - **Visually Stunning Circular Chronograph Duty Tile (`480x480`)**: Engineered a custom high-DPI circular Super AMOLED Quick Tile rendered via Android `Canvas` + `ProtoLayout` `ImageResource` with a radial ambient aura, 60-tick chronograph bezel ring, glowing top status arc, and custom-drawn Crescent Moon & Sparkling Stars emblem.
+  - **Duty-Focused Privacy Design (No Net Pay on Tile)**: Displays whether the current day has duty or not?prominently showing **`Night Duty`** (`ON DUTY TONIGHT ? 20:00 ? 08:00 ? 12h Shift`) on night shift days and **`Off Duty`** (`REST DAY TODAY ? Next: [Date]`) on rest days, with zero net pay exposed on the watch tile.
+  - **7-Day Mini Weekly Rota Strip**: Renders a bottom `M T W T F S S` weekly shift bar with color-coded orbs (Teal for Night Duty, Amber for Overtime, Blue for Annual Leave, Slate for Off) and a bright Cyan halo ring highlighting Today.
+- **Watch Face Complication Provider (`FEAT-928`) (`WearShiftComplicationService.kt`, `ic_wear_night_duty.xml`, `ic_wear_off_duty.xml`)**:
+  - **Multi-Format Duty Status Complications**: Implemented `SuspendingComplicationDataSourceService` supporting `SHORT_TEXT`, `LONG_TEXT`, `RANGED_VALUE` (`100%` ring on Night Duty, `0%` on Off Duty), and `MONOCHROMATIC_IMAGE`.
+  - **Clean `Night Duty` vs `Off Duty` Readout**: Shows **`Night Duty`** on any day with a scheduled night shift and **`Off Duty`** on rest days without exposing salary figures on the watch face; tapping launches the Watch Heatmap view.
+- **Watch Heatmap Today Duty Status Hero Banner (`WearHeatmapScreen.kt`)**:
+  - Replaced the top net-pay pill under the month header with a glowing **Today / Selected Day Duty Status Hero Card** (`?? Night Duty ? TODAY ? 20:00 ? 08:00 ? 12h Shift` or `? Off Duty`) while preserving the `Select Month's Salary` button below the heatmap grid.
+  - Added automatic Tile and Complication refresh triggers (`requestTileAndComplicationRefresh()`) whenever shifts are toggled on the watch, synced over Bluetooth, or pulled from the UGOS NAS server.
+
+### Bugs Found & Fixed
+- **Privacy & Glanceability Enhancement on Watch (`FEAT-927` / `FEAT-928`)**: Removed net pay display from the top of the watch heatmap, quick tile, and watch face complication so the watch surfaces duty status (`Night Duty` vs `Off Duty`) at a glance.
+
+### What Needs to Be Fixed / Pending
+- Ambient Always-On Display (AOD) low-bit outline mode for the in-app Watch Heatmap screen.
+
+---
+
 ## [27.5] - 2026-10-30 (VersionCode: 69)
 ### Added / Changed
 - **Samsung Galaxy Watch 8 Classic Edition Optimizations (FEAT-925) (WearHeatmapScreen.kt, WearSalaryDetailScreen.kt, WearSalaryRepository.kt)**:

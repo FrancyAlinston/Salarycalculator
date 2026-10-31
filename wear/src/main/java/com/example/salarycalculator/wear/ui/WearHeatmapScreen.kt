@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
@@ -26,8 +27,8 @@ import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.ScalingLazyListAnchorType
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import androidx.wear.compose.material.*
-import com.example.salarycalculator.wear.domain.SalaryReport
 import com.example.salarycalculator.wear.domain.TaxCalculator
+import com.example.salarycalculator.wear.domain.WearDutyState
 import com.example.salarycalculator.wear.domain.WearSalaryRepository
 import com.example.salarycalculator.wear.theme.*
 import kotlinx.coroutines.launch
@@ -37,7 +38,6 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import kotlin.math.abs
 
 @Composable
 fun WearHeatmapScreen(
@@ -54,10 +54,7 @@ fun WearHeatmapScreen(
 
     val shifts by repository.shiftsFlow.collectAsState(initial = WearSalaryRepository.DEFAULT_2026_FLAT_SHIFTS)
     val standardHours by repository.standardShiftHoursFlow.collectAsState(initial = 12.0)
-    val hourlyRate by repository.hourlyRateFlow.collectAsState(initial = 12.82)
-    val useCutoffCycle by repository.useCutoffCycleFlow.collectAsState(initial = true)
 
-    var salaryReport by remember { mutableStateOf<SalaryReport?>(null) }
     var selectedDayKey by remember { mutableStateOf<String?>(null) }
     var showMonthPicker by remember { mutableStateOf(false) }
     var bezelMonthDialMode by remember { mutableStateOf(false) }
@@ -65,22 +62,32 @@ fun WearHeatmapScreen(
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
-        // Background sync with UGOS NAS on launch
+        // Background sync with UGOS NAS on launch & refresh Tile + Complication
         repository.syncFromNasServer()
-    }
-
-    LaunchedEffect(currentYearMonth, shifts, hourlyRate, useCutoffCycle) {
-        salaryReport = repository.calculateMonthSalary(currentYearMonth, useCutoffCycle)
+        repository.requestTileAndComplicationRefresh()
     }
 
     val today = remember { LocalDate.now() }
     val todayKey = remember { today.format(DateTimeFormatter.ISO_LOCAL_DATE) }
 
+    val activeInspectDate = remember(selectedDayKey, today) {
+        if (selectedDayKey != null) {
+            try {
+                LocalDate.parse(selectedDayKey, DateTimeFormatter.ISO_LOCAL_DATE)
+            } catch (_: Exception) {
+                today
+            }
+        } else {
+            today
+        }
+    }
+
+    val dutySummary = remember(activeInspectDate, shifts, standardHours) {
+        TaxCalculator.resolveTodayDutySummary(activeInspectDate, shifts, standardHours)
+    }
+
     val shortMonthName = remember(currentYearMonth) {
         currentYearMonth.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
-    }
-    val fullMonthName = remember(currentYearMonth) {
-        currentYearMonth.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH).uppercase()
     }
     val yearStr = remember(currentYearMonth) { currentYearMonth.year.toString() }
 
@@ -212,37 +219,72 @@ fun WearHeatmapScreen(
                 }
             }
 
-            // 2. Quick Live Salary & Shifts Pill (1-Tap to Select Month's Salary)
+            // 2. Visually Beautiful Today Duty Status Hero Banner (FEAT-927 / FEAT-928 — No Net Pay)
             item {
-                val netStr = salaryReport?.let { String.format(Locale.UK, "£%,.2f", it.netPay) } ?: "£0.00"
-                val shiftsCount = salaryReport?.shiftCount ?: 0
-                val hoursCount = salaryReport?.totalHours?.toInt() ?: 0
+                val isInspectingToday = (activeInspectDate == today)
+                val dayContextPrefix = if (isInspectingToday) "TODAY" else dutySummary.formattedDate
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
+                val gradientColors = when (dutySummary.dutyState) {
+                    WearDutyState.NIGHT_DUTY -> listOf(Color(0xFF042F2E), Color(0xFF065F46), Color(0xFF042F2E))
+                    WearDutyState.OVERTIME -> listOf(Color(0xFF451A03), Color(0xFF78350F), Color(0xFF451A03))
+                    WearDutyState.ANNUAL_LEAVE -> listOf(Color(0xFF172554), Color(0xFF1E3A8A), Color(0xFF172554))
+                    WearDutyState.SICK_LEAVE -> listOf(Color(0xFF3B0764), Color(0xFF581C87), Color(0xFF3B0764))
+                    WearDutyState.OFF_DUTY -> listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A))
+                }
+                val accentColor = when (dutySummary.dutyState) {
+                    WearDutyState.NIGHT_DUTY -> WearEmerald
+                    WearDutyState.OVERTIME -> WearAmber
+                    WearDutyState.ANNUAL_LEAVE -> WearBlue
+                    WearDutyState.SICK_LEAVE -> WearPurple
+                    WearDutyState.OFF_DUTY -> WearCyan
+                }
+                val statusIcon = when (dutySummary.dutyState) {
+                    WearDutyState.NIGHT_DUTY -> "🌙"
+                    WearDutyState.OVERTIME -> "⚡"
+                    WearDutyState.ANNUAL_LEAVE -> "🌴"
+                    WearDutyState.SICK_LEAVE -> "💜"
+                    WearDutyState.OFF_DUTY -> "✨"
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .padding(top = 2.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFF064E3B))
-                        .border(1.dp, WearEmerald.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                        .padding(top = 3.dp)
+                        .width(172.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.horizontalGradient(gradientColors))
+                        .border(1.2.dp, accentColor.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
                         .clickable {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            onNavigateToSalary(currentYearMonth)
+                            coroutineScope.launch {
+                                repository.toggleShift(dutySummary.dateKey, standardHours)
+                            }
                         }
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = statusIcon,
+                            fontSize = 12.sp
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = dutySummary.title, // "Night Duty" on night shift days, "Off Duty" on rest days
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White
+                        )
+                    }
                     Text(
-                        text = netStr,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = WearEmerald
-                    )
-                    Text(
-                        text = " • $shiftsCount Shifts (${hoursCount}h) ▸",
-                        fontSize = 9.sp,
+                        text = "$dayContextPrefix • ${dutySummary.subtitle}",
+                        fontSize = 8.5.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = accentColor,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
                     )
                 }
             }
@@ -296,6 +338,7 @@ fun WearHeatmapScreen(
                                     val dateKey = String.format(Locale.ROOT, "%s-%02d", monthPrefix, dayNumber)
                                     val shiftHours = shifts[dateKey] ?: 0.0
                                     val isToday = (dateKey == todayKey)
+                                    val isSelected = (dateKey == selectedDayKey)
                                     val isCutoff = (dayNumber == cutoffDay)
                                     val isPayDay = (dayNumber == payDay)
 
@@ -325,6 +368,7 @@ fun WearHeatmapScreen(
                                             .background(bgColor)
                                             .then(
                                                 when {
+                                                    isSelected -> Modifier.border(1.5.dp, Color.White, CircleShape)
                                                     isToday -> Modifier.border(1.5.dp, WearCyan, CircleShape)
                                                     isCutoff -> Modifier.border(1.dp, WearRose, CircleShape)
                                                     isPayDay -> Modifier.border(1.dp, WearEmerald, CircleShape)
@@ -370,32 +414,9 @@ fun WearHeatmapScreen(
                 }
             }
 
-            // 4. Tapped Day Feedback Banner
-            if (selectedDayKey != null) {
-                item {
-                    val hours = shifts[selectedDayKey] ?: 0.0
-                    val statusText = when {
-                        hours == TaxCalculator.ANNUAL_LEAVE_SENTINEL -> "Annual Leave (A/L)"
-                        hours == TaxCalculator.SSP_SENTINEL -> "Sick Leave (SSP)"
-                        hours < 0.0 -> "Overtime (${abs(hours).toInt()}h)"
-                        hours > 0.0 -> "Night Duty (${hours.toInt()}h)"
-                        else -> "Off / Rest Day"
-                    }
-                    Text(
-                        text = "$selectedDayKey → $statusText",
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = WearCyan,
-                        modifier = Modifier.padding(top = 3.dp)
-                    )
-                }
-            }
-
-            // 5. Primary CTA: View Selected Month's Salary Breakdown
+            // 4. Primary CTA: Select Month's Salary Breakdown (Net pay kept inside Salary screen)
             item {
                 Spacer(modifier = Modifier.height(6.dp))
-                val netPayText = salaryReport?.let { String.format(Locale.UK, "£%,.2f Net", it.netPay) } ?: "£0.00 Net"
-                val modeTag = if (useCutoffCycle) "Payslip Cutoff" else "Full Month"
                 Chip(
                     modifier = Modifier
                         .widthIn(max = 172.dp)
@@ -410,23 +431,23 @@ fun WearHeatmapScreen(
                     ),
                     label = {
                         Text(
-                            text = "$shortMonthName Salary Breakdown",
+                            text = "Select Month's Salary",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )
                     },
                     secondaryLabel = {
                         Text(
-                            text = "$netPayText ($modeTag)",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            text = "$shortMonthName $yearStr Payslip & Tax ▸",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = WearEmerald
                         )
                     }
                 )
             }
 
-            // 6. Select Any Month Salary + Watch 8 Classic Physical Bezel Mode Toggle
+            // 5. Select Any Month + Watch 8 Classic Physical Bezel Mode Toggle
             item {
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(

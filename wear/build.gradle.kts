@@ -13,8 +13,8 @@ android {
         applicationId = "com.example.salarycalculator"
         minSdk = 28
         targetSdk = 36
-        versionCode = 69
-        versionName = "27.5"
+        versionCode = 70
+        versionName = "27.6"
     }
 
     signingConfigs {
@@ -75,6 +75,15 @@ dependencies {
     implementation(libs.androidx.wear.compose.foundation)
     implementation(libs.androidx.wear.compose.navigation)
     implementation(libs.androidx.wear)
+
+    // Wear Tiles, ProtoLayout & Watch Face Complications (FEAT-927 & FEAT-928)
+    implementation(libs.androidx.wear.tiles)
+    implementation(libs.androidx.wear.protolayout)
+    implementation(libs.androidx.wear.protolayout.material)
+    implementation(libs.androidx.wear.protolayout.expression)
+    implementation(libs.androidx.wear.watchface.complications.data.source.ktx)
+    implementation(libs.androidx.concurrent.futures.ktx)
+    implementation(libs.guava.android)
 
     // Play Services Wearable (Data Layer Sync)
     implementation(libs.play.services.wearable)

@@ -1,8 +1,13 @@
 package com.example.salarycalculator.wear.domain
 
+import android.content.ComponentName
 import android.content.Context
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.wear.tiles.TileService
+import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
+import com.example.salarycalculator.wear.complication.WearShiftComplicationService
+import com.example.salarycalculator.wear.tile.WearShiftTileService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -18,6 +23,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -98,6 +104,40 @@ class WearSalaryRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Triggers an immediate update of the Samsung Galaxy Watch 8 Classic Quick Tile (FEAT-927)
+     * and Watch Face Complication (FEAT-928).
+     */
+    fun requestTileAndComplicationRefresh() {
+        try {
+            TileService.getUpdater(context).requestUpdate(WearShiftTileService::class.java)
+        } catch (_: Exception) {
+        }
+        try {
+            ComplicationDataSourceUpdateRequester.create(
+                context,
+                ComponentName(context, WearShiftComplicationService::class.java)
+            ).requestUpdateAll()
+        } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * Evaluates whether the specified date has duty or not ("Night Duty" vs "Off Duty")
+     * along with the 7-day weekly rota strip for the Quick Tile and Complication.
+     */
+    suspend fun getTodayDutySummary(date: LocalDate = LocalDate.now()): WearTodayDutySummary {
+        val prefs = context.wearDataStore.data.first()
+        val stdHours = prefs[STANDARD_SHIFT_HOURS_KEY] ?: 12.0
+        val rawShifts = prefs[SHIFTS_JSON_KEY]
+        val shifts: Map<String, Double> = if (rawShifts.isNullOrBlank()) {
+            DEFAULT_2026_FLAT_SHIFTS
+        } else {
+            parseAnyShiftJson(rawShifts).ifEmpty { DEFAULT_2026_FLAT_SHIFTS }
+        }
+        return TaxCalculator.resolveTodayDutySummary(date, shifts, stdHours)
+    }
+
     fun parseAnyShiftJson(raw: String): Map<String, Double> {
         if (raw.isBlank()) return emptyMap()
         val result = mutableMapOf<String, Double>()
@@ -153,6 +193,7 @@ class WearSalaryRepository(private val context: Context) {
         context.wearDataStore.edit { prefs ->
             prefs[STANDARD_SHIFT_HOURS_KEY] = hours
         }
+        requestTileAndComplicationRefresh()
     }
 
     suspend fun setUseCutoffCycle(useCutoff: Boolean) {
@@ -189,6 +230,7 @@ class WearSalaryRepository(private val context: Context) {
 
             prefs[SHIFTS_JSON_KEY] = json.encodeToString(currentMap)
         }
+        requestTileAndComplicationRefresh()
     }
 
     suspend fun setShiftForDay(dateStr: String, hours: Double) {
@@ -206,6 +248,7 @@ class WearSalaryRepository(private val context: Context) {
             }
             prefs[SHIFTS_JSON_KEY] = json.encodeToString(currentMap)
         }
+        requestTileAndComplicationRefresh()
     }
 
     suspend fun updateAllShifts(shifts: Map<String, Double>) {
@@ -213,6 +256,7 @@ class WearSalaryRepository(private val context: Context) {
         context.wearDataStore.edit { prefs ->
             prefs[SHIFTS_JSON_KEY] = json.encodeToString(shifts)
         }
+        requestTileAndComplicationRefresh()
     }
 
     /**
@@ -254,6 +298,7 @@ class WearSalaryRepository(private val context: Context) {
                     if (stdHours != null && stdHours > 0.0) editPrefs[STANDARD_SHIFT_HOURS_KEY] = stdHours
                     if (!taxCode.isNullOrBlank()) editPrefs[TAX_CODE_KEY] = taxCode
                 }
+                requestTileAndComplicationRefresh()
                 true
             } else {
                 false

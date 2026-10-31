@@ -4,6 +4,11 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Samsung Galaxy Watch 8 Classic Quick Tile & Watch Face Complication (`FEAT-927`, `FEAT-928`) (`WearShiftTileService.kt`, `WearShiftComplicationService.kt`, `WearHeatmapScreen.kt`):**
+  - **480x480 Super AMOLED Circular Duty Tile (`FEAT-927`):** Luxury circular chronograph tile with radial Emerald/Teal aura, 60-tick bezel ring, Crescent Moon & Stars emblem, bold **`Night Duty`** / **`Off Duty`** status readout (with no net pay exposed), shift timing subtitle (`20:00 ? 08:00 ? 12h Shift`), and a 7-day `M T W T F S S` mini weekly rota bar.
+  - **Multi-Slot Watch Face Complication (`FEAT-928`):** Supports `SHORT_TEXT`, `LONG_TEXT`, `RANGED_VALUE`, and `MONOCHROMATIC_IMAGE` slots showing **`Night Duty`** on shift days and **`Off Duty`** on rest days with 1-tap launch into the Watch Heatmap.
+  - **Today Duty Hero Banner on Watch Heatmap:** Glowing top duty status card (`?? Night Duty` / `? Off Duty`) with instant Tile + Complication auto-refresh on every shift toggle.
+
 - **Samsung Galaxy Watch 8 Classic Edition (:wear) (FEAT-925) (WearHeatmapScreen.kt, WearSalaryDetailScreen.kt, WearSalaryRepository.kt):**
   - **Physical Rotating Bezel & Circular 480x480 Super AMOLED Optimization:** Native onRotaryScrollEvent handling for the Samsung Galaxy Watch 8 Classic physical rotating bezel (supporting both Smooth Scroll and Bezel Month Dial modes with haptic feedback) and a circular-safe 172dp 7-column Heatmap card that prevents outer-edge bezel clipping.
   - **12-Month Quick Grid Selector & Payroll Cutoff Rollover Engine:** Tap the month header on either screen to open a 3x4 JAN–DEC picker; calculates exact UK Care Worker payslips using the Last Friday Pay Day & Preceding Sunday Cutoff rollover engine (plus 1-tap toggle between Payslip Cutoff and Full Calendar Month modes).
