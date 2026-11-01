@@ -320,10 +320,6 @@
                 </Default>
             </Condition>
         </Group>
-
-        <!-- 7. Bottom Casio Weekly Rota Banner & Water-Resist Footer -->
-        <!-- 7. Bottom Casio Weekly Rota Banner & Visual Current-Day Tracker -->
-        <!-- 7. Bottom Casio Weekly Rota Banner & Visual Current-Day Tracker -->
         <!-- 7. Bottom Casio Weekly Rota Banner & Visual Current-Day Tracker -->
         <Group x="46" y="324" width="358" height="64" name="BottomRotaPanel" alpha="255">
             <Variant mode="AMBIENT" target="alpha" value="0" />
@@ -336,152 +332,248 @@
                 </RoundRectangle>
             </PartDraw>
 
-            <!-- Dynamic Active Day Highlighter Badge (Uses exact time/seconds accent color) -->
-            <PartDraw x="0" y="6" width="46" height="52" alpha="255">
-                <Transform target="x" value="10 + (([DAY_OF_WEEK_F] + 5) % 7) * 48" />
-                <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
-                    <Fill color="#ff042f2e" />
-                    <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
-                </RoundRectangle>
-            </PartDraw>
-
-            <!-- 7 Days Labels -->
-            <!-- Monday (idx 0) -->
+            <!-- 7 Days Labels with Individual Active Day Highlight Badges -->
+            <!-- Monday (DAY_OF_WEEK == 2) -->
             <Group x="10" y="6" width="46" height="52" name="DayMon">
-                <PartText x="0" y="4" width="46" height="24">
+                <PartDraw x="0" y="0" width="46" height="52" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 2 ? 255 : 0" />
+                    <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
+                        <Fill color="#ff042f2e" />
+                        <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
+                    </RoundRectangle>
+                </PartDraw>
+                <PartText x="0" y="4" width="46" height="24" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 2 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 2 ? [CONFIGURATION.casioTheme.1] : #ff94a3b8" />
-                            M
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">M</Font>
                     </Text>
                 </PartText>
-                <PartText x="0" y="28" width="46" height="20">
+                <PartText x="0" y="28" width="46" height="20" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 2 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 2 ? [CONFIGURATION.casioTheme.1] : #ff64748b" />
-                            MON
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">MON</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="4" width="46" height="24" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 2 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">M</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="28" width="46" height="20" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 2 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">MON</Font>
                     </Text>
                 </PartText>
             </Group>
 
-            <!-- Tuesday (idx 1) -->
+            <!-- Tuesday (DAY_OF_WEEK == 3) -->
             <Group x="58" y="6" width="46" height="52" name="DayTue">
-                <PartText x="0" y="4" width="46" height="24">
+                <PartDraw x="0" y="0" width="46" height="52" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 3 ? 255 : 0" />
+                    <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
+                        <Fill color="#ff042f2e" />
+                        <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
+                    </RoundRectangle>
+                </PartDraw>
+                <PartText x="0" y="4" width="46" height="24" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 3 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 3 ? [CONFIGURATION.casioTheme.1] : #ff94a3b8" />
-                            T
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">T</Font>
                     </Text>
                 </PartText>
-                <PartText x="0" y="28" width="46" height="20">
+                <PartText x="0" y="28" width="46" height="20" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 3 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 3 ? [CONFIGURATION.casioTheme.1] : #ff64748b" />
-                            TUE
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">TUE</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="4" width="46" height="24" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 3 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">T</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="28" width="46" height="20" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 3 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">TUE</Font>
                     </Text>
                 </PartText>
             </Group>
 
-            <!-- Wednesday (idx 2) -->
+            <!-- Wednesday (DAY_OF_WEEK == 4) -->
             <Group x="106" y="6" width="46" height="52" name="DayWed">
-                <PartText x="0" y="4" width="46" height="24">
+                <PartDraw x="0" y="0" width="46" height="52" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 4 ? 255 : 0" />
+                    <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
+                        <Fill color="#ff042f2e" />
+                        <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
+                    </RoundRectangle>
+                </PartDraw>
+                <PartText x="0" y="4" width="46" height="24" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 4 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 4 ? [CONFIGURATION.casioTheme.1] : #ff94a3b8" />
-                            W
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">W</Font>
                     </Text>
                 </PartText>
-                <PartText x="0" y="28" width="46" height="20">
+                <PartText x="0" y="28" width="46" height="20" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 4 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 4 ? [CONFIGURATION.casioTheme.1] : #ff64748b" />
-                            WED
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">WED</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="4" width="46" height="24" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 4 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">W</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="28" width="46" height="20" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 4 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">WED</Font>
                     </Text>
                 </PartText>
             </Group>
 
-            <!-- Thursday (idx 3) -->
+            <!-- Thursday (DAY_OF_WEEK == 5) -->
             <Group x="154" y="6" width="46" height="52" name="DayThu">
-                <PartText x="0" y="4" width="46" height="24">
+                <PartDraw x="0" y="0" width="46" height="52" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 5 ? 255 : 0" />
+                    <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
+                        <Fill color="#ff042f2e" />
+                        <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
+                    </RoundRectangle>
+                </PartDraw>
+                <PartText x="0" y="4" width="46" height="24" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 5 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 5 ? [CONFIGURATION.casioTheme.1] : #ff94a3b8" />
-                            T
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">T</Font>
                     </Text>
                 </PartText>
-                <PartText x="0" y="28" width="46" height="20">
+                <PartText x="0" y="28" width="46" height="20" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 5 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 5 ? [CONFIGURATION.casioTheme.1] : #ff64748b" />
-                            THU
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">THU</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="4" width="46" height="24" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 5 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">T</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="28" width="46" height="20" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 5 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">THU</Font>
                     </Text>
                 </PartText>
             </Group>
 
-            <!-- Friday (idx 4) -->
+            <!-- Friday (DAY_OF_WEEK == 6) -->
             <Group x="202" y="6" width="46" height="52" name="DayFri">
-                <PartText x="0" y="4" width="46" height="24">
+                <PartDraw x="0" y="0" width="46" height="52" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 6 ? 255 : 0" />
+                    <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
+                        <Fill color="#ff042f2e" />
+                        <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
+                    </RoundRectangle>
+                </PartDraw>
+                <PartText x="0" y="4" width="46" height="24" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 6 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 6 ? [CONFIGURATION.casioTheme.1] : #ff94a3b8" />
-                            F
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">F</Font>
                     </Text>
                 </PartText>
-                <PartText x="0" y="28" width="46" height="20">
+                <PartText x="0" y="28" width="46" height="20" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 6 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 6 ? [CONFIGURATION.casioTheme.1] : #ff64748b" />
-                            FRI
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">FRI</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="4" width="46" height="24" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 6 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">F</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="28" width="46" height="20" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 6 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">FRI</Font>
                     </Text>
                 </PartText>
             </Group>
 
-            <!-- Saturday (idx 5) -->
+            <!-- Saturday (DAY_OF_WEEK == 7) -->
             <Group x="250" y="6" width="46" height="52" name="DaySat">
-                <PartText x="0" y="4" width="46" height="24">
+                <PartDraw x="0" y="0" width="46" height="52" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 7 ? 255 : 0" />
+                    <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
+                        <Fill color="#ff042f2e" />
+                        <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
+                    </RoundRectangle>
+                </PartDraw>
+                <PartText x="0" y="4" width="46" height="24" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 7 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 7 ? [CONFIGURATION.casioTheme.1] : #ff94a3b8" />
-                            S
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">S</Font>
                     </Text>
                 </PartText>
-                <PartText x="0" y="28" width="46" height="20">
+                <PartText x="0" y="28" width="46" height="20" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 7 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 7 ? [CONFIGURATION.casioTheme.1] : #ff64748b" />
-                            SAT
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">SAT</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="4" width="46" height="24" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 7 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">S</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="28" width="46" height="20" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 7 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">SAT</Font>
                     </Text>
                 </PartText>
             </Group>
 
-            <!-- Sunday (idx 6) -->
+            <!-- Sunday (DAY_OF_WEEK == 1) -->
             <Group x="298" y="6" width="46" height="52" name="DaySun">
-                <PartText x="0" y="4" width="46" height="24">
+                <PartDraw x="0" y="0" width="46" height="52" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 1 ? 255 : 0" />
+                    <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
+                        <Fill color="#ff042f2e" />
+                        <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
+                    </RoundRectangle>
+                </PartDraw>
+                <PartText x="0" y="4" width="46" height="24" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 1 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 1 ? [CONFIGURATION.casioTheme.1] : #ff94a3b8" />
-                            S
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="#ff94a3b8">S</Font>
                     </Text>
                 </PartText>
-                <PartText x="0" y="28" width="46" height="20">
+                <PartText x="0" y="28" width="46" height="20" alpha="255">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 1 ? 0 : 255" />
                     <Text align="CENTER">
-                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">
-                            <Transform target="color" value="[DAY_OF_WEEK_F] == 1 ? [CONFIGURATION.casioTheme.1] : #ff64748b" />
-                            SUN
-                        </Font>
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="#ff64748b">SUN</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="4" width="46" height="24" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 1 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">S</Font>
+                    </Text>
+                </PartText>
+                <PartText x="0" y="28" width="46" height="20" alpha="0">
+                    <Transform target="alpha" value="[DAY_OF_WEEK] == 1 ? 255 : 0" />
+                    <Text align="CENTER">
+                        <Font family="SYNC_TO_DEVICE" size="11" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">SUN</Font>
                     </Text>
                 </PartText>
             </Group>
