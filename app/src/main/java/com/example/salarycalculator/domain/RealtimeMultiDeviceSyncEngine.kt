@@ -84,14 +84,16 @@ object RealtimeMultiDeviceSyncEngine {
                     val timestampUrl = if (endpoint.endsWith("/api/backup")) "$endpoint/timestamp" else endpoint
                     val rawRemoteTimestamp = fetchRemoteTimestamp(timestampUrl, token)
                     val remoteTimestamp = normalizeTimestamp(rawRemoteTimestamp)
+                    android.util.Log.i("MultiDeviceSync", "Probe $endpoint: remoteTs=$remoteTimestamp, localSynced=$localLastSynced, lastLocalEdit=$lastLocalEditTimestamp")
 
-                    // If remote timestamp exists and is not newer than our local state, skip downloading
+                    val hasNoRecentLocalEdits = (System.currentTimeMillis() - lastLocalEditTimestamp) > 3000L
+
+                    // If remote timestamp exists and is older than our local state, skip downloading only if no forced refresh
                     if (!force && !isLocalEmpty && remoteTimestamp > 0L) {
-                        if (remoteTimestamp <= localLastSynced) {
+                        if (remoteTimestamp <= localLastSynced && !hasNoRecentLocalEdits) {
                             continue
                         }
                         if (remoteTimestamp <= lastLocalEditTimestamp) {
-                            // Local user made edits after this remote snapshot; do not overwrite!
                             continue
                         }
                     }
@@ -104,11 +106,19 @@ object RealtimeMultiDeviceSyncEngine {
                             if (bundle.timestamp > 0L) bundle.timestamp else remoteTimestamp
                         )
 
-                        // Strict freshness requirement: remote must be strictly newer than local records
-                        val isNewer = force || isLocalEmpty || (bundleTime > localLastSynced && bundleTime > lastLocalEditTimestamp)
+                        val myModel = LedgerBackupManager.getDeviceModel()
+                        val isFromAnotherDevice = bundle.deviceModel.isNotBlank() && !bundle.deviceModel.equals(myModel, ignoreCase = true)
+                        val contentChanged = bundle.annualShiftScheduleJson.isNotBlank() && bundle.annualShiftScheduleJson != localSchedule
 
-                        if (isNewer) {
+                        val isNewer = (bundleTime > localLastSynced && bundleTime > lastLocalEditTimestamp)
+                        val shouldApplyFromPeer = isFromAnotherDevice && contentChanged && hasNoRecentLocalEdits
+
+                        val shouldRestore = force || isLocalEmpty || isNewer || shouldApplyFromPeer
+                        android.util.Log.i("MultiDeviceSync", "Evaluated $endpoint: shouldRestore=$shouldRestore (isNewer=$isNewer, shouldApplyFromPeer=$shouldApplyFromPeer, fromAnother=$isFromAnotherDevice, contentChanged=$contentChanged)")
+
+                        if (shouldRestore) {
                             LedgerBackupManager.restoreBundle(repository, bundle)
+                            android.util.Log.i("MultiDeviceSync", "Restored bundle successfully from $endpoint! Device=${bundle.deviceModel}")
                             val finalTimestamp = if (bundleTime > 0L) bundleTime else System.currentTimeMillis()
                             repository.setLastSyncedRemoteTimestamp(finalTimestamp)
 
@@ -120,8 +130,8 @@ object RealtimeMultiDeviceSyncEngine {
                             return@withContext true
                         }
                     }
-                } catch (_: Exception) {
-                    // Try next endpoint on network timeout
+                } catch (e: Exception) {
+                    android.util.Log.w("MultiDeviceSync", "Sync check failed on $endpoint: ${e.message}")
                 }
             }
             false
@@ -236,7 +246,7 @@ object RealtimeMultiDeviceSyncEngine {
                     if (nasEndpoint != null) {
                         // Real-time long-poll wait
                         val remoteTs = longPollRemoteTimestamp(nasEndpoint, token, sinceMs = localSynced, timeoutSec = 12)
-                        if (remoteTs > localSynced && remoteTs > lastLocalEditTimestamp) {
+                        if (remoteTs > 0L && remoteTs > lastLocalEditTimestamp) {
                             checkAndSyncRemoteChanges(context, repository, force = false)
                         } else {
                             delay(1000L)

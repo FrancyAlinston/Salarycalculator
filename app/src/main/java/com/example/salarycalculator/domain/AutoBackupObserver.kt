@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.Objects
 
 /**
  * AutoBackupObserver
@@ -20,9 +21,30 @@ object AutoBackupObserver {
 
     private var observerJob: Job? = null
     private var isRestoringOrInitializing: Boolean = false
+    private var lastPayloadFingerprint: Int = 0
 
     fun setRestoring(restoring: Boolean) {
         isRestoringOrInitializing = restoring
+    }
+
+    fun updateFingerprint(bundle: BackupBundle) {
+        lastPayloadFingerprint = computeFingerprint(bundle)
+    }
+
+    private fun computeFingerprint(bundle: BackupBundle): Int {
+        return Objects.hash(
+            bundle.records,
+            bundle.profiles,
+            bundle.customDeductions,
+            bundle.taxCode,
+            bundle.taxRegion,
+            bundle.taxYear,
+            bundle.hourlyRate,
+            bundle.annualShiftScheduleJson,
+            bundle.employerShiftAssignmentsJson,
+            bundle.hasMarriageAllowance,
+            bundle.hasBlindPersonsAllowance
+        )
     }
 
     /**
@@ -35,7 +57,6 @@ object AutoBackupObserver {
         val repository = SalaryRepository(context)
 
         observerJob = scope.launch(Dispatchers.IO) {
-            // Observe the DataStore preferences Flow
             context.dataStore.data
                 .distinctUntilChanged()
                 .debounce(500L)
@@ -45,6 +66,14 @@ object AutoBackupObserver {
                     try {
                         // Create comprehensive snapshot of current state
                         val bundle = LedgerBackupManager.createFullBackupBundle(repository)
+
+                        // Compute fingerprint of user data payload to ignore internal metadata changes
+                        val currentFingerprint = computeFingerprint(bundle)
+                        if (currentFingerprint == lastPayloadFingerprint) {
+                            // No user payload changes; skip spurious trigger caused by internal sync metadata
+                            return@collectLatest
+                        }
+                        lastPayloadFingerprint = currentFingerprint
 
                         // Retrieve Syncthing REST details if configured
                         val serverUrl = repository.getSyncthingServerUrl().first()

@@ -29,7 +29,7 @@ enum class ThemePalette {
 // CRITICAL: DATASTORE_PERSISTENCE
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-class SalaryRepository(private val context: Context) {
+class SalaryRepository(val context: Context) {
 
     private val TAX_CODE_KEY = stringPreferencesKey("tax_code")
     private val DEFAULT_HOURLY_RATE_KEY = doublePreferencesKey("default_hourly_rate")
@@ -706,6 +706,11 @@ class SalaryRepository(private val context: Context) {
     // CRITICAL: DATASTORE_PERSISTENCE
     suspend fun setAnnualShiftSchedule(scheduleJson: String) {
         RealtimeMultiDeviceSyncEngine.recordLocalEdit()
+        saveAnnualShiftScheduleDirect(scheduleJson)
+        RealtimeMultiDeviceSyncEngine.triggerImmediatePush(this)
+    }
+
+    suspend fun saveAnnualShiftScheduleDirect(scheduleJson: String) {
         context.dataStore.edit { preferences ->
             val parsed = parseShiftScheduleJson(scheduleJson)
             val cleanToSave = if (parsed.isNotEmpty()) encodeShiftSchedule(parsed) else scheduleJson
@@ -713,7 +718,6 @@ class SalaryRepository(private val context: Context) {
         }
         com.example.salarycalculator.widget.ShiftHeatmapWidgetManager.updateAllWidgets(context)
         syncShiftsToWearOs()
-        RealtimeMultiDeviceSyncEngine.triggerImmediatePush(this)
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
@@ -1027,7 +1031,7 @@ class SalaryRepository(private val context: Context) {
 
     // CRITICAL: DATASTORE_PERSISTENCE
     suspend fun saveAnnualShiftScheduleJson(jsonStr: String) {
-        setAnnualShiftSchedule(jsonStr)
+        saveAnnualShiftScheduleDirect(jsonStr)
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
@@ -1421,16 +1425,14 @@ class SalaryRepository(private val context: Context) {
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
-    fun getLastSyncedRemoteTimestamp(): Flow<Long> {
-        return context.dataStore.data.map { preferences ->
-            preferences[LAST_SYNCED_REMOTE_TIMESTAMP_KEY] ?: 0L
-        }
+    fun getLastSyncedRemoteTimestamp(): kotlinx.coroutines.flow.Flow<Long> = kotlinx.coroutines.flow.flow {
+        val sp = context.getSharedPreferences("salary_calculator_sync_meta", android.content.Context.MODE_PRIVATE)
+        emit(sp.getLong("last_synced_remote_timestamp", 0L))
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE
     suspend fun setLastSyncedRemoteTimestamp(timestamp: Long) {
-        context.dataStore.edit { preferences ->
-            preferences[LAST_SYNCED_REMOTE_TIMESTAMP_KEY] = timestamp
-        }
+        val sp = context.getSharedPreferences("salary_calculator_sync_meta", android.content.Context.MODE_PRIVATE)
+        sp.edit().putLong("last_synced_remote_timestamp", timestamp).apply()
     }
 }

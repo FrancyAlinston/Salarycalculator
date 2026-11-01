@@ -540,6 +540,10 @@ object LedgerBackupManager {
             repository.setGoogleDriveAutoSync(bundle.googleDriveAutoSync)
             if (bundle.googleDriveLastSync.isNotBlank()) repository.setGoogleDriveLastSync(bundle.googleDriveLastSync)
         } finally {
+            try {
+                SyncthingSyncEngine.exportBackup(repository.context, bundle)
+            } catch (_: Exception) {}
+            AutoBackupObserver.updateFingerprint(bundle)
             kotlinx.coroutines.delay(650L)
             AutoBackupObserver.setRestoring(false)
         }

@@ -4,6 +4,22 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [28.1] - 2026-11-01 (VersionCode: 75)
+### Added / Changed
+- **Cross-Device Peer Shift Adoption & Infinite Sync Feedback Termination (`FIX-944`, `AutoBackupObserver.kt`, `SalaryRepository.kt`, `RealtimeMultiDeviceSyncEngine.kt`, `LedgerBackupManager.kt`)**:
+  - **Payload Fingerprinting in AutoBackupObserver (`computeFingerprint`)**: Structured fingerprinting of user business data (records, shift schedule, profiles, deductions, tax settings) ignores internal sync metadata mutations, eliminating the continuous 5-second infinite auto-backup feedback loop.
+  - **Decoupled Sync Metadata Storage**: Migrated `last_synced_remote_timestamp` out of the primary reactive DataStore into private SharedPreferences (`salary_calculator_sync_meta`), ensuring sync state updates never trigger spurious DataStore preference emissions.
+  - **Active Peer Shift Synchronization (`shouldApplyFromPeer`)**: Automatically detects when remote backups originate from peer devices (`bundle.deviceModel != myDeviceModel`) with differing shift schedules and adopts peer modifications immediately whenever no conflicting local edits are active on the receiving phone.
+
+### Bugs Found & Fixed
+- **Infinite Self-Push Feedback Loop**: Resolved issue where `repository.setLastSyncedRemoteTimestamp()` wrote to DataStore, causing `AutoBackupObserver` to fire continuously every 5 seconds on both devices and advance their local timestamps ahead of real peer edits.
+- **Cross-Device Shift Non-Reflection**: Fixed condition where Pixel 8 Pro rejected S25 Ultra's newly logged overtime shifts due to advanced local timestamps caused by the self-triggering observer loop.
+
+### What Needs to Be Fixed / Pending
+- Direct device-to-device local Wi-Fi pairing fallback when NAS is powered off.
+
+---
+
 ## [28.0] - 2026-11-01 (VersionCode: 74)
 ### Added / Changed
 - **Zero-Latency Real-Time Long-Polling Multi-Device Sync Engine (`FIX-943`, `RealtimeMultiDeviceSyncEngine.kt`, `server.py`, `SalaryRepository.kt`, `LedgerBackupManager.kt`)**:
