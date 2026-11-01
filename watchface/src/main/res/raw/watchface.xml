@@ -342,13 +342,13 @@
                     <Compare expression="is_mon">
                         <PartDraw x="0" y="0" width="46" height="52">
                             <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
-                                <Fill color="#ff064e3b" />
-                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="2" />
+                                <Fill color="#ff042f2e" />
+                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
                             </RoundRectangle>
                         </PartDraw>
                         <PartText x="0" y="4" width="46" height="24">
                             <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.0]">M</Font>
+                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">M</Font>
                             </Text>
                         </PartText>
                         <PartText x="0" y="28" width="46" height="20">
@@ -381,13 +381,13 @@
                     <Compare expression="is_tue">
                         <PartDraw x="0" y="0" width="46" height="52">
                             <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
-                                <Fill color="#ff064e3b" />
-                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="2" />
+                                <Fill color="#ff042f2e" />
+                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
                             </RoundRectangle>
                         </PartDraw>
                         <PartText x="0" y="4" width="46" height="24">
                             <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.0]">T</Font>
+                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">T</Font>
                             </Text>
                         </PartText>
                         <PartText x="0" y="28" width="46" height="20">
@@ -420,13 +420,13 @@
                     <Compare expression="is_wed">
                         <PartDraw x="0" y="0" width="46" height="52">
                             <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
-                                <Fill color="#ff064e3b" />
-                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="2" />
+                                <Fill color="#ff042f2e" />
+                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
                             </RoundRectangle>
                         </PartDraw>
                         <PartText x="0" y="4" width="46" height="24">
                             <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.0]">W</Font>
+                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">W</Font>
                             </Text>
                         </PartText>
                         <PartText x="0" y="28" width="46" height="20">
@@ -459,13 +459,13 @@
                     <Compare expression="is_thu">
                         <PartDraw x="0" y="0" width="46" height="52">
                             <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
-                                <Fill color="#ff064e3b" />
-                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="2" />
+                                <Fill color="#ff042f2e" />
+                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
                             </RoundRectangle>
                         </PartDraw>
                         <PartText x="0" y="4" width="46" height="24">
                             <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.0]">T</Font>
+                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">T</Font>
                             </Text>
                         </PartText>
                         <PartText x="0" y="28" width="46" height="20">
@@ -498,13 +498,13 @@
                     <Compare expression="is_fri">
                         <PartDraw x="0" y="0" width="46" height="52">
                             <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
-                                <Fill color="#ff064e3b" />
-                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="2" />
+                                <Fill color="#ff042f2e" />
+                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
                             </RoundRectangle>
                         </PartDraw>
                         <PartText x="0" y="4" width="46" height="24">
                             <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.0]">F</Font>
+                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">F</Font>
                             </Text>
                         </PartText>
                         <PartText x="0" y="28" width="46" height="20">
@@ -537,13 +537,13 @@
                     <Compare expression="is_sat">
                         <PartDraw x="0" y="0" width="46" height="52">
                             <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
-                                <Fill color="#ff064e3b" />
-                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="2" />
+                                <Fill color="#ff042f2e" />
+                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
                             </RoundRectangle>
                         </PartDraw>
                         <PartText x="0" y="4" width="46" height="24">
                             <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.0]">S</Font>
+                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">S</Font>
                             </Text>
                         </PartText>
                         <PartText x="0" y="28" width="46" height="20">
@@ -571,18 +571,18 @@
             <Group x="298" y="6" width="46" height="52" name="DaySunday">
                 <Condition>
                     <Expressions>
-                        <Expression name="is_sun">[DAY_OF_WEEK_F] == 1</Expression>
+                        <Expression name="is_sun">[DAY_OF_WEEK_F] == 1 || [DAY_OF_WEEK_F] == 7 &amp;&amp; false</Expression>
                     </Expressions>
                     <Compare expression="is_sun">
                         <PartDraw x="0" y="0" width="46" height="52">
                             <RoundRectangle x="0" y="0" width="46" height="52" cornerRadiusX="8" cornerRadiusY="8">
-                                <Fill color="#ff064e3b" />
-                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="2" />
+                                <Fill color="#ff042f2e" />
+                                <Stroke color="[CONFIGURATION.casioTheme.1]" thickness="3" />
                             </RoundRectangle>
                         </PartDraw>
                         <PartText x="0" y="4" width="46" height="24">
                             <Text align="CENTER">
-                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.0]">S</Font>
+                                <Font family="SYNC_TO_DEVICE" size="18" weight="BOLD" color="[CONFIGURATION.casioTheme.1]">S</Font>
                             </Text>
                         </PartText>
                         <PartText x="0" y="28" width="46" height="20">
