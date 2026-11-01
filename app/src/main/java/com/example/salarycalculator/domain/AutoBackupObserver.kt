@@ -85,9 +85,17 @@ object AutoBackupObserver {
                         for (ep in targetEndpoints) {
                             try {
                                 val pushRes = CustomCloudSyncManager.pushBackup(ep, token, bundle)
-                                if (pushRes.isSuccess) break
+                                if (pushRes.isSuccess) {
+                                    repository.setLastSyncedRemoteTimestamp(bundle.timestamp)
+                                    break
+                                }
                             } catch (_: Exception) {}
                         }
+
+                        // Automatically synchronize updated shifts to connected Wear OS watch
+                        try {
+                            repository.syncShiftsToWearOs()
+                        } catch (_: Exception) {}
                     } catch (_: Exception) {
                         // Resilient error handling - never crash UI thread
                     }

@@ -8,6 +8,10 @@ import androidx.wear.tiles.TileService
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
 import com.example.salarycalculator.wear.complication.WearShiftComplicationService
 import com.example.salarycalculator.wear.tile.WearShiftTileService
+import com.google.android.gms.tasks.Tasks
+import com.google.android.gms.wearable.Wearable
+import java.io.OutputStreamWriter
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -231,6 +235,8 @@ class WearSalaryRepository(private val context: Context) {
             prefs[SHIFTS_JSON_KEY] = json.encodeToString(currentMap)
         }
         requestTileAndComplicationRefresh()
+        val currentShifts = shiftsFlow.first()
+        broadcastShiftChangeToPhoneAndNas(currentShifts)
     }
 
     suspend fun setShiftForDay(dateStr: String, hours: Double) {
@@ -249,6 +255,8 @@ class WearSalaryRepository(private val context: Context) {
             prefs[SHIFTS_JSON_KEY] = json.encodeToString(currentMap)
         }
         requestTileAndComplicationRefresh()
+        val currentShifts = shiftsFlow.first()
+        broadcastShiftChangeToPhoneAndNas(currentShifts)
     }
 
     suspend fun updateAllShifts(shifts: Map<String, Double>) {
@@ -257,11 +265,80 @@ class WearSalaryRepository(private val context: Context) {
             prefs[SHIFTS_JSON_KEY] = json.encodeToString(shifts)
         }
         requestTileAndComplicationRefresh()
+        broadcastShiftChangeToPhoneAndNas(shifts)
     }
 
     /**
      * Pulls latest shifts & settings from the UGOS NAS SQLite server over Wi-Fi.
      */
+    /**
+     * Broadcasts updated shift changes from the Watch to all connected Android phones
+     * via Google Play Services Wearable MessageClient, and directly to the UGOS NAS SQLite
+     * backend if Wi-Fi connectivity is available.
+     */
+    suspend fun broadcastShiftChangeToPhoneAndNas(shifts: Map<String, Double>) = withContext(Dispatchers.IO) {
+        if (shifts.isEmpty()) return@withContext
+        val payload = json.encodeToString(shifts).toByteArray(Charsets.UTF_8)
+
+        // 1. Send to all connected Android phone nodes via Wearable MessageClient
+        try {
+            val nodeClient = Wearable.getNodeClient(context)
+            val nodes = Tasks.await(nodeClient.connectedNodes, 2, TimeUnit.SECONDS)
+            val messageClient = Wearable.getMessageClient(context)
+            for (node in nodes) {
+                messageClient.sendMessage(node.id, "/salary_sync/watch_to_phone_update", payload)
+            }
+        } catch (_: Exception) {}
+
+        // 2. Direct Wi-Fi sync to NAS SQLite backend if on local/home network
+        try {
+            val prefs = context.wearDataStore.data.first()
+            val endpoint = prefs[NAS_URL_KEY] ?: DEFAULT_NAS_BACKUP_URL
+            val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                setRequestProperty("Accept", "application/json")
+                connectTimeout = 2500
+                readTimeout = 2500
+            }
+            if (conn.responseCode in 200..299) {
+                val body = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8")).use { it.readText() }
+                val root = json.parseToJsonElement(body).jsonObject
+                val backupObj = (if (root.containsKey("backup") && root["backup"] is JsonObject) root["backup"]!!.jsonObject else root).toMutableMap()
+
+                // Convert flat shifts to nested JSON format
+                val nested = mutableMapOf<String, MutableMap<Int, Double>>()
+                shifts.forEach { (dateStr, h) ->
+                    val parts = dateStr.split("-")
+                    if (parts.size >= 3) {
+                        val ym = "${parts[0]}-${parts[1]}"
+                        val d = parts[2].toIntOrNull() ?: return@forEach
+                        nested.getOrPut(ym) { mutableMapOf() }[d] = h
+                    }
+                }
+                backupObj["annualShiftScheduleJson"] = kotlinx.serialization.json.JsonPrimitive(json.encodeToString(nested))
+                backupObj["timestamp"] = kotlinx.serialization.json.JsonPrimitive(System.currentTimeMillis())
+
+                val postPayload = json.encodeToString(mapOf(
+                    "email" to "francyalinston@gmail.com",
+                    "bundle" to backupObj
+                ))
+
+                val postConn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    doOutput = true
+                    setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                    connectTimeout = 3000
+                    readTimeout = 3000
+                }
+                OutputStreamWriter(postConn.outputStream, "UTF-8").use { writer ->
+                    writer.write(postPayload)
+                    writer.flush()
+                }
+                postConn.responseCode
+            }
+        } catch (_: Exception) {}
+    }
+
     suspend fun syncFromNasServer(): Boolean = withContext(Dispatchers.IO) {
         try {
             val prefs = context.wearDataStore.data.first()

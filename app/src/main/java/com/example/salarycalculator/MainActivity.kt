@@ -1,5 +1,7 @@
 package com.example.salarycalculator
 
+import com.example.salarycalculator.domain.RealtimeMultiDeviceSyncEngine
+
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -56,6 +58,10 @@ class MainActivity : FragmentActivity() {
             // Signal re-auth check in Compose
             requiresReauth = true
         }
+        lifecycleScope.launch(Dispatchers.IO) {
+            val salaryRepo = SalaryRepository(this@MainActivity)
+            RealtimeMultiDeviceSyncEngine.checkAndSyncRemoteChanges(this@MainActivity, salaryRepo, force = false)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,24 +73,11 @@ class MainActivity : FragmentActivity() {
         com.example.salarycalculator.domain.LiveFxWorker.schedulePeriodicSync(this)
         com.example.salarycalculator.domain.LiveFxWorker.runOneTimeSync(this)
         com.example.salarycalculator.domain.AutoBackupObserver.startObserving(this, lifecycleScope)
+        com.example.salarycalculator.domain.CloudSyncWorker.scheduleAutoSync(this, true)
         handleBackupIntent(intent, salaryRepo)
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val records = salaryRepo.getSalaryHistory().first()
-                val schedule = salaryRepo.getAnnualShiftSchedule().first()
-                if (records.isEmpty() || schedule.isBlank()) {
-                    val endpoints = listOf("http://192.168.8.100:8085/api/backup", "https://salary-calculator.449100.xyz/api/backup")
-                    for (ep in endpoints) {
-                        val pullRes = com.example.salarycalculator.domain.CustomCloudSyncManager.pullBackup(ep, "")
-                        if (pullRes.isSuccess) {
-                            com.example.salarycalculator.domain.LedgerBackupManager.restoreBundle(salaryRepo, pullRes.getOrThrow())
-                            break
-                        }
-                    }
-                }
-            } catch (_: Exception) {}
-        }
+        // Real-time multi-device cloud synchronization across phones, watch, and NAS
+        RealtimeMultiDeviceSyncEngine.startContinuousSync(this, lifecycleScope)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {

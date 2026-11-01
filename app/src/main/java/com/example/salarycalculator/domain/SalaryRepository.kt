@@ -68,6 +68,7 @@ class SalaryRepository(private val context: Context) {
     private val CACHED_CURRENCY_RATES_KEY = stringPreferencesKey("cached_currency_rates_json")
     private val CURRENCY_RATES_LAST_FETCH_KEY = stringPreferencesKey("currency_rates_last_fetch")
     private val SHIFT_CALENDAR_TITLE_KEY = stringPreferencesKey("shift_calendar_title")
+    private val LAST_SYNCED_REMOTE_TIMESTAMP_KEY = longPreferencesKey("last_synced_remote_timestamp")
     private val SHIFT_CALENDAR_START_HOUR_KEY = intPreferencesKey("shift_calendar_start_hour")
     private val SYNCTHING_SERVER_URL_KEY = stringPreferencesKey("syncthing_server_url")
     private val SYNCTHING_API_KEY_KEY = stringPreferencesKey("syncthing_api_key")
@@ -1414,6 +1415,20 @@ class SalaryRepository(private val context: Context) {
                 standardHours = standardShift
             )
         } catch (_: Exception) {
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    fun getLastSyncedRemoteTimestamp(): Flow<Long> {
+        return context.dataStore.data.map { preferences ->
+            preferences[LAST_SYNCED_REMOTE_TIMESTAMP_KEY] ?: 0L
+        }
+    }
+
+    // CRITICAL: DATASTORE_PERSISTENCE
+    suspend fun setLastSyncedRemoteTimestamp(timestamp: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[LAST_SYNCED_REMOTE_TIMESTAMP_KEY] = timestamp
         }
     }
 }

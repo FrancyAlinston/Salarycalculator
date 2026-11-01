@@ -5,6 +5,11 @@ import androidx.work.*
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
+/**
+ * CloudSyncWorker
+ * Background WorkManager periodic worker that keeps phone data synchronized across all devices
+ * and the UGOS NAS SQLite / Cloudflare endpoints even when the app is closed.
+ */
 class CloudSyncWorker(
     appContext: Context,
     workerParams: WorkerParameters
@@ -12,45 +17,32 @@ class CloudSyncWorker(
 
     override suspend fun doWork(): Result {
         val repository = SalaryRepository(applicationContext)
-        val endpoint = repository.getCustomCloudEndpoint().first()
-        val token = repository.getCustomCloudToken().first()
-
-        if (endpoint.isBlank()) {
-            return Result.success()
-        }
-
         return try {
-            val records = repository.getSalaryHistory().first()
-            val profiles = repository.getEmployerProfiles().first()
-            val deductions = repository.getCustomDeductions().first()
-            val taxCode = repository.getTaxCode().first()
-            val region = repository.getTaxRegion().first()
-            val year = repository.getTaxYear().first()
-            val pension = repository.getPensionRate().first()
-            val rate = repository.getDefaultHourlyRate().first()
-            val marriage = repository.getHasMarriageAllowance().first()
-            val blind = repository.getHasBlindPersonsAllowance().first()
+            // 1. Pull and restore any remote changes first
+            RealtimeMultiDeviceSyncEngine.checkAndSyncRemoteChanges(applicationContext, repository, force = false)
 
-            val bundle = BackupBundle(
-                records = records,
-                profiles = profiles,
-                customDeductions = deductions,
-                taxCode = taxCode,
-                taxRegion = region,
-                taxYear = year,
-                pensionRate = pension,
-                hourlyRate = rate,
-                hasMarriageAllowance = marriage,
-                hasBlindPersonsAllowance = blind
-            )
+            // 2. Ensure current state is saved to remote backend
+            val bundle = LedgerBackupManager.createFullBackupBundle(repository)
+            val endpoints = RealtimeMultiDeviceSyncEngine.getTargetEndpoints(repository)
+            val token = repository.getCustomCloudToken().first()
 
-            val pushResult = CustomCloudSyncManager.pushBackup(endpoint, token, bundle)
-            if (pushResult.isSuccess) {
-                Result.success()
-            } else {
-                Result.retry()
+            for (ep in endpoints) {
+                try {
+                    val pushRes = CustomCloudSyncManager.pushBackup(ep, token, bundle)
+                    if (pushRes.isSuccess) {
+                        repository.setLastSyncedRemoteTimestamp(bundle.timestamp)
+                        break
+                    }
+                } catch (_: Exception) {}
             }
-        } catch (e: Exception) {
+
+            // 3. Keep connected watch updated
+            try {
+                repository.syncShiftsToWearOs()
+            } catch (_: Exception) {}
+
+            Result.success()
+        } catch (_: Exception) {
             Result.retry()
         }
     }
@@ -63,10 +55,9 @@ class CloudSyncWorker(
             if (enabled) {
                 val constraints = Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .setRequiresBatteryNotLow(true)
                     .build()
 
-                val syncRequest = PeriodicWorkRequestBuilder<CloudSyncWorker>(24, TimeUnit.HOURS)
+                val syncRequest = PeriodicWorkRequestBuilder<CloudSyncWorker>(15, TimeUnit.MINUTES)
                     .setConstraints(constraints)
                     .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
                     .build()

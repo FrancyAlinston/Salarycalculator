@@ -116,6 +116,20 @@ class SalaryCalculatorHandler(http.server.SimpleHTTPRequestHandler):
                 "environment": os.environ.get("DOCKER_ENV", "false")
             })
 
+        # API: Check latest backup timestamp
+        if self.path.startswith("/api/backup/timestamp"):
+            try:
+                conn = sqlite3.connect(DB_PATH)
+                cursor = conn.cursor()
+                cursor.execute("SELECT created_at FROM backups ORDER BY id DESC LIMIT 1")
+                row = cursor.fetchone()
+                conn.close()
+                if row:
+                    return self._send_json({"success": True, "created_at": row[0]})
+                return self._send_json({"success": False, "created_at": 0}, 404)
+            except Exception as e:
+                return self._send_json({"success": False, "error": str(e)}, 500)
+
         # API: Get backup bundle
         if self.path.startswith("/api/backup"):
             try:

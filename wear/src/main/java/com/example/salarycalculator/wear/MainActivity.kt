@@ -12,6 +12,9 @@ import androidx.compose.runtime.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.salarycalculator.wear.domain.WearSalaryRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.example.salarycalculator.wear.domain.WearTelemetryManager
 import com.example.salarycalculator.wear.theme.WearSalaryTheme
 import com.example.salarycalculator.wear.ui.WearCasioWatchScreen
@@ -32,6 +35,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         repository = WearSalaryRepository(applicationContext)
+
+        // Eagerly pull latest shifts from NAS server if Wi-Fi is connected
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                repository.syncFromNasServer()
+            } catch (_: Exception) {}
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION)

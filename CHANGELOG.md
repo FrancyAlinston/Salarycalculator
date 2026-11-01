@@ -4,6 +4,24 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [27.9] - 2026-11-01 (VersionCode: 73)
+### Added / Changed
+- **Bidirectional Multi-Device & Watch Real-Time Cloud Synchronization (`FEAT-942`, `RealtimeMultiDeviceSyncEngine.kt`, `PhoneWearableListenerService.kt`, `CloudSyncWorker.kt`, `WearSalaryRepository.kt`)**:
+  - **Autonomous Multi-Phone Live Sync**: Engineered `RealtimeMultiDeviceSyncEngine` which polls `/api/backup/timestamp` on the UGREEN UGOS NAS (`192.168.8.100:8085`) and Cloudflare CDN every 12 seconds while in foreground, automatically pulling and restoring newer revisions when changes are made on another connected phone (Pixel 8 Pro, S25 Ultra, Redmi Note 10 Pro) or the watch.
+  - **Watch-to-Phone & Watch-to-NAS Broadcast (`broadcastShiftChangeToPhoneAndNas`)**: When the user logs, edits, or cycles shifts on the Samsung Galaxy Watch, the watch broadcasts the delta to all connected phones via Google Play Services Wearable MessageClient (`/salary_sync/watch_to_phone_update`) and directly writes to the NAS SQLite backend over Wi-Fi.
+  - **Phone-to-Watch Real-Time Reflection**: Automatically triggers `syncShiftsToWearable()` whenever local or remote changes are applied on any phone, immediately updating the watch's tiles, complications, and heatmap.
+  - **Ultra-Fast NAS Timestamp Endpoint (`/api/backup/timestamp`)**: Added lightweight SQLite query endpoint in `server.py` allowing zero-bandwidth, battery-friendly revision polling across all devices.
+  - **Continuous Background Auto-Sync**: Upgraded `CloudSyncWorker` to run every 15 minutes in WorkManager with constraint awareness.
+
+### Bugs Found & Fixed
+- **Stale Cloud Data & Unidirectional Sync**: Resolved issue where phones only pulled cloud backups if local records were completely empty, preventing phones from picking up new shifts logged on other devices.
+- **Unreachable Watch-to-Phone Messages**: Fixed missing `WearableListenerService` on the phone app by registering `PhoneWearableListenerService` in `AndroidManifest.xml` to receive on-wrist updates.
+
+### What Needs to Be Fixed / Pending
+- Dynamic conflict resolution for simultaneous offline shift edits across multiple devices.
+
+---
+
 ## [27.8] - 2026-10-31 (VersionCode: 72)
 ### Added / Changed
 - **Samsung Galaxy Watch 8 Classic Watch Face Format (`:watchface`) & Picker Registration (`FIX-935`, `watchface/src/main/res/raw/watchface.xml`, `watchface/src/main/AndroidManifest.xml`, `wear/src/main/res/xml/watch_face.xml`)**:
