@@ -130,6 +130,18 @@ for ip in device_ips:
             if "watch" in chars.lower():
                 subprocess.run([ADB, "-s", serial, "shell", "svc", "power", "stayon", "true"], capture_output=True)
                 subprocess.run([ADB, "-s", serial, "shell", "settings", "put", "system", "screen_off_timeout", "300000"], capture_output=True)
+                # Keep Wi-Fi connected and active when watch is charging and prevent sleeping
+                subprocess.run([ADB, "-s", serial, "shell", "settings", "put", "global", "cw_enable_wifi_when_charging", "1"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "settings", "put", "global", "stay_on_while_plugged_in", "15"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "settings", "put", "global", "wifi_sleep_policy", "2"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "settings", "put", "global", "wifi_stay_awake_while_charging", "1"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "settings", "put", "global", "wifi_on", "1"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "settings", "put", "global", "adb_enabled", "1"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "settings", "put", "global", "adb_wifi_enabled", "1"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "settings", "put", "secure", "clockwork_wifi_setting", "on"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "dumpsys", "deviceidle", "whitelist", "+com.example.salarycalculator"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "dumpsys", "deviceidle", "whitelist", "+com.example.salarycalculator.watchface"], capture_output=True)
+                subprocess.run([ADB, "-s", serial, "shell", "dumpsys", "deviceidle", "whitelist", "+com.google.android.apps.wearable.settings"], capture_output=True)
                 stop_ka = False
                 def keep_awake():
                     while not stop_ka:
