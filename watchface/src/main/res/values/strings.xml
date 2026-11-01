@@ -5,6 +5,9 @@
     <string name="theme_green_label">Casio EL Green</string>
     <string name="theme_amber_label">Vintage Amber Gold</string>
     <string name="theme_cyan_label">Cyber Ice Cyan</string>
+    <string name="theme_red_label">Tactical Red Alert</string>
+    <string name="theme_gold_label">Vintage Classic Gold</string>
+    <string name="theme_violet_label">Neon Cyber Violet</string>
     <string name="duty_slot_label">Today Duty Status</string>
     <string name="weather_slot_label">Weather Complication</string>
 </resources>

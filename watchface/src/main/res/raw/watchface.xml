@@ -27,6 +27,18 @@
                 id="3"
                 displayName="theme_cyan_label"
                 colors="#FF38BDF8 #FF06B6D4 #FF0284C7" />
+            <ColorOption
+                id="4"
+                displayName="theme_red_label"
+                colors="#FFFF6B6B #FFEF4444 #FF991B1B" />
+            <ColorOption
+                id="5"
+                displayName="theme_gold_label"
+                colors="#FFFDE047 #FFEAB308 #FFA16207" />
+            <ColorOption
+                id="6"
+                displayName="theme_violet_label"
+                colors="#FFE879F9 #FFA855F7 #FF6B21A8" />
         </ColorConfiguration>
     </UserConfigurations>
 
@@ -324,12 +336,13 @@
         <Group x="46" y="324" width="358" height="64" name="BottomRotaPanel" alpha="255">
             <Variant mode="AMBIENT" target="alpha" value="0" />
             
-            <!-- Outer Container Box -->
+            <!-- Outer Container Box with Launch Tap Action -->
             <PartDraw x="0" y="0" width="358" height="64" alpha="255">
                 <RoundRectangle x="0" y="0" width="358" height="64" cornerRadiusX="10" cornerRadiusY="10">
                     <Fill color="#ff000000" />
                     <Stroke color="#ff1e3a5f" thickness="2" />
                 </RoundRectangle>
+                <Launch target="com.example.salarycalculator/com.example.salarycalculator.wear.MainActivity" />
             </PartDraw>
 
             <!-- 7 Days Labels with Individual Active Day Highlight Badges -->
@@ -584,6 +597,7 @@
             <Text align="CENTER">
                 <Font family="SYNC_TO_DEVICE" size="12" weight="BOLD" color="#ffef4444">WR 50M - NIGHT DUTY EDITION</Font>
             </Text>
+            <Launch target="com.example.salarycalculator/com.example.salarycalculator.wear.MainActivity" />
         </PartText>
 
     </Scene>
