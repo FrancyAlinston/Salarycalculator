@@ -110,11 +110,14 @@ These rules define the mandatory behavioral constraints, development workflows, 
     2. **UGOS NAS NVMe Docker Container**: Execute `python3 scripts/deploy_nas.py` to rebuild and redeploy the live `salarycalculator-web` container on NVMe `/volume2/docker/salarycalculator` and update the UGOS Docker App database.
   - Never update only one platform in isolation; both phone APK and NAS web container must always remain updated and synchronized with 100% tax engine and feature parity.
 
-- **Multi-Device Target Registry (`@rules:multi_device_deployment_registry`)**:
+- **Multi-Device Target Registry & Dynamic Wi-Fi Port Rule (@rules:multi_device_deployment_registry)**:
   - Automatically attempt deployment to registered wireless ADB targets whenever available:
-    - Primary Device: `192.168.8.246` / `192.168.8.178` (Pixel 8 Pro)
-    - Secondary Device: `192.168.8.168` (Redmi Note 10 Pro)
-  - Execute [`scripts/install_to_devices.sh`](scripts/install_to_devices.sh) to deploy builds across active devices.
+    - Primary Phone: 192.168.8.232 (Samsung Galaxy S25 Ultra, SM-S938B)
+    - Secondary Phone: 192.168.8.246 / 192.168.8.178 (Google Pixel 8 Pro)
+    - Tertiary Phone: 192.168.8.168 (Redmi Note 10 Pro)
+    - Watch Target: 192.168.8.162 / 192.168.8.15 (Samsung Galaxy Watch 8 Classic, SM-L505F)
+  - **Dynamic Wireless Debugging Port Rule**: Because devices connect via Wi-Fi without USB cables, Android Wireless Debugging assigns a new random dynamic port (30000–49151) every time the device reconnects to Wi-Fi or renews DHCP. Never assume static port 5555 persists indefinitely after a Wi-Fi reconnect. Always probe via mDNS (_adb-tls-connect._tcp.local) and multi-threaded port scans (32768–49151), or use pairing codes when re-authenticating.
+  - Execute [scripts/install_to_devices.sh](scripts/install_to_devices.sh) to automatically discover and deploy builds across all active wireless devices.
 - **Mandatory Emulator & Live UI Verification (`@rules:mandatory_emulator_verification`)**:
   - When changes are made, install and launch the build on the Android emulator (`adb install -r ...` and `adb shell am start ...`) when an emulator is available.
   - Inspect the live running app for glitches, alignment issues, layout overflow, truncated text, touch target clipping, and runtime logcat exceptions across portrait and landscape/foldable orientations.
