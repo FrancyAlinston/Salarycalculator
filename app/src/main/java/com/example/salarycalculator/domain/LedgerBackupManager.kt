@@ -540,6 +540,7 @@ object LedgerBackupManager {
             repository.setGoogleDriveAutoSync(bundle.googleDriveAutoSync)
             if (bundle.googleDriveLastSync.isNotBlank()) repository.setGoogleDriveLastSync(bundle.googleDriveLastSync)
         } finally {
+            kotlinx.coroutines.delay(650L)
             AutoBackupObserver.setRestoring(false)
         }
     }

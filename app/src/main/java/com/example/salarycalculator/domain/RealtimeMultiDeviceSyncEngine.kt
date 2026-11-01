@@ -23,8 +23,28 @@ object RealtimeMultiDeviceSyncEngine {
     private var syncJob: Job? = null
     private var isSyncing: Boolean = false
 
+    @Volatile
+    private var lastLocalEditTimestamp: Long = 0L
+
     private const val DEFAULT_NAS_BACKUP_URL = "http://192.168.8.100:8085/api/backup"
     private const val DEFAULT_CLOUDFLARE_BACKUP_URL = "https://salary-calculator.449100.xyz/api/backup"
+
+    /**
+     * Marks the occurrence of a local user edit so older or stale remote revisions
+     * are never pulled over active user modifications.
+     */
+    fun recordLocalEdit() {
+        lastLocalEditTimestamp = System.currentTimeMillis()
+    }
+
+    fun getLastLocalEditTimestamp(): Long = lastLocalEditTimestamp
+
+    /**
+     * Normalizes seconds to milliseconds if required.
+     */
+    fun normalizeTimestamp(ts: Long): Long {
+        return if (ts in 1L..9_999_999_999L) ts * 1000L else ts
+    }
 
     /**
      * Resolves all active target sync endpoints in priority order.
@@ -62,23 +82,32 @@ object RealtimeMultiDeviceSyncEngine {
                 try {
                     // 1. First attempt lightweight timestamp probe
                     val timestampUrl = if (endpoint.endsWith("/api/backup")) "$endpoint/timestamp" else endpoint
-                    val remoteTimestamp = fetchRemoteTimestamp(timestampUrl, token)
+                    val rawRemoteTimestamp = fetchRemoteTimestamp(timestampUrl, token)
+                    val remoteTimestamp = normalizeTimestamp(rawRemoteTimestamp)
 
-                    if (!force && !isLocalEmpty && remoteTimestamp > 0L && remoteTimestamp <= localLastSynced) {
-                        // Already completely up to date with this endpoint
-                        continue
+                    // If remote timestamp exists and is not newer than our local state, skip downloading
+                    if (!force && !isLocalEmpty && remoteTimestamp > 0L) {
+                        if (remoteTimestamp <= localLastSynced) {
+                            continue
+                        }
+                        if (remoteTimestamp <= lastLocalEditTimestamp) {
+                            // Local user made edits after this remote snapshot; do not overwrite!
+                            continue
+                        }
                     }
 
                     // 2. Fetch full backup bundle
                     val pullRes = CustomCloudSyncManager.pullBackup(endpoint, token)
                     if (pullRes.isSuccess) {
                         val bundle = pullRes.getOrThrow()
-                        val bundleTime = if (bundle.timestamp > 0L) bundle.timestamp else (remoteTimestamp * 1000L)
+                        val bundleTime = normalizeTimestamp(
+                            if (bundle.timestamp > 0L) bundle.timestamp else remoteTimestamp
+                        )
 
-                        val isNewer = force || isLocalEmpty || bundleTime > (localLastSynced + 1000L)
-                        val contentDifferent = bundle.annualShiftScheduleJson.isNotBlank() && bundle.annualShiftScheduleJson != localSchedule
+                        // Strict freshness requirement: remote must be strictly newer than local records
+                        val isNewer = force || isLocalEmpty || (bundleTime > localLastSynced && bundleTime > lastLocalEditTimestamp)
 
-                        if (isNewer || contentDifferent) {
+                        if (isNewer) {
                             LedgerBackupManager.restoreBundle(repository, bundle)
                             val finalTimestamp = if (bundleTime > 0L) bundleTime else System.currentTimeMillis()
                             repository.setLastSyncedRemoteTimestamp(finalTimestamp)
@@ -118,8 +147,9 @@ object RealtimeMultiDeviceSyncEngine {
             if (conn.responseCode in 200..299) {
                 val body = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8")).use { it.readText() }
                 val root = json.parseToJsonElement(body).jsonObject
-                root["created_at"]?.jsonPrimitive?.longOrNull
+                val raw = root["created_at"]?.jsonPrimitive?.longOrNull
                     ?: (root["created_at"]?.jsonPrimitive?.content?.toDoubleOrNull()?.toLong() ?: 0L)
+                normalizeTimestamp(raw)
             } else {
                 0L
             }
@@ -129,7 +159,64 @@ object RealtimeMultiDeviceSyncEngine {
     }
 
     /**
-     * Starts continuous auto-sync polling every 12 seconds in foreground.
+     * Subscribes to NAS long-poll event for zero-latency change detection.
+     */
+    private fun longPollRemoteTimestamp(endpoint: String, token: String, sinceMs: Long, timeoutSec: Int = 15): Long {
+        return try {
+            if (!endpoint.contains(":8085") && !endpoint.contains("192.168.8.100")) return 0L
+            val base = endpoint.substringBefore("/api/backup") + "/api/backup/poll"
+            val pollUrl = "$base?since=$sinceMs&timeout=$timeoutSec"
+
+            val conn = (URL(pollUrl).openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                setRequestProperty("Accept", "application/json")
+                connectTimeout = 4000
+                readTimeout = (timeoutSec + 5) * 1000
+                if (token.isNotBlank()) {
+                    setRequestProperty("Authorization", if (token.startsWith("Bearer ", ignoreCase = true)) token else "Bearer $token")
+                }
+            }
+            if (conn.responseCode in 200..299) {
+                val body = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8")).use { it.readText() }
+                val root = json.parseToJsonElement(body).jsonObject
+                val raw = root["created_at"]?.jsonPrimitive?.longOrNull
+                    ?: (root["created_at"]?.jsonPrimitive?.content?.toDoubleOrNull()?.toLong() ?: 0L)
+                normalizeTimestamp(raw)
+            } else {
+                0L
+            }
+        } catch (_: Exception) {
+            0L
+        }
+    }
+
+    /**
+     * Triggers an immediate asynchronous push of current state to NAS and Cloudflare.
+     */
+    fun triggerImmediatePush(repository: SalaryRepository, scope: CoroutineScope = CoroutineScope(Dispatchers.IO)) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                recordLocalEdit()
+                val bundle = LedgerBackupManager.createFullBackupBundle(repository)
+                val endpoints = getTargetEndpoints(repository)
+                val token = try { repository.getCustomCloudToken().first() } catch (_: Exception) { "" }
+
+                for (ep in endpoints) {
+                    try {
+                        val pushRes = CustomCloudSyncManager.pushBackup(ep, token, bundle)
+                        if (pushRes.isSuccess) {
+                            repository.setLastSyncedRemoteTimestamp(bundle.timestamp)
+                            break
+                        }
+                    } catch (_: Exception) {}
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    /**
+     * Starts continuous auto-sync polling in foreground using long-polling on NAS
+     * and fast polling on Cloudflare CDN.
      */
     fun startContinuousSync(context: Context, scope: CoroutineScope) {
         if (syncJob?.isActive == true) return
@@ -140,10 +227,28 @@ object RealtimeMultiDeviceSyncEngine {
             checkAndSyncRemoteChanges(context, repository, force = false)
 
             while (isActive) {
-                delay(12000L) // Poll every 12 seconds
                 try {
-                    checkAndSyncRemoteChanges(context, repository, force = false)
-                } catch (_: Exception) {}
+                    val endpoints = getTargetEndpoints(repository)
+                    val nasEndpoint = endpoints.firstOrNull { it.contains(":8085") || it.contains("192.168.8.100") }
+                    val token = try { repository.getCustomCloudToken().first() } catch (_: Exception) { "" }
+                    val localSynced = repository.getLastSyncedRemoteTimestamp().first()
+
+                    if (nasEndpoint != null) {
+                        // Real-time long-poll wait
+                        val remoteTs = longPollRemoteTimestamp(nasEndpoint, token, sinceMs = localSynced, timeoutSec = 12)
+                        if (remoteTs > localSynced && remoteTs > lastLocalEditTimestamp) {
+                            checkAndSyncRemoteChanges(context, repository, force = false)
+                        } else {
+                            delay(1000L)
+                        }
+                    } else {
+                        // Standard periodic check on remote networks
+                        delay(4000L)
+                        checkAndSyncRemoteChanges(context, repository, force = false)
+                    }
+                } catch (_: Exception) {
+                    delay(3000L)
+                }
             }
         }
     }
@@ -155,7 +260,7 @@ object RealtimeMultiDeviceSyncEngine {
 
     /**
      * Applies a shift update received from the Wear OS smartwatch into the phone's
-     * annual schedule JSON, which triggers AutoBackupObserver to upload to NAS and Cloudflare.
+     * annual schedule JSON, which triggers immediate upload to NAS and Cloudflare.
      */
     suspend fun applyWatchShiftUpdate(
         context: Context,
@@ -164,6 +269,7 @@ object RealtimeMultiDeviceSyncEngine {
     ) = withContext(Dispatchers.IO) {
         if (shiftsMap.isEmpty()) return@withContext
         try {
+            recordLocalEdit()
             val currentRaw = repository.getAnnualShiftSchedule().first()
             val parsedNested: MutableMap<String, MutableMap<Int, Double>> =
                 SalaryRepository.parseShiftScheduleJson(currentRaw).mapValues { it.value.toMutableMap() }.toMutableMap()
@@ -193,8 +299,6 @@ object RealtimeMultiDeviceSyncEngine {
 
             val updatedJson = SalaryRepository.encodeShiftSchedule(parsedNested)
             repository.setAnnualShiftSchedule(updatedJson)
-
-            // AutoBackupObserver will detect this DataStore change and push to NAS + Cloudflare!
         } catch (_: Exception) {}
     }
 }

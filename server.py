@@ -11,7 +11,16 @@ import os
 import socketserver
 import sqlite3
 import sys
+import threading
 import time
+import urllib.parse
+
+# Thread synchronization condition for real-time long-poll notifications
+SYNC_CONDITION = threading.Condition()
+
+class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    daemon_threads = True
+    allow_reuse_address = True
 
 # Ensure proper MIME types are registered
 mimetypes.init()
@@ -116,7 +125,51 @@ class SalaryCalculatorHandler(http.server.SimpleHTTPRequestHandler):
                 "environment": os.environ.get("DOCKER_ENV", "false")
             })
 
-        # API: Check latest backup timestamp
+        # API: Real-time long-poll endpoint for zero-latency multi-device sync
+        if self.path.startswith("/api/backup/poll"):
+            parsed_url = urllib.parse.urlparse(self.path)
+            query_params = urllib.parse.parse_qs(parsed_url.query)
+            since_ts = 0.0
+            timeout_sec = 20.0
+            try:
+                since_ts = float(query_params.get("since", [0])[0])
+            except Exception:
+                pass
+            try:
+                timeout_sec = min(30.0, max(1.0, float(query_params.get("timeout", [20])[0])))
+            except Exception:
+                pass
+
+            def get_latest_ms():
+                try:
+                    c = sqlite3.connect(DB_PATH)
+                    cur = c.cursor()
+                    cur.execute("SELECT created_at FROM backups ORDER BY id DESC LIMIT 1")
+                    r = cur.fetchone()
+                    c.close()
+                    if r:
+                        raw = float(r[0])
+                        return int(raw * 1000.0) if raw < 10000000000.0 else int(raw)
+                except Exception:
+                    pass
+                return 0
+
+            latest_ms = get_latest_ms()
+            if latest_ms > since_ts:
+                return self._send_json({"success": True, "created_at": latest_ms, "timeout": False})
+
+            # Wait for any device to push a new revision
+            with SYNC_CONDITION:
+                SYNC_CONDITION.wait(timeout_sec)
+
+            latest_ms = get_latest_ms()
+            return self._send_json({
+                "success": True,
+                "created_at": latest_ms,
+                "timeout": not (latest_ms > since_ts)
+            })
+
+        # API: Check latest backup timestamp (always in milliseconds)
         if self.path.startswith("/api/backup/timestamp"):
             try:
                 conn = sqlite3.connect(DB_PATH)
@@ -125,7 +178,9 @@ class SalaryCalculatorHandler(http.server.SimpleHTTPRequestHandler):
                 row = cursor.fetchone()
                 conn.close()
                 if row:
-                    return self._send_json({"success": True, "created_at": row[0]})
+                    raw = float(row[0])
+                    ms = int(raw * 1000.0) if raw < 10000000000.0 else int(raw)
+                    return self._send_json({"success": True, "created_at": ms})
                 return self._send_json({"success": False, "created_at": 0}, 404)
             except Exception as e:
                 return self._send_json({"success": False, "error": str(e)}, 500)
@@ -202,15 +257,31 @@ class SalaryCalculatorHandler(http.server.SimpleHTTPRequestHandler):
                 email = data.get("email", "default")
                 bundle = data.get("bundle", data)
 
+                # Store timestamp in milliseconds
+                raw_ts = bundle.get("timestamp") if isinstance(bundle, dict) else None
+                if raw_ts:
+                    try:
+                        f_ts = float(raw_ts)
+                        created_at = f_ts if f_ts > 10000000000.0 else (f_ts * 1000.0)
+                    except Exception:
+                        created_at = time.time() * 1000.0
+                else:
+                    created_at = time.time() * 1000.0
+
                 conn = sqlite3.connect(DB_PATH)
                 cursor = conn.cursor()
                 cursor.execute(
                     "INSERT INTO backups (email, bundle_json, created_at) VALUES (?, ?, ?)",
-                    (email, json.dumps(bundle), time.time())
+                    (email, json.dumps(bundle), created_at)
                 )
                 conn.commit()
                 conn.close()
-                return self._send_json({"success": True, "message": "Backup saved to NAS SQLite DB"})
+
+                # Notify all waiting long-poll clients immediately
+                with SYNC_CONDITION:
+                    SYNC_CONDITION.notify_all()
+
+                return self._send_json({"success": True, "message": "Backup saved to NAS SQLite DB", "created_at": int(created_at)})
             except Exception as e:
                 return self._send_json({"success": False, "error": str(e)}, 500)
 
@@ -242,6 +313,11 @@ class SalaryCalculatorHandler(http.server.SimpleHTTPRequestHandler):
                     """, (date_str, shift_type, hours, ot_hours, notes, now))
                 conn.commit()
                 conn.close()
+
+                # Notify long-poll listeners
+                with SYNC_CONDITION:
+                    SYNC_CONDITION.notify_all()
+
                 return self._send_json({"success": True, "count": len(shifts)})
             except Exception as e:
                 return self._send_json({"success": False, "error": str(e)}, 500)
@@ -293,13 +369,13 @@ class SalaryCalculatorHandler(http.server.SimpleHTTPRequestHandler):
         sys.stdout.flush()
 
 if __name__ == "__main__":
-    socketserver.TCPServer.allow_reuse_address = True
+    ThreadedTCPServer.allow_reuse_address = True
     print(f"🚀 Salary Calculator Web Server & SQLite API starting on http://{HOST}:{PORT}")
     print(f"📁 Web Root: {WEB_DIR}")
     print(f"📁 Data Directory: {DATA_DIR}")
     print(f"💾 SQLite Database: {DB_PATH}")
     
-    with socketserver.TCPServer((HOST, PORT), SalaryCalculatorHandler) as httpd:
+    with ThreadedTCPServer((HOST, PORT), SalaryCalculatorHandler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

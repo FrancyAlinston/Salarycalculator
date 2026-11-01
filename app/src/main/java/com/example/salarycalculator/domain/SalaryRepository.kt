@@ -705,6 +705,7 @@ class SalaryRepository(private val context: Context) {
 
     // CRITICAL: DATASTORE_PERSISTENCE
     suspend fun setAnnualShiftSchedule(scheduleJson: String) {
+        RealtimeMultiDeviceSyncEngine.recordLocalEdit()
         context.dataStore.edit { preferences ->
             val parsed = parseShiftScheduleJson(scheduleJson)
             val cleanToSave = if (parsed.isNotEmpty()) encodeShiftSchedule(parsed) else scheduleJson
@@ -712,6 +713,7 @@ class SalaryRepository(private val context: Context) {
         }
         com.example.salarycalculator.widget.ShiftHeatmapWidgetManager.updateAllWidgets(context)
         syncShiftsToWearOs()
+        RealtimeMultiDeviceSyncEngine.triggerImmediatePush(this)
     }
 
     // CRITICAL: DATASTORE_PERSISTENCE

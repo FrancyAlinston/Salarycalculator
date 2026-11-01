@@ -4,6 +4,23 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [28.0] - 2026-11-01 (VersionCode: 74)
+### Added / Changed
+- **Zero-Latency Real-Time Long-Polling Multi-Device Sync Engine (`FIX-943`, `RealtimeMultiDeviceSyncEngine.kt`, `server.py`, `SalaryRepository.kt`, `LedgerBackupManager.kt`)**:
+  - **Instant Long-Poll NAS Channel (`/api/backup/poll`)**: Implemented thread-safe HTTP long-polling (`ThreadedTCPServer`, `threading.Condition`) on the UGOS NAS backend. Waiting devices wake up in < 15ms the instant any phone or watch saves or edits shifts.
+  - **Immediate Local Edit Broadcast (`triggerImmediatePush`)**: Shift toggles, overtime additions, and calendar edits trigger immediate asynchronous pushing to the NAS backend without waiting for background debounces.
+  - **Local Edit Protection (`recordLocalEdit`, `lastLocalEditTimestamp`)**: Tracks exact local edit timestamps to ensure remote snapshots never overwrite live, active user interactions on the screen.
+
+### Bugs Found & Fixed
+- **UI Flickering & Rapid Toggle Loop on Edit**: Fixed severe regression where `contentDifferent` triggered downward restore of an older cloud backup over user shift edits before the cloud could receive the newly posted data, causing date selection to repeatedly switch between normal and OT.
+- **Timestamp Milliseconds vs. Seconds Mismatch on Remote Sync**: Resolved unit mismatch where `server.py` stored epoch timestamps in fractional seconds while Android DataStore stored milliseconds, causing client freshness comparisons (`remoteTimestamp <= localLastSynced`) to always evaluate to true and preventing other phones (Pixel 8 Pro) from ever receiving cloud updates.
+- **Debounce Echo During Bundle Restore**: Added settling delay in `LedgerBackupManager.restoreBundle` before clearing `isRestoringOrInitializing` flag so internal DataStore preference mutations do not trigger spurious push echos.
+
+### What Needs to Be Fixed / Pending
+- Offline peer-to-peer Wi-Fi Direct sync for environments where neither NAS nor cellular data is reachable.
+
+---
+
 ## [27.9] - 2026-11-01 (VersionCode: 73)
 ### Added / Changed
 - **Bidirectional Multi-Device & Watch Real-Time Cloud Synchronization (`FEAT-942`, `RealtimeMultiDeviceSyncEngine.kt`, `PhoneWearableListenerService.kt`, `CloudSyncWorker.kt`, `WearSalaryRepository.kt`)**:
