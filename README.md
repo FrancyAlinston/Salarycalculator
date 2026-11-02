@@ -4,6 +4,27 @@ A clean, modern Android application for calculating UK net salary, PAYE income t
 
 ---
 
+- **Wear OS Battery Optimizations & Dynamic Lifecycle (28.2) (OPT-945, WearCasioWatchFaceService.kt, WearTelemetryManager.kt, WearSalaryRepository.kt):**
+  - **Dynamic Hardware Step Sensor Lifecycle:** Observes watchState.isVisible and watchState.isAmbient to unregister Sensor.TYPE_STEP_COUNTER whenever the display turns off or enters ambient mode, allowing hardware sensor hubs to enter deep sleep.
+  - **Memory-Cached Battery State IPC:** Replaced per-second 
+egisterReceiver system IPC calls with 15-second memory caching, eliminating binder transaction overhead on watchface render loops.
+  - **Zero-Wakeup Weather:** 2-hour weather caching with 30-min backoff; minute render ticks operate strictly against local DataStore memory with zero HTTP network wakeups.
+  - **Bluetooth-First Wi-Fi Guard:** Direct HTTP watch-to-NAS sync is guarded by active Wi-Fi check, ensuring shift edits default exclusively to low-power Bluetooth Wearable.MessageClient route.
+
+- **Cross-Device Peer Shift Adoption & Infinite Loop Termination (28.1) (FIX-944, AutoBackupObserver.kt, SalaryRepository.kt, RealtimeMultiDeviceSyncEngine.kt, LedgerBackupManager.kt):**
+  - **Payload Fingerprinting:** Computes business data hashes in AutoBackupObserver to ignore sync metadata mutations, eliminating the 5-second infinite auto-backup feedback loop.
+  - **Decoupled Sync Metadata:** Migrated last_synced_remote_timestamp out of reactive DataStore into private SharedPreferences (salary_calculator_sync_meta).
+  - **Peer Shift Schedule Adoption (shouldApplyFromPeer):** Detects when remote backups originate from peer devices (undle.deviceModel != myDeviceModel) and automatically restores them without local edit conflict.
+
+- **Zero-Latency Real-Time Long-Polling Multi-Device Sync Engine (28.0) (FIX-943, RealtimeMultiDeviceSyncEngine.kt, server.py, SalaryRepository.kt, LedgerBackupManager.kt):**
+  - **Instant Long-Poll NAS Channel (/api/backup/poll):** Thread-safe HTTP long-polling on the UGOS NAS backend wakes waiting devices in < 15ms the instant any phone or watch logs or edits shifts.
+  - **Immediate Local Edit Broadcast (	riggerImmediatePush):** Shift toggles, overtime additions, and calendar edits trigger immediate push to the NAS backend without background debounce delay.
+  - **Local Edit Protection:** Tracks exact local edit timestamps to ensure remote snapshots never overwrite live, active user interactions.
+
+- **Bidirectional Multi-Device & Watch Real-Time Cloud Sync (27.9) (FEAT-942, RealtimeMultiDeviceSyncEngine.kt, PhoneWearableListenerService.kt, CloudSyncWorker.kt, WearSalaryRepository.kt):**
+  - **Autonomous Multi-Phone Live Sync:** Probes /api/backup/timestamp on UGOS NAS (192.168.8.100:8085) and Cloudflare CDN every 12 seconds in foreground, automatically pulling newer revisions.
+  - **Watch-to-Phone Broadcast:** Watch broadcasts shift changes to connected phones via Google Play Services Wearable MessageClient (/salary_sync/watch_to_phone_update) and directly writes to NAS over Wi-Fi.
+
 - **Samsung Galaxy Watch 8 Classic Watch Face Format (`:watchface`) & `EOT-EXEC-V27.7` Casio Suite (`v27.8`) (`watchface/src/main/res/raw/watchface.xml`, `CasioDigitalCanvasRenderer.kt`, `WearTelemetryManager.kt`):**
   - **Native Watch Face Format v2 Package (`:watchface`):** Dedicated `hasCode="false"` WFF v2 watch face (`Casio Night Duty Digital`) engineered for Wear OS 5+ / One UI Watch on the Samsung Galaxy Watch 8 Classic (`SM-L505F`), appearing directly in the system Watch Face Selector with pure black (`#000000`) background, digital clock (`HH:MM:SS`), live `[STEP_COUNT]`, live `[WEATHER.TEMPERATURE]`, `[BATTERY_PERCENT]`, and auto-linked **`Night Duty` / `Off Duty`** complication.
   - **Selectable Casio Retro Color Themes (`FEAT-938`):** 1-tap switching between **Stealth White**, **Casio EL Green**, **Vintage Amber Gold**, and **Cyber Ice Cyan** across the Watch Face, Quick Tile, and Watch App.

@@ -14,8 +14,11 @@ These rules define the mandatory behavioral constraints, development workflows, 
 - **Changelog Segregation Rule (`@rules:changelog_in_changelog_only`)**:
   - **ALL** version release notes, changelogs, and release histories MUST be maintained exclusively in [`CHANGELOG.md`](CHANGELOG.md).
   - **NEVER** embed release changelogs, version histories, or release notes inside `AGENTS.md`, `README.md`, or any other operational guide.
-- **Living Documentation**:
-  - Whenever you add a new screen, modify tax computation formulas, adjust Gradle dependencies, or alter navigation routes, you MUST update [`README.md`](README.md) and [`CHANGELOG.md`](CHANGELOG.md).
+- **Living Documentation & Status Tracking (`@rules:living_docs_and_status_tracking`)**:
+  - Whenever you add a new screen, modify tax computation formulas, adjust Gradle dependencies, alter navigation routes, or deliver version updates, you MUST synchronously update:
+    1. [`CHANGELOG.md`](CHANGELOG.md): Record detailed changes under the 4 standard categorized sections.
+    2. [`PROJECT_STATUS.md`](PROJECT_STATUS.md): Update the master status tracker across Completed, In Progress, Blocked, and Pipeline sections.
+    3. [`README.md`](README.md): Document newly implemented features, system architectures, and capabilities.
 - **Dependency & Build Integrity**:
   - All library dependencies and plugins MUST be declared and managed centrally in the Gradle Version Catalog ([`gradle/libs.versions.toml`](gradle/libs.versions.toml)). Do not hardcode version strings inside `build.gradle.kts`.
   - Always maintain Unix (LF) line terminators on scripts such as `gradlew`.
