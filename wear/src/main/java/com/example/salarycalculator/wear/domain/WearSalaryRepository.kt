@@ -290,8 +290,71 @@ class WearSalaryRepository(private val context: Context) {
             }
         } catch (_: Exception) {}
 
-        // 2. Direct Wi-Fi sync to NAS SQLite backend if on local/home network
+        // 2. Battery-Safe Direct Wi-Fi sync: ONLY if watch Wi-Fi is already actively connected
         try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            val activeNet = cm?.activeNetwork
+            val caps = cm?.getNetworkCapabilities(activeNet)
+            val isWifiConnected = caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) == true
+
+            if (isWifiConnected) {
+                val prefs = context.wearDataStore.data.first()
+                val endpoint = prefs[NAS_URL_KEY] ?: DEFAULT_NAS_BACKUP_URL
+                val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    setRequestProperty("Accept", "application/json")
+                    connectTimeout = 1500
+                    readTimeout = 1500
+                }
+                if (conn.responseCode in 200..299) {
+                    val body = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8")).use { it.readText() }
+                    val root = json.parseToJsonElement(body).jsonObject
+                    val backupObj = (if (root.containsKey("backup") && root["backup"] is JsonObject) root["backup"]!!.jsonObject else root).toMutableMap()
+
+                    // Convert flat shifts to nested JSON format
+                    val nested = mutableMapOf<String, MutableMap<Int, Double>>()
+                    shifts.forEach { (dateStr, h) ->
+                        val parts = dateStr.split("-")
+                        if (parts.size >= 3) {
+                            val ym = "${parts[0]}-${parts[1]}"
+                            val d = parts[2].toIntOrNull() ?: return@forEach
+                            nested.getOrPut(ym) { mutableMapOf() }[d] = h
+                        }
+                    }
+                    backupObj["annualShiftScheduleJson"] = kotlinx.serialization.json.JsonPrimitive(json.encodeToString(nested))
+                    backupObj["timestamp"] = kotlinx.serialization.json.JsonPrimitive(System.currentTimeMillis())
+
+                    val postPayload = json.encodeToString(mapOf(
+                        "email" to "francyalinston@gmail.com",
+                        "bundle" to backupObj
+                    ))
+
+                    val postConn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                        connectTimeout = 2000
+                        readTimeout = 2000
+                    }
+                    OutputStreamWriter(postConn.outputStream, "UTF-8").use { writer ->
+                        writer.write(postPayload)
+                        writer.flush()
+                    }
+                    postConn.responseCode
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    suspend fun syncFromNasServer(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            // Guard: Only query NAS directly if Wi-Fi is actively connected to avoid waking radios
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            val activeNet = cm?.activeNetwork
+            val caps = cm?.getNetworkCapabilities(activeNet)
+            val isWifiConnected = caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) == true
+            if (!isWifiConnected) return@withContext false
+
             val prefs = context.wearDataStore.data.first()
             val endpoint = prefs[NAS_URL_KEY] ?: DEFAULT_NAS_BACKUP_URL
             val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
@@ -299,55 +362,6 @@ class WearSalaryRepository(private val context: Context) {
                 setRequestProperty("Accept", "application/json")
                 connectTimeout = 2500
                 readTimeout = 2500
-            }
-            if (conn.responseCode in 200..299) {
-                val body = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8")).use { it.readText() }
-                val root = json.parseToJsonElement(body).jsonObject
-                val backupObj = (if (root.containsKey("backup") && root["backup"] is JsonObject) root["backup"]!!.jsonObject else root).toMutableMap()
-
-                // Convert flat shifts to nested JSON format
-                val nested = mutableMapOf<String, MutableMap<Int, Double>>()
-                shifts.forEach { (dateStr, h) ->
-                    val parts = dateStr.split("-")
-                    if (parts.size >= 3) {
-                        val ym = "${parts[0]}-${parts[1]}"
-                        val d = parts[2].toIntOrNull() ?: return@forEach
-                        nested.getOrPut(ym) { mutableMapOf() }[d] = h
-                    }
-                }
-                backupObj["annualShiftScheduleJson"] = kotlinx.serialization.json.JsonPrimitive(json.encodeToString(nested))
-                backupObj["timestamp"] = kotlinx.serialization.json.JsonPrimitive(System.currentTimeMillis())
-
-                val postPayload = json.encodeToString(mapOf(
-                    "email" to "francyalinston@gmail.com",
-                    "bundle" to backupObj
-                ))
-
-                val postConn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    doOutput = true
-                    setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                    connectTimeout = 3000
-                    readTimeout = 3000
-                }
-                OutputStreamWriter(postConn.outputStream, "UTF-8").use { writer ->
-                    writer.write(postPayload)
-                    writer.flush()
-                }
-                postConn.responseCode
-            }
-        } catch (_: Exception) {}
-    }
-
-    suspend fun syncFromNasServer(): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val prefs = context.wearDataStore.data.first()
-            val endpoint = prefs[NAS_URL_KEY] ?: DEFAULT_NAS_BACKUP_URL
-            val conn = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-                requestMethod = "GET"
-                setRequestProperty("Accept", "application/json")
-                connectTimeout = 4000
-                readTimeout = 4000
             }
             if (conn.responseCode in 200..299) {
                 val body = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8")).use { it.readText() }

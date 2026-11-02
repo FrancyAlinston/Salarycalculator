@@ -157,6 +157,30 @@ class WearCasioWatchFaceService : WatchFaceService() {
 
         private var lastRefreshMinute: Int = -1
 
+        init {
+            // Battery Optimization: Only listen to hardware step sensor when screen is active and not ambient
+            serviceScope.launch {
+                watchState.isVisible.collect { visible ->
+                    val ambient = (watchState.isAmbient.value == true)
+                    if (visible == true && !ambient) {
+                        WearTelemetryManager.ensureStepSensorListening(applicationContext)
+                    } else {
+                        WearTelemetryManager.stopStepSensorListening(applicationContext)
+                    }
+                }
+            }
+            serviceScope.launch {
+                watchState.isAmbient.collect { ambient ->
+                    val visible = (watchState.isVisible.value == true)
+                    if (visible && ambient != true) {
+                        WearTelemetryManager.ensureStepSensorListening(applicationContext)
+                    } else {
+                        WearTelemetryManager.stopStepSensorListening(applicationContext)
+                    }
+                }
+            }
+        }
+
         override suspend fun createSharedAssets(): CasioSharedAssets = CasioSharedAssets()
 
         fun refreshStateAsync() {
@@ -183,9 +207,15 @@ class WearCasioWatchFaceService : WatchFaceService() {
                 cachedDuty.hasDuty
             )
 
+            // Battery Optimization: Only refresh duty summary on minute tick from local store (zero network calls)
             if (zonedDateTime.minute != lastRefreshMinute) {
                 lastRefreshMinute = zonedDateTime.minute
-                refreshStateAsync()
+                serviceScope.launch {
+                    try {
+                        cachedDuty = repository.getTodayDutySummary(LocalDate.now())
+                    } catch (_: Exception) {
+                    }
+                }
             }
 
             val isAmbient = (renderParameters.drawMode == DrawMode.AMBIENT)

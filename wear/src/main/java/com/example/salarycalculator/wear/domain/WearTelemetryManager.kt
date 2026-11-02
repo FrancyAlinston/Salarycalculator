@@ -148,6 +148,16 @@ object WearTelemetryManager {
     private var sensorRegistered = false
     private var stepListener: SensorEventListener? = null
 
+    @Volatile
+    private var cachedBatteryPct: Int = 100
+    @Volatile
+    private var cachedIsCharging: Boolean = false
+    @Volatile
+    private var lastBatteryReadMs: Long = 0L
+
+    @Volatile
+    private var lastWeatherAttemptMs: Long = 0L
+
     fun ensureStepSensorListening(context: Context) {
         if (sensorRegistered) return
         try {
@@ -169,6 +179,22 @@ object WearTelemetryManager {
                 SensorManager.SENSOR_DELAY_NORMAL
             )
             stepListener = listener
+        } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * Unregisters step counter sensor to let hardware sensor hub enter ultra-low-power sleep
+     * whenever watch face enters ambient mode or is hidden.
+     */
+    fun stopStepSensorListening(context: Context) {
+        if (!sensorRegistered) return
+        try {
+            val appCtx = context.applicationContext
+            val sensorManager = appCtx.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+            stepListener?.let { sensorManager?.unregisterListener(it) }
+            stepListener = null
+            sensorRegistered = false
         } catch (_: Exception) {
         }
     }
@@ -197,8 +223,14 @@ object WearTelemetryManager {
 
     /**
      * [ACTION: PEND-930] Reads real-time watch battery percentage and charging state.
+     * Throttles OS queries to at most once every 15 seconds to eliminate continuous
+     * binder IPC wakeups and GC churn on the 1-second watch face render loop.
      */
     fun readBatteryState(context: Context): Pair<Int, Boolean> {
+        val now = System.currentTimeMillis()
+        if (lastBatteryReadMs > 0L && (now - lastBatteryReadMs) < 15000L && cachedBatteryPct > 0) {
+            return cachedBatteryPct to cachedIsCharging
+        }
         return try {
             val bm = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
             val cap = bm?.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1
@@ -213,9 +245,12 @@ object WearTelemetryManager {
                 val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
                 if (level >= 0 && scale > 0) ((level * 100f) / scale.toFloat()).roundToInt().coerceIn(0, 100) else 100
             }
+            cachedBatteryPct = pct
+            cachedIsCharging = isCharging
+            lastBatteryReadMs = now
             pct to isCharging
         } catch (_: Exception) {
-            100 to false
+            cachedBatteryPct to cachedIsCharging
         }
     }
 
@@ -349,7 +384,6 @@ object WearTelemetryManager {
     }
 
     fun getSnapshot(context: Context): WearTelemetrySnapshot {
-        ensureStepSensorListening(context)
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val todayStr = LocalDate.now().toString()
         val savedDate = prefs.getString(KEY_STEP_DATE, null)
@@ -390,53 +424,35 @@ object WearTelemetryManager {
     }
 
     /**
-     * Refreshes local weather from Open-Meteo if cache is older than 20 minutes.
+     * Refreshes local weather from Open-Meteo with battery-conscious 2-hour caching.
+     * Backs off for 30 minutes on network failure to prevent battery-draining retry loops.
      */
     suspend fun refreshWeatherIfNeeded(context: Context, force: Boolean = false): WearTelemetrySnapshot =
         withContext(Dispatchers.IO) {
-            ensureStepSensorListening(context)
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             val now = System.currentTimeMillis()
             val lastTs = prefs.getLong(KEY_WEATHER_TS, 0L)
 
-            if (!force && (now - lastTs) < 20 * 60 * 1000L && lastTs > 0L) {
+            // Cache for 2 hours (120 minutes)
+            if (!force && (now - lastTs) < 120 * 60 * 1000L && lastTs > 0L) {
                 return@withContext getSnapshot(context)
             }
 
-            try {
-                var lat = prefs.getFloat(KEY_LAT, 51.5074f).toDouble()
-                var lon = prefs.getFloat(KEY_LON, -0.1278f).toDouble()
+            // Backoff 30 minutes on repeated attempts/failures
+            if (!force && (now - lastWeatherAttemptMs) < 30 * 60 * 1000L) {
+                return@withContext getSnapshot(context)
+            }
+            lastWeatherAttemptMs = now
 
-                if (lastTs == 0L) {
-                    try {
-                        val geoConn = (URL("https://ipwho.is/").openConnection() as HttpURLConnection).apply {
-                            requestMethod = "GET"
-                            connectTimeout = 2500
-                            readTimeout = 2500
-                        }
-                        if (geoConn.responseCode in 200..299) {
-                            val geoBody = BufferedReader(InputStreamReader(geoConn.inputStream, "UTF-8")).use { it.readText() }
-                            val geoObj = json.parseToJsonElement(geoBody).jsonObject
-                            val gLat = geoObj["latitude"]?.jsonPrimitive?.doubleOrNull
-                            val gLon = geoObj["longitude"]?.jsonPrimitive?.doubleOrNull
-                            if (gLat != null && gLon != null) {
-                                lat = gLat
-                                lon = gLon
-                                prefs.edit()
-                                    .putFloat(KEY_LAT, lat.toFloat())
-                                    .putFloat(KEY_LON, lon.toFloat())
-                                    .apply()
-                            }
-                        }
-                    } catch (_: Exception) {
-                    }
-                }
+            try {
+                val lat = prefs.getFloat(KEY_LAT, 51.5074f).toDouble()
+                val lon = prefs.getFloat(KEY_LON, -0.1278f).toDouble()
 
                 val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1"
                 val conn = (URL(url).openConnection() as HttpURLConnection).apply {
                     requestMethod = "GET"
-                    connectTimeout = 3500
-                    readTimeout = 3500
+                    connectTimeout = 3000
+                    readTimeout = 3000
                 }
                 if (conn.responseCode in 200..299) {
                     val body = BufferedReader(InputStreamReader(conn.inputStream, "UTF-8")).use { it.readText() }

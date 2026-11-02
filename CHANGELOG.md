@@ -4,6 +4,23 @@ All notable changes to the **Salary Calculator** project are documented in this 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [28.2] - 2026-11-02 (VersionCode: 76)
+### Added / Changed
+- **Wear OS Ultra-Low-Power Battery Optimizations & Ambient State Management (`OPT-945`, `WearCasioWatchFaceService.kt`, `WearTelemetryManager.kt`, `WearSalaryRepository.kt`)**:
+  - **Dynamic Step Sensor Lifecycle**: Observed `watchState.isVisible` and `watchState.isAmbient` to immediately unregister `Sensor.TYPE_STEP_COUNTER` whenever the watch enters ambient mode or the display turns off, allowing the watch hardware sensor hub and CPU to enter deep low-power sleep states.
+  - **Throttled Battery State Reading**: Replaced per-second `registerReceiver` system IPC queries with 15-second memory caching in `WearTelemetryManager.readBatteryState`, completely eliminating binder transaction churn during watchface render loops.
+  - **Zero-Wakeup Weather Architecture**: Extended weather caching to 2 hours with a 30-minute failure backoff, removed external IP geolocation lookups, and restricted watchface minute renders to local DataStore memory access (eliminating periodic radio wakeups).
+  - **Bluetooth-First Wi-Fi Guard on Watch Sync**: Guarded direct watch-to-NAS HTTP sync with `NetworkCapabilities.TRANSPORT_WIFI` check, guaranteeing that watch shift modifications prefer the ultra-low-power Bluetooth LE `Wearable.MessageClient` route without triggering the high-power Wi-Fi modem.
+
+### Bugs Found & Fixed
+- **Watch Battery Drain from Developer Wi-Fi Overrides**: Documented and identified watch battery drain caused by forced Wi-Fi awake developer options (`wifi_sleep_policy`, `stay_on_while_plugged_in`, and Wireless Debugging), which prevent the Wear OS modem from shutting off when connected via Bluetooth.
+- **Continuous Receiver Registration Churn**: Fixed issue in `WearTelemetryManager` where `context.registerReceiver` for `ACTION_BATTERY_CHANGED` was called every single second during interactive watchface rendering.
+
+### What Needs to Be Fixed / Pending
+- Direct Wear OS Bluetooth tile complication provider for instant shift toggling without waking companion activity.
+
+---
+
 ## [28.1] - 2026-11-01 (VersionCode: 75)
 ### Added / Changed
 - **Cross-Device Peer Shift Adoption & Infinite Sync Feedback Termination (`FIX-944`, `AutoBackupObserver.kt`, `SalaryRepository.kt`, `RealtimeMultiDeviceSyncEngine.kt`, `LedgerBackupManager.kt`)**:
